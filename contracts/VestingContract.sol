@@ -4,55 +4,53 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./FunBoxToken.sol";
-
 contract VestingContract {
-    using SafeERC20 for FunBoxToken;
+    using SafeERC20 for IERC20;
 
-    address public TOKEN_ADDRESS;
-    uint256 public TOTAL_AMOUNT;
+    address public tokenAddress;
+    uint256 public totalAmount;
 
-    mapping(address => uint256) public beneficiary_proportion;
+    mapping(address => uint256) public beneficiaryProportion;
     mapping(address => uint256) public released;
 
     // Timing related constants (unix time).
-    uint256 public _start /*= 1000000000*/;
-    uint256[] public _stages /*= [0, 20000, 40000, 60000]*/;
+    uint256 public startSecond /*= 1000000000*/;
+    uint256[] public stageSecond /*= [0, 20000, 40000, 60000]*/;
 
     /**
      * Unlock proportion in corresponding stage.
      */
-    uint256[] public _unlock_proportion /*= [0, 100, 300, 600]*/;
+    uint256[] public unlockProportion /*= [0, 100, 300, 600]*/;
 
     constructor(
-        address tokenAddress,
-        uint256 totalAmount,
-        address[] memory beneficiaries,
-        uint256[] memory proportions,
-        uint256 start,
-        uint256[] memory stages,
-        uint256[] memory unlock_proportion
+        address _tokenAddress,
+        uint256 _totalAmount,
+        address[] memory _beneficiaries,
+        uint256[] memory _proportions,
+        uint256 _start,
+        uint256[] memory _stages,
+        uint256[] memory _unlockProportion
     ) {
-        TOKEN_ADDRESS = tokenAddress;
-        TOTAL_AMOUNT = totalAmount;
+        tokenAddress = _tokenAddress;
+        totalAmount = _totalAmount;
 
         require(totalAmount > 0);
-        require(beneficiaries.length == proportions.length);
-        for (uint256 i = 0; i < beneficiaries.length; i++) {
-            beneficiary_proportion[beneficiaries[i]] = proportions[i];
+        require(_beneficiaries.length == _proportions.length);
+        for (uint256 i = 0; i < _beneficiaries.length; i++) {
+            beneficiaryProportion[_beneficiaries[i]] = _proportions[i];
         }
 
-        _start = start;
-        require(_stages.length == unlock_proportion.length);
+        startSecond = _start;
+        require(_stages.length == _unlockProportion.length);
         for (uint256 i = 0; i < _stages.length; i++) {
-            _stages[i] = stages[i];
-            _unlock_proportion[i] = unlock_proportion[i];
+            stageSecond.push(_stages[i]);
+            unlockProportion.push(_unlockProportion[i]);
         }
     }
 
     function release() public {
         require(
-            beneficiary_proportion[msg.sender] != 0,
+            beneficiaryProportion[msg.sender] != 0,
             "Only beneficiaries receive."
         );
 
@@ -71,7 +69,7 @@ contract VestingContract {
         released[msg.sender] += releasable;
         
         // send ERC20 token to `msg.sender`.
-        FunBoxToken(TOKEN_ADDRESS).safeTransfer(
+        IERC20(tokenAddress).safeTransfer(
             msg.sender,
             releasable
         );
@@ -86,9 +84,9 @@ contract VestingContract {
         returns (uint256 amount)
     {
         return
-            (TOTAL_AMOUNT *
+            (totalAmount *
                 _vestingProportionSchedule(timestamp) *
-                beneficiary_proportion[beneficiary]) / 1_000_000;
+                beneficiaryProportion[beneficiary]) / 1_000_000;
     }
 
     /**
@@ -100,9 +98,9 @@ contract VestingContract {
         view
         returns (uint256 nominator)
     {
-        for (uint i = 0; i < _stages.length; i++) {
-            if (timestamp < _start + _stages[i]) {
-                return _unlock_proportion[i];
+        for (uint i = 0; i < stageSecond.length; i++) {
+            if (timestamp < startSecond + stageSecond[i]) {
+                return unlockProportion[i];
             }
         }
         return 1000;

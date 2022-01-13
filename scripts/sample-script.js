@@ -24,6 +24,28 @@ const hre = require("hardhat");
 
 const main = async () => {
   console.log("Hello, world!");
+  const [owner, u1, u2] = await hre.ethers.getSigners();
+
+  const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
+  const fbt = await FunBoxToken.deploy();
+  await fbt.deployed();
+
+  const fbtAddress = fbt.address;
+  console.log(`fbt is deployed at ${fbtAddress}`);
+  const VestingContract = await hre.ethers.getContractFactory("VestingContract");
+  const vestingContract = await VestingContract.deploy(
+    fbt.address,  // address tokenAddress
+    100000,      // uint256 totalAmount
+    [u1.address, u2.address],    // address[] memory beneficiaries
+    [300, 700],  // uint256[] memory proportions
+    1500000000,  // uint256 start
+    [0, 100000], // uint256[] memory stages
+    [0, 400]     // uint256[] memory unlock_proportion
+  )
+  await vestingContract.deployed();
+
+  const vcAddress = vestingContract.address;
+  console.log(`vc is deployed at ${vcAddress}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
