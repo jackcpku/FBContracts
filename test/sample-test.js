@@ -4,11 +4,11 @@ const hre = require("hardhat");
 
 
 describe("Test VestingContract", function () {
-  let fbt, vc;  // Contract handlers
+  let fbt, vc;               // Contract objects
   let owner, u1, u2;         // Signers
 
-  const startTime = BigInt(1700000000);
-  const stages = [BigInt(0), BigInt(100000)];
+  const startTime = 1700000000;
+  const stages = [0, 100000];
   const unlockProportion = [0, 400];
 
   const totalAmount = BigInt(1000000);
@@ -61,48 +61,68 @@ describe("Test VestingContract", function () {
       await fbt.transfer(vc.address, totalAmount)
       // console.log(await fbt.balanceOf(owner.address));
       expect(await fbt.balanceOf(vc.address)).to.equal(totalAmount);
-      expect(await vc.tokenBalance()).to.equal(totalAmount);
     });
 
     it("Test vest proportion schedule.", async function () {
-      expect(await vc._vestingProportionSchedule(startTime - BigInt(3))).to.equal(0);
+      expect(await vc._vestingProportionSchedule(startTime - 3)).to.equal(0);
       expect(await vc._vestingProportionSchedule(startTime)).to.equal(400);
-      expect(await vc._vestingProportionSchedule(startTime + BigInt(1000))).to.equal(400);
+      expect(await vc._vestingProportionSchedule(startTime + 1000)).to.equal(400);
       expect(await vc._vestingProportionSchedule(startTime + stages[1])).to.equal(1000);
-      expect(await vc._vestingProportionSchedule(startTime + BigInt(10000000))).to.equal(1000);
+      expect(await vc._vestingProportionSchedule(startTime + 10000000)).to.equal(1000);
     });
 
     it("Test vest amount schedule.", async function () {
-      expect(await vc._vestingAmountSchedule(u1.address, startTime - BigInt(3))).to.equal(0);
+      expect(await vc._vestingAmountSchedule(u1.address, startTime - 3)).to.equal(0);
       expect(await vc._vestingAmountSchedule(u1.address, startTime)).to.equal(120000);
-      expect(await vc._vestingAmountSchedule(u1.address, startTime + BigInt(1000))).to.equal(120000);
+      expect(await vc._vestingAmountSchedule(u1.address, startTime + 1000)).to.equal(120000);
       expect(await vc._vestingAmountSchedule(u1.address, startTime + stages[1])).to.equal(300000);
-      expect(await vc._vestingAmountSchedule(u1.address, startTime + BigInt(10000000))).to.equal(300000);
+      expect(await vc._vestingAmountSchedule(u1.address, startTime + 10000000)).to.equal(300000);
 
-      expect(await vc._vestingAmountSchedule(u2.address, startTime - BigInt(3))).to.equal(0);
+      expect(await vc._vestingAmountSchedule(u2.address, startTime - 3)).to.equal(0);
       expect(await vc._vestingAmountSchedule(u2.address, startTime)).to.equal(280000);
-      expect(await vc._vestingAmountSchedule(u2.address, startTime + BigInt(1000))).to.equal(280000);
+      expect(await vc._vestingAmountSchedule(u2.address, startTime + 1000)).to.equal(280000);
       expect(await vc._vestingAmountSchedule(u2.address, startTime + stages[1])).to.equal(700000);
-      expect(await vc._vestingAmountSchedule(u2.address, startTime + BigInt(10000000))).to.equal(700000);
+      expect(await vc._vestingAmountSchedule(u2.address, startTime + 10000000)).to.equal(700000);
     });
 
     it("Test release function.", async function () {
-      // TODO
+      const block = await hre.ethers.provider.getBlock("latest");
+      // Deployment should be earlier than startTime.
+      expect(block.timestamp < startTime);
+
+      // Before startTime, no one should be able to receive tokens.
+      await expect(vc.connect(u1).release()).to.be.revertedWith("Tokens not available.");
+
+      // Speed up the clock.
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime + stages[0]]);
+
+      // Let u1 pull his part from vc.
+      await vc.connect(u1).release();
+      expect(await vc.released(u1.address)).to.equal(120000);
+      expect(await vc.released(u2.address)).to.equal(0);
+
+      // u1 should have some FBT in his wallet now.
+      expect(await fbt.balanceOf(u1.address)).to.equal(120000);
+
+      // After pulling once, u1 should not be able to pull again.
+      await expect(vc.connect(u1).release()).to.be.revertedWith("Tokens not available.");
+
+      // Speed up the clock to the second stage when all funds are available.
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime + stages[1]]);
+
+      // Let u1 pull again.
+      await vc.connect(u1).release();
+
+      expect(await fbt.balanceOf(u1.address)).to.equal(300000);
+
+      // Let u2 pull all funds at once.
+      await vc.connect(u2).release();
+
+      expect(await fbt.balanceOf(u2.address)).to.equal(700000);
+
+      // No one should be able to pull after.
+      await expect(vc.connect(u1).release()).to.be.revertedWith("Tokens not available.");
+      await expect(vc.connect(u2).release()).to.be.revertedWith("Tokens not available.");
     });
   });
-
-  // it("Should return the new greeting once it's changed", async function () {
-  //   const Greeter = await hre.ethers.getContractFactory("Greeter");
-  //   const greeter = await Greeter.deploy("Hello, world!");
-  //   await greeter.deployed();
-
-  //   expect(await greeter.greet()).to.equal("Hello, world!");
-
-  //   const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
-
-  //   // wait until the transaction is mined
-  //   await setGreetingTx.wait();
-
-  //   expect(await greeter.greet()).to.equal("Hola, mundo!");
-  // });
 });

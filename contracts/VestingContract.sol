@@ -75,10 +75,6 @@ contract VestingContract {
         );
     }
 
-    function tokenBalance() public view returns (uint256) {
-        return IERC20(tokenAddress).balanceOf(address(this));
-    }
-
     /**
      * The scheduled vest amount of a certain beneficiary.
      */
