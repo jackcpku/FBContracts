@@ -75,11 +75,15 @@ contract VestingContract {
         );
     }
 
+    function tokenBalance() public view returns (uint256) {
+        return IERC20(tokenAddress).balanceOf(address(this));
+    }
+
     /**
      * The scheduled vest amount of a certain beneficiary.
      */
     function _vestingAmountSchedule(address beneficiary, uint256 timestamp)
-        internal
+        public
         view
         returns (uint256 amount)
     {
@@ -94,7 +98,7 @@ contract VestingContract {
      * Return between [0, 1000] since floating numbers are not supported.
      */
     function _vestingProportionSchedule(uint256 timestamp)
-        internal
+        public
         view
         returns (uint256 nominator)
     {
