@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract VestingContract {
     using SafeERC20 for IERC20;
 
+    address public owner;
+
     address public tokenAddress;
     uint256 public totalAmount;
 
@@ -23,6 +25,7 @@ contract VestingContract {
     uint256[] public unlockProportion /*= [0, 100, 300, 600]*/;
 
     constructor(
+        address _owner,
         address _tokenAddress,
         uint256 _totalAmount,
         address[] memory _beneficiaries,
@@ -31,6 +34,7 @@ contract VestingContract {
         uint256[] memory _stages,
         uint256[] memory _unlockProportion
     ) {
+        owner = _owner;
         tokenAddress = _tokenAddress;
         totalAmount = _totalAmount;
 
@@ -104,5 +108,28 @@ contract VestingContract {
             }
         }
         return 1000;
+    }
+
+    /**
+     * Change beneficiary
+     * @dev Only beneficiaries are supposed to call.
+     * @notice The original beneficiary will not be able to pull after.
+     */
+    function changeBeneficiary(
+        address _originalBeneficiary, 
+        address _newBeneficiary
+    ) 
+        public 
+    {
+        require(beneficiaryProportion[_originalBeneficiary] != 0, "Not a beneficiary.");
+        require(beneficiaryProportion[_newBeneficiary] == 0, "The new beneficiary already exists.");
+
+        require(msg.sender == _originalBeneficiary || msg.sender == owner, "Unauthorized request.");
+
+        beneficiaryProportion[_newBeneficiary] = beneficiaryProportion[_originalBeneficiary];
+        beneficiaryProportion[_originalBeneficiary] = 0;
+        
+        released[_newBeneficiary] = released[_originalBeneficiary];
+        released[_originalBeneficiary] = 0;
     }
 }
