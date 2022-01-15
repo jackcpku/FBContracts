@@ -1,5 +1,5 @@
-// require("@nomiclabs/hardhat-waffle");
-// require('@nomiclabs/hardhat-ethers');
+require("@nomiclabs/hardhat-waffle");
+require('@nomiclabs/hardhat-ethers');
 // require("@nomiclabs/hardhat-etherscan");
 // require('@openzeppelin/hardhat-upgrades');
 // require('dotenv').config();
@@ -35,7 +35,7 @@
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "rinkeby",
+  // defaultNetwork: "rinkeby",
   networks: {
     hardhat: {
     },
