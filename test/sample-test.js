@@ -4,8 +4,8 @@ const hre = require("hardhat");
 
 
 describe("Test VestingContract", function () {
-  let fbt, vc;                       // Contract objects
-  let owner, u1, u2, u3, u4;         // Signers
+  let fbt, vc;                               // Contract objects
+  let owner, owner2, u1, u2, u3, u4;         // Signers
 
   let ownerContractAddress;      // TODO ownerContractAddress should be a multisig wallet
 
@@ -20,7 +20,7 @@ describe("Test VestingContract", function () {
     // Reset test environment.
     await hre.network.provider.send("hardhat_reset");
 
-    [owner, u1, u2, u3, u4] = await hre.ethers.getSigners();
+    [owner, owner2, u1, u2, u3, u4] = await hre.ethers.getSigners();
     ownerContractAddress = owner.address;
     const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
     fbt = await FunBoxToken.deploy();
@@ -32,7 +32,6 @@ describe("Test VestingContract", function () {
     vc = await VestingContract.deploy(
       ownerContractAddress,  // address _owner,
       fbt.address,  // address _tokenAddress,
-      totalAmount,      // uint256 _totalAmount,
       [u1.address, u2.address],    // address[] memory _beneficiaries,
       proportions,  // uint256[] memory _proportions,
       startTime,  // uint256 _start,
@@ -71,25 +70,25 @@ describe("Test VestingContract", function () {
     });
 
     it("Test vest proportion schedule.", async function () {
-      expect(await vc._vestingProportionSchedule(startTime - 3)).to.equal(0);
-      expect(await vc._vestingProportionSchedule(startTime)).to.equal(400);
-      expect(await vc._vestingProportionSchedule(startTime + 1000)).to.equal(400);
-      expect(await vc._vestingProportionSchedule(startTime + stages[1])).to.equal(1000);
-      expect(await vc._vestingProportionSchedule(startTime + 10000000)).to.equal(1000);
+      expect(await vc.vestingProportionSchedule(startTime - 3)).to.equal(0);
+      expect(await vc.vestingProportionSchedule(startTime)).to.equal(400);
+      expect(await vc.vestingProportionSchedule(startTime + 1000)).to.equal(400);
+      expect(await vc.vestingProportionSchedule(startTime + stages[1])).to.equal(1000);
+      expect(await vc.vestingProportionSchedule(startTime + 10000000)).to.equal(1000);
     });
 
     it("Test vest amount schedule.", async function () {
-      expect(await vc._vestingAmountSchedule(u1.address, startTime - 3)).to.equal(0);
-      expect(await vc._vestingAmountSchedule(u1.address, startTime)).to.equal(120000);
-      expect(await vc._vestingAmountSchedule(u1.address, startTime + 1000)).to.equal(120000);
-      expect(await vc._vestingAmountSchedule(u1.address, startTime + stages[1])).to.equal(300000);
-      expect(await vc._vestingAmountSchedule(u1.address, startTime + 10000000)).to.equal(300000);
+      expect(await vc.vestingAmountSchedule(u1.address, startTime - 3)).to.equal(0);
+      expect(await vc.vestingAmountSchedule(u1.address, startTime)).to.equal(120000);
+      expect(await vc.vestingAmountSchedule(u1.address, startTime + 1000)).to.equal(120000);
+      expect(await vc.vestingAmountSchedule(u1.address, startTime + stages[1])).to.equal(300000);
+      expect(await vc.vestingAmountSchedule(u1.address, startTime + 10000000)).to.equal(300000);
 
-      expect(await vc._vestingAmountSchedule(u2.address, startTime - 3)).to.equal(0);
-      expect(await vc._vestingAmountSchedule(u2.address, startTime)).to.equal(280000);
-      expect(await vc._vestingAmountSchedule(u2.address, startTime + 1000)).to.equal(280000);
-      expect(await vc._vestingAmountSchedule(u2.address, startTime + stages[1])).to.equal(700000);
-      expect(await vc._vestingAmountSchedule(u2.address, startTime + 10000000)).to.equal(700000);
+      expect(await vc.vestingAmountSchedule(u2.address, startTime - 3)).to.equal(0);
+      expect(await vc.vestingAmountSchedule(u2.address, startTime)).to.equal(280000);
+      expect(await vc.vestingAmountSchedule(u2.address, startTime + 1000)).to.equal(280000);
+      expect(await vc.vestingAmountSchedule(u2.address, startTime + stages[1])).to.equal(700000);
+      expect(await vc.vestingAmountSchedule(u2.address, startTime + 10000000)).to.equal(700000);
     });
 
     it("Test release function.", async function () {
@@ -131,6 +130,45 @@ describe("Test VestingContract", function () {
       await expect(vc.connect(u1).release()).to.be.revertedWith("Tokens not available.");
       await expect(vc.connect(u2).release()).to.be.revertedWith("Tokens not available.");
     });
+
+    it("Test TokenReleased events", async function () {
+      const block = await hre.ethers.provider.getBlock("latest");
+      // Deployment should be earlier than startTime.
+      expect(block.timestamp < startTime);
+
+      // Speed up the clock.
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime + stages[0]]);
+
+      // Let u1 pull his part from vc.
+      expect(await vc.connect(u1).release()).to.emit(vc, "TokenReleased").withArgs(u1.address, 120000);
+
+      // Speed up the clock to the second stage when all funds are available.
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime + stages[1]]);
+
+      // Let u1 pull again.
+      expect(await vc.connect(u1).release()).to.emit(vc, "TokenReleased").withArgs(u1.address, 180000);
+
+      // Let u2 pull all funds at once.
+      expect(await vc.connect(u2).release()).to.emit(vc, "TokenReleased").withArgs(u2.address, 700000);
+    })
+
+    it("Test change manager", async function () {
+      const block = await hre.ethers.provider.getBlock("latest");
+      // Deployment should be earlier than startTime.
+      expect(block.timestamp < startTime);
+
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime + stages[0]]);
+
+      expect(await vc.transferManagement(owner2.address))
+        .to.emit(vc, "ManagementTransferred").withArgs(owner.address, owner2.address);
+
+      // After owner becomes ex-manager, he has no right to change any beneficiary.
+      await expect(vc.changeBeneficiary(u1.address, u3.address)).to.be.revertedWith("Unauthorized request.");
+
+      // While owner2 has the right to do so.
+      expect(await vc.connect(owner2).changeBeneficiary(u1.address, u3.address))
+        .to.emit(vc, "BeneficiaryChanged").withArgs(u1.address, u3.address, owner2.address);
+    })
 
     it("Test changeBeneficiary.", async function () {
       const block = await hre.ethers.provider.getBlock("latest");
@@ -186,6 +224,26 @@ describe("Test VestingContract", function () {
       await expect(vc.connect(u2).release()).to.be.revertedWith("Only beneficiaries receive.");
       await expect(vc.connect(u3).release()).to.be.revertedWith("Tokens not available.");
       await expect(vc.connect(u4).release()).to.be.revertedWith("Tokens not available.");
+    });
+
+    it("Test BeneficiaryChanged events.", async function () {
+      const block = await hre.ethers.provider.getBlock("latest");
+      // Deployment should be earlier than startTime.
+      expect(block.timestamp < startTime);
+
+      // Speed up the clock.
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime + stages[0]]);
+
+      // Let u1 pull his part from vc.
+      await vc.connect(u1).release();
+
+      // u1 changes beneficiary to u3.
+      expect(await vc.connect(u1).changeBeneficiary(u1.address, u3.address))
+        .to.emit(vc, "BeneficiaryChanged").withArgs(u1.address, u3.address, u1.address);
+
+      // Owner replaces u2 with u4.
+      expect(await vc.changeBeneficiary(u2.address, u4.address))
+        .to.emit(vc, "BeneficiaryChanged").withArgs(u2.address, u4.address, owner.address);
     });
   });
 });

@@ -7,13 +7,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract VestingContract {
     using SafeERC20 for IERC20;
 
-    address public owner;
+    address public manager;
 
     address public tokenAddress;
-    uint256 public totalAmount;
 
     mapping(address => uint256) public beneficiaryProportion;
     mapping(address => uint256) public released;
+    uint256 totalReleased;
 
     // Timing related constants (unix time).
     uint256 public startSecond /*= 1000000000*/;
@@ -24,21 +24,34 @@ contract VestingContract {
      */
     uint256[] public unlockProportion /*= [0, 100, 300, 600]*/;
 
+    /**
+     * A beneficiary pulled from the token pool.
+     */
+    event TokenReleased(address indexed beneficiary, uint256 amount);
+
+    /**
+     * Manager changed from currentManager to newManager.
+     */
+    event ManagementTransferred(address indexed currentManager, address indexed newManager);
+
+    /**
+     * Beneficiary changed from originalBeneficiary to newBeneficiary.
+     */
+    event BeneficiaryChanged(address indexed originalBeneficiary, address indexed newBeneficiary, address indexed executor);
+ 
+
     constructor(
-        address _owner,
+        address _manager,
         address _tokenAddress,
-        uint256 _totalAmount,
         address[] memory _beneficiaries,
         uint256[] memory _proportions,
         uint256 _start,
         uint256[] memory _stages,
         uint256[] memory _unlockProportion
     ) {
-        owner = _owner;
+        manager = _manager;
         tokenAddress = _tokenAddress;
-        totalAmount = _totalAmount;
 
-        require(totalAmount > 0);
         require(_beneficiaries.length == _proportions.length);
         for (uint256 i = 0; i < _beneficiaries.length; i++) {
             beneficiaryProportion[_beneficiaries[i]] = _proportions[i];
@@ -52,13 +65,21 @@ contract VestingContract {
         }
     }
 
+    function transferManagement(address _newManager) public {
+        require(msg.sender == manager, "Unauthorized");
+
+        emit ManagementTransferred(manager, _newManager);
+
+        manager = _newManager;
+    }
+
     function release() public {
         require(
             beneficiaryProportion[msg.sender] != 0,
             "Only beneficiaries receive."
         );
 
-        uint256 scheduledRelease = _vestingAmountSchedule(
+        uint256 scheduledRelease = vestingAmountSchedule(
             msg.sender,
             block.timestamp
         );
@@ -71,7 +92,10 @@ contract VestingContract {
         uint256 releasable = scheduledRelease - released[msg.sender];
 
         released[msg.sender] += releasable;
+        totalReleased += releasable;
         
+        emit TokenReleased(msg.sender, releasable);
+
         // send ERC20 token to `msg.sender`.
         IERC20(tokenAddress).safeTransfer(
             msg.sender,
@@ -82,14 +106,14 @@ contract VestingContract {
     /**
      * The scheduled vest amount of a certain beneficiary.
      */
-    function _vestingAmountSchedule(address beneficiary, uint256 timestamp)
+    function vestingAmountSchedule(address beneficiary, uint256 timestamp)
         public
         view
         returns (uint256 amount)
     {
         return
-            (totalAmount *
-                _vestingProportionSchedule(timestamp) *
+            ((IERC20(tokenAddress).balanceOf(address(this)) + totalReleased) *
+                vestingProportionSchedule(timestamp) *
                 beneficiaryProportion[beneficiary]) / 1_000_000;
     }
 
@@ -97,7 +121,7 @@ contract VestingContract {
      * Returns scheduled vest proportion of all beneficiaries.
      * Return between [0, 1000] since floating numbers are not supported.
      */
-    function _vestingProportionSchedule(uint256 timestamp)
+    function vestingProportionSchedule(uint256 timestamp)
         public
         view
         returns (uint256 nominator)
@@ -124,7 +148,9 @@ contract VestingContract {
         require(beneficiaryProportion[_originalBeneficiary] != 0, "Not a beneficiary.");
         require(beneficiaryProportion[_newBeneficiary] == 0, "The new beneficiary already exists.");
 
-        require(msg.sender == _originalBeneficiary || msg.sender == owner, "Unauthorized request.");
+        require(msg.sender == _originalBeneficiary || msg.sender == manager, "Unauthorized request.");
+
+        emit BeneficiaryChanged(_originalBeneficiary, _newBeneficiary, msg.sender);
 
         beneficiaryProportion[_newBeneficiary] = beneficiaryProportion[_originalBeneficiary];
         beneficiaryProportion[_originalBeneficiary] = 0;
