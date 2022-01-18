@@ -5,10 +5,16 @@ import "../common/BaseNFTManagement.sol";
 import "../common/MostBaseERC721.sol";
 
 contract BasicERC721 is MostBaseERC721, BaseNFTManagement {
-    constructor(string memory _name, string memory _symbol)
-        MostBaseERC721(_name, _symbol)
-        BaseNFTManagement(msg.sender)
-    {}
+    /**
+     * @param _gateway Gateway contract of the NFT contract.
+     */
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address _gateway
+    ) MostBaseERC721(_name, _symbol) BaseNFTManagement(msg.sender) {
+        gateway = _gateway;
+    }
 
     /**
      * @inheritdoc IBaseNFTManagement
