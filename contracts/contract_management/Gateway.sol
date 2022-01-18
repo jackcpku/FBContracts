@@ -1,11 +1,37 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../common/IBaseNFTManagement.sol";
 
-contract Gateway is Initializable {
+contract Gateway is Initializable, AccessControl {
+    /********************************************************************
+     *                          Role System                             *
+     ********************************************************************/
+
+    /**
+     * Gateway manager role
+     */
+    bytes32 public constant GATEWAY_MANAGER_ROLE =
+        keccak256("GATEWAY_MANAGER_ROLE");
+
+    /**
+     * Factory role
+     */
+    bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
+
+    /**
+     * Reserved slots
+     */
+    bytes32 public constant RESERVED_ROLE1 = keccak256("RESERVED_ROLE1");
+    bytes32 public constant RESERVED_ROLE2 = keccak256("RESERVED_ROLE2");
+
+    /********************************************************************
+     *                      Priviledge addresses                        *
+     ********************************************************************/
+
     /**
      * The multi-sig wallet address that controls this contract
      */
@@ -17,6 +43,9 @@ contract Gateway is Initializable {
      * NFT contract.
      */
     address factoryAddress;
+
+    address RESERVED_ADDRESS1;
+    address RESERVED_ADDRESS2;
 
     /**
      * Store a one-to-one relationship between a certain nft contract
@@ -35,11 +64,6 @@ contract Gateway is Initializable {
         address indexed newContractManager
     );
 
-    modifier onlyGatewayManager() {
-        require(msg.sender == gatewayManager, "Unauthorized");
-        _;
-    }
-
     modifier onlyManagerOf(address _nftContract) {
         require(
             msg.sender == nftcontract2manager[_nftContract],
@@ -48,8 +72,11 @@ contract Gateway is Initializable {
         _;
     }
 
-    function initialize() public initializer {
-        gatewayManager = msg.sender;
+    function initialize(address _gatewayManager) public initializer {
+        gatewayManager = _gatewayManager;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, gatewayManager);
+        _grantRole(GATEWAY_MANAGER_ROLE, gatewayManager);
     }
 
     /**
@@ -88,7 +115,8 @@ contract Gateway is Initializable {
      */
     function setManagerOf(address _nftContract, address _manager) public {
         require(
-            msg.sender == gatewayManager || msg.sender == factoryAddress,
+            hasRole(GATEWAY_MANAGER_ROLE, msg.sender) ||
+                hasRole(FACTORY_ROLE, msg.sender),
             "Only gateway manager and factory contract are authorized"
         );
 
@@ -105,7 +133,12 @@ contract Gateway is Initializable {
      * Set the contract factory address.
      * @notice Only the gateway manager should call this function.
      */
-    function setFactoryAddress(address _factory) public onlyGatewayManager {
+    function setFactoryAddress(address _factory)
+        public
+        onlyRole(GATEWAY_MANAGER_ROLE)
+    {
+        revokeRole(FACTORY_ROLE, factoryAddress);
+        grantRole(FACTORY_ROLE, _factory);
         factoryAddress = _factory;
     }
 
@@ -115,9 +148,17 @@ contract Gateway is Initializable {
      */
     function transferGatewayOwnership(address _gatewayManager)
         public
-        onlyGatewayManager
+        onlyRole(GATEWAY_MANAGER_ROLE)
     {
         emit GatewayOwnershipTransferred(gatewayManager, _gatewayManager);
+
+        // The original gateway manager renounces his roles
+        // TODO rotation period
+        renounceRole(DEFAULT_ADMIN_ROLE, gatewayManager);
+        renounceRole(GATEWAY_MANAGER_ROLE, gatewayManager);
+
+        _grantRole(DEFAULT_ADMIN_ROLE, _gatewayManager);
+        _grantRole(GATEWAY_MANAGER_ROLE, _gatewayManager);
 
         gatewayManager = _gatewayManager;
     }
