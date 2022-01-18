@@ -1,7 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 require('@nomiclabs/hardhat-ethers');
 // require("@nomiclabs/hardhat-etherscan");
-// require('@openzeppelin/hardhat-upgrades');
+require('@openzeppelin/hardhat-upgrades');  // For upgradeable contracts
 // require('dotenv').config();
 
 // const fs = require("fs")
