@@ -6,11 +6,18 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../NFTContracts/BasicERC721.sol";
 import "./Gateway.sol";
 
+import "hardhat/console.sol";
+
 contract Factory is Initializable {
     address public gatewayAddress;
 
+    event ContractDeployed(
+        address indexed deployer,
+        address indexed deployedAddress
+    );
+
     function initialize(address _gatewayAddress) public initializer {
-        _gatewayAddress = gatewayAddress;
+        gatewayAddress = _gatewayAddress;
     }
 
     /**
@@ -24,6 +31,8 @@ contract Factory is Initializable {
         deployedAddress = address(
             new BasicERC721(_name, _symbol, gatewayAddress)
         );
+
+        emit ContractDeployed(msg.sender, deployedAddress);
 
         // Set manager of the newly deployed contract.
         Gateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);

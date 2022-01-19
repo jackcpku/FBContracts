@@ -4,6 +4,9 @@ require('@nomiclabs/hardhat-ethers');
 require('@openzeppelin/hardhat-upgrades');  // For upgradeable contracts
 // require('dotenv').config();
 
+// Test coverage
+require('solidity-coverage');
+
 // const fs = require("fs")
 // const { ethers } = require("ethers")
 

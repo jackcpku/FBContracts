@@ -148,6 +148,20 @@ contract Gateway is Initializable, AccessControl {
     }
 
     /**
+     * This is the only way of changing the gateway of a certain contract.
+     * @notice Should be rarely called.
+     */
+    function setGatewayOf(address _nftContract, address _newGateway)
+        public
+        onlyRole(GATEWAY_MANAGER_ROLE)
+    {
+        require(_newGateway != address(this), "Should assign a new gateway");
+
+        nftcontract2manager[_nftContract] = address(0);
+        IBaseNFTManagement(_nftContract).setGateway(_newGateway);
+    }
+
+    /**
      * Change the gateway manager address.
      * @notice Should be rarely called.
      */
