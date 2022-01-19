@@ -22,12 +22,6 @@ contract Gateway is Initializable, AccessControl {
      */
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
 
-    /**
-     * Reserved slots
-     */
-    bytes32 public constant RESERVED_ROLE1 = keccak256("RESERVED_ROLE1");
-    bytes32 public constant RESERVED_ROLE2 = keccak256("RESERVED_ROLE2");
-
     /********************************************************************
      *                      Priviledge addresses                        *
      ********************************************************************/

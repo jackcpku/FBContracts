@@ -12,9 +12,7 @@ contract BasicERC721 is MostBaseERC721, BaseNFTManagement {
         string memory _name,
         string memory _symbol,
         address _gateway
-    ) MostBaseERC721(_name, _symbol) BaseNFTManagement(msg.sender) {
-        gateway = _gateway;
-    }
+    ) MostBaseERC721(_name, _symbol) BaseNFTManagement(_gateway) {}
 
     /**
      * @inheritdoc IBaseNFTManagement
