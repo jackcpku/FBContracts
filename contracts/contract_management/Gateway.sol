@@ -54,13 +54,13 @@ contract Gateway is Initializable, AccessControl {
     mapping(address => address) nftcontract2manager;
 
     event GatewayOwnershipTransferred(
-        address indexed originalGatewayManager,
+        address indexed previousGatewayManager,
         address indexed newGatewayManager
     );
 
     event ManagerAssigned(
         address indexed contractAddress,
-        address indexed originalContractManager,
+        address indexed previousContractManager,
         address indexed newContractManager
     );
 
@@ -152,7 +152,7 @@ contract Gateway is Initializable, AccessControl {
     {
         emit GatewayOwnershipTransferred(gatewayManager, _gatewayManager);
 
-        // The original gateway manager renounces his roles
+        // The previous gateway manager renounces his roles
         // TODO rotation period
         renounceRole(DEFAULT_ADMIN_ROLE, gatewayManager);
         renounceRole(GATEWAY_MANAGER_ROLE, gatewayManager);
