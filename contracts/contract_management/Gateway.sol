@@ -12,10 +12,15 @@ contract Gateway is Initializable, AccessControl {
      ********************************************************************/
 
     /**
-     * Gateway manager role
+     * The current admin role.
      */
-    bytes32 public constant GATEWAY_MANAGER_ROLE =
-        keccak256("GATEWAY_MANAGER_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    /**
+     * Previous admin role, will expire in 1 day.
+     */
+    bytes32 public constant PREVIOUS_ADMIN_ROLE =
+        keccak256("PREVIOUS_ADMIN_ROLE");
 
     /**
      * Factory role
@@ -47,6 +52,16 @@ contract Gateway is Initializable, AccessControl {
      */
     mapping(address => address) nftcontract2manager;
 
+    /**
+     * Record when the previous gateway manager starts transferring ownership.
+     */
+    uint256 graceTimeStart;
+
+    /**
+     * Store the previous gateway manager address
+     */
+    address previousGatewayManager;
+
     event GatewayOwnershipTransferred(
         address indexed previousGatewayManager,
         address indexed newGatewayManager
@@ -66,6 +81,21 @@ contract Gateway is Initializable, AccessControl {
         _;
     }
 
+    function isAdmin(address x) private view returns (bool) {
+        return
+            hasRole(ADMIN_ROLE, x) ||
+            (hasRole(PREVIOUS_ADMIN_ROLE, x) &&
+                block.timestamp < graceTimeStart + 1 days);
+    }
+
+    // Two groups may call onlyAdmin functions:
+    // 1. The current admin
+    // 2. Last admin, 1 day within the ownership transfer
+    modifier onlyAdmin() {
+        require(isAdmin(msg.sender), "Only admin");
+        _;
+    }
+
     /**
      * Gateway is an upgradeable function.
      * When initializing the gateway, a gateway manager address
@@ -74,8 +104,7 @@ contract Gateway is Initializable, AccessControl {
     function initialize(address _gatewayManager) public initializer {
         gatewayManager = _gatewayManager;
 
-        _grantRole(DEFAULT_ADMIN_ROLE, gatewayManager);
-        _grantRole(GATEWAY_MANAGER_ROLE, gatewayManager);
+        _grantRole(ADMIN_ROLE, gatewayManager);
     }
 
     /**
@@ -114,8 +143,7 @@ contract Gateway is Initializable, AccessControl {
      */
     function setManagerOf(address _nftContract, address _manager) public {
         require(
-            hasRole(GATEWAY_MANAGER_ROLE, msg.sender) ||
-                hasRole(FACTORY_ROLE, msg.sender),
+            isAdmin(msg.sender) || hasRole(FACTORY_ROLE, msg.sender),
             "Only gateway manager and factory contract are authorized"
         );
 
@@ -132,12 +160,13 @@ contract Gateway is Initializable, AccessControl {
      * Set the contract factory address.
      * @notice Only the gateway manager should call this function.
      */
-    function setFactoryAddress(address _factory)
-        public
-        onlyRole(GATEWAY_MANAGER_ROLE)
-    {
-        revokeRole(FACTORY_ROLE, factoryAddress);
-        grantRole(FACTORY_ROLE, _factory);
+    function setFactoryAddress(address _factory) public onlyAdmin {
+        require(
+            _factory != factoryAddress,
+            "Should set a different factory address"
+        );
+        _revokeRole(FACTORY_ROLE, factoryAddress);
+        _grantRole(FACTORY_ROLE, _factory);
         factoryAddress = _factory;
     }
 
@@ -147,9 +176,12 @@ contract Gateway is Initializable, AccessControl {
      */
     function setGatewayOf(address _nftContract, address _newGateway)
         public
-        onlyRole(GATEWAY_MANAGER_ROLE)
+        onlyAdmin
     {
-        require(_newGateway != address(this), "Should assign a new gateway");
+        require(
+            _newGateway != address(this),
+            "Should assign a different gateway"
+        );
 
         nftcontract2manager[_nftContract] = address(0);
         IBaseNFTManagement(_nftContract).setGateway(_newGateway);
@@ -161,18 +193,36 @@ contract Gateway is Initializable, AccessControl {
      */
     function transferGatewayOwnership(address _gatewayManager)
         public
-        onlyRole(GATEWAY_MANAGER_ROLE)
+        onlyRole(ADMIN_ROLE)
     {
+        // Revert if it has not been 1 day since last ownership transfer.
+        // This assures no more than one grace admins exist at the same time.
+        require(block.timestamp > graceTimeStart + 1 days);
+
+        require(
+            _gatewayManager != gatewayManager,
+            "Should set a different gateway manager"
+        );
+
         emit GatewayOwnershipTransferred(gatewayManager, _gatewayManager);
 
-        // The previous gateway manager renounces his roles
-        // TODO rotation period
-        renounceRole(DEFAULT_ADMIN_ROLE, gatewayManager);
-        renounceRole(GATEWAY_MANAGER_ROLE, gatewayManager);
+        // The previous gateway manager renounces his big role.
+        _revokeRole(ADMIN_ROLE, gatewayManager);
 
-        _grantRole(DEFAULT_ADMIN_ROLE, _gatewayManager);
-        _grantRole(GATEWAY_MANAGER_ROLE, _gatewayManager);
+        // To make sure PREVIOUS_ADMIN_ROLE contains at most one address at a time,
+        // remove previousGatewayManager from PREVIOUS_ADMIN_ROLE.
+        _revokeRole(PREVIOUS_ADMIN_ROLE, previousGatewayManager);
 
+        // Grant previous gateway manager a grace period of 1 day.
+        _grantRole(PREVIOUS_ADMIN_ROLE, gatewayManager);
+
+        // The new gateway manager picks up his role.
+        _grantRole(ADMIN_ROLE, _gatewayManager);
+
+        // Start the timer.
+        graceTimeStart = block.timestamp;
+
+        previousGatewayManager = gatewayManager;
         gatewayManager = _gatewayManager;
     }
 }
