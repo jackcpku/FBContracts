@@ -72,6 +72,11 @@ contract Gateway is Initializable, AccessControl {
         _;
     }
 
+    /**
+     * Gateway is an upgradeable function.
+     * When initializing the gateway, a gateway manager address
+     * should be designated.
+     */
     function initialize(address _gatewayManager) public initializer {
         gatewayManager = _gatewayManager;
 
