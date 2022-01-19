@@ -6,8 +6,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../NFTContracts/BasicERC721.sol";
 import "./Gateway.sol";
 
-import "hardhat/console.sol";
-
 contract Factory is Initializable {
     address public gatewayAddress;
 
