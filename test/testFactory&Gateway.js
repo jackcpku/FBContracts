@@ -33,7 +33,7 @@ describe("Test Factory & Gateway Contract", function () {
     // Let u2 deploy the contract.
     await factory.connect(u2).deployBasicERC721("U2-contract", "U2T");
     let u2Contract = await hre.ethers.getContractAt("BasicERC721", u2ContractAddress);
-    expect(await u2Contract.getGateway()).to.equal(gateway.address);
+    expect(await u2Contract.gateway()).to.equal(gateway.address);
   });
 
   describe("Access control", function () {
@@ -53,18 +53,18 @@ describe("Test Factory & Gateway Contract", function () {
       await gateway.connect(u2).mint(u2Contract.address, u2.address, "u2NFT01");
       await gateway.connect(u2).mint(u2Contract.address, u2.address, "u2NFT02");
 
-      await gateway.connect(u2).setMetaUri(u2Contract.address, 1, "u2NFT01-modified");
+      await gateway.connect(u2).setTokenURI(u2Contract.address, 1, "u2NFT01-modified");
 
-      expect(await u2Contract.getMetaUri(0)).to.equal("u2NFT00");
-      expect(await u2Contract.getMetaUri(1)).to.equal("u2NFT01-modified");
-      expect(await u2Contract.getMetaUri(2)).to.equal("u2NFT02");
+      expect(await u2Contract.tokenURI(0)).to.equal("u2NFT00");
+      expect(await u2Contract.tokenURI(1)).to.equal("u2NFT01-modified");
+      expect(await u2Contract.tokenURI(2)).to.equal("u2NFT02");
     });
 
     it("u2 should not be able to mint and seturi on U3-contract through gateway", async function () {
       await expect(gateway.connect(u2).mint(u3Contract.address, u2.address, "u3NFT01")).to.be.revertedWith("Unauthorized");
 
       await gateway.connect(u3).mint(u3Contract.address, u3.address, "u3NFT01");
-      await expect(gateway.connect(u2).setMetaUri(u3Contract.address, 1, "u3NFT01-modified")).to.be.revertedWith("Unauthorized");
+      await expect(gateway.connect(u2).setTokenURI(u3Contract.address, 1, "u3NFT01-modified")).to.be.revertedWith("Unauthorized");
     });
 
     it("Gateway manager should not be able to mint on U2-contract", async function () {

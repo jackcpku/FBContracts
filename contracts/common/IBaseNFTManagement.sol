@@ -15,24 +15,17 @@ interface IBaseNFTManagement {
     function setGateway(address gateway) external;
 
     /**
-     * @dev Set the metauri of a certain NFT.
+     * @dev Set the tokenURI of a certain NFT.
      * @param tokenId The target NFT.
-     * @param metaUri Metauri to be set.
+     * @param tokenURI Metauri to be set.
      */
-    function setMetaUri(uint256 tokenId, string memory metaUri) external;
+    function setTokenURI(uint256 tokenId, string memory tokenURI) external;
 
     /**
      * @dev Mint an NFT to the given address.
      * @notice Only gateway contract is authorized to mint.
      * @param recipient The recipient of the minted NFT.
-     * @param metaUri The metauri associated with the NFT.
+     * @param tokenURI The tokenURI associated with the NFT.
      */
-    function mint(address recipient, string memory metaUri) external;
-
-    function getGateway() external view returns (address gateway);
-
-    function getMetaUri(uint256 tokenId)
-        external
-        view
-        returns (string memory metaUri);
+    function mint(address recipient, string memory tokenURI) external;
 }

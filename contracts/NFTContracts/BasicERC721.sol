@@ -26,41 +26,22 @@ contract BasicERC721 is MostBaseERC721, BaseNFTManagement {
     /**
      * @inheritdoc IBaseNFTManagement
      */
-    function setMetaUri(uint256 tokenId, string memory metaUri)
+    function setTokenURI(uint256 tokenId, string memory tokenURI)
         external
         override
         onlyGateway
     {
-        _setTokenURI(tokenId, metaUri);
+        _setTokenURI(tokenId, tokenURI);
     }
 
     /**
      * @inheritdoc IBaseNFTManagement
      */
-    function mint(address recipient, string memory metaUri)
+    function mint(address recipient, string memory tokenURI)
         external
         override
         onlyGateway
     {
-        safeMint(recipient, metaUri);
-    }
-
-    /**
-     * @inheritdoc IBaseNFTManagement
-     */
-    function getGateway() external view override returns (address) {
-        return gateway;
-    }
-
-    /**
-     * @inheritdoc IBaseNFTManagement
-     */
-    function getMetaUri(uint256 tokenId)
-        external
-        view
-        override
-        returns (string memory)
-    {
-        return tokenURI(tokenId);
+        safeMint(recipient, tokenURI);
     }
 }

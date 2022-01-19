@@ -89,29 +89,29 @@ contract Gateway is Initializable, AccessControl {
      * Mint an NFT of the given contract and send it to recipient.
      * @param _nftContract The target NFT contract.
      * @param _recipient Whom should the newly minted NFT belong to.
-     * @param _metaUri The MetaURI of the newly minted NFT.
+     * @param _tokenURI The meta data URI of the newly minted NFT.
      */
     function mint(
         address _nftContract,
         address _recipient,
-        string memory _metaUri
+        string memory _tokenURI
     ) public onlyManagerOf(_nftContract) {
-        IBaseNFTManagement(_nftContract).mint(_recipient, _metaUri);
+        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
     }
 
     /**
      * The entrance point to managing a certain NFT contract.
-     * Set the metauri of a certain NFT given the contract address and tokenId.
+     * Set the tokenURI of a certain NFT given the contract address and tokenId.
      * @param _nftContract The target NFT contract.
      * @param _tokenId Which token of the contract to modify.
-     * @param _metaUri Set the MetaURI of the NFT.
+     * @param _tokenURI Set the meta data URI of the NFT.
      */
-    function setMetaUri(
+    function setTokenURI(
         address _nftContract,
         uint256 _tokenId,
-        string memory _metaUri
+        string memory _tokenURI
     ) public onlyManagerOf(_nftContract) {
-        IBaseNFTManagement(_nftContract).setMetaUri(_tokenId, _metaUri);
+        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
     }
 
     /**
