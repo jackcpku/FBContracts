@@ -17,4 +17,11 @@ abstract contract BaseNFTManagement is IBaseNFTManagement {
     constructor(address _gateway) {
         gateway = _gateway;
     }
+
+    /**
+     * @inheritdoc IBaseNFTManagement
+     */
+    function setGateway(address _gateway) external override onlyGateway {
+        gateway = _gateway;
+    }
 }

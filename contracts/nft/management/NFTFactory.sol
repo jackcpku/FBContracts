@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../NFTContracts/BasicERC721.sol";
-import "./Gateway.sol";
+import "../BasicERC721.sol";
+import "./NFTGateway.sol";
 
-contract Factory is Initializable {
+contract NFTFactory is Initializable {
     address public gatewayAddress;
 
     event ContractDeployed(
@@ -33,6 +33,6 @@ contract Factory is Initializable {
         emit ContractDeployed(msg.sender, deployedAddress);
 
         // Set manager of the newly deployed contract.
-        Gateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
+        NFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
     }
 }
