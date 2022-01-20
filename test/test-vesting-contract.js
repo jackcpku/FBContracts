@@ -2,7 +2,6 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 
 
-
 describe("Test VestingContract", function () {
   let fbt, vc;                               // Contract objects
   let owner, owner2, u1, u2, u3, u4;         // Signers
@@ -26,8 +25,6 @@ describe("Test VestingContract", function () {
     fbt = await FunBoxToken.deploy();
     await fbt.deployed();
 
-    const fbtAddress = fbt.address;
-    console.log(`FunBoxToken deployed at ${fbtAddress}`);
     const VestingContract = await hre.ethers.getContractFactory("VestingContract");
     vc = await VestingContract.deploy(
       ownerContractAddress,  // address _owner,
@@ -40,19 +37,13 @@ describe("Test VestingContract", function () {
     )
     await vc.deployed();
 
-    const vcAddress = vc.address;
-    console.log(`VestingContract deployed at ${vcAddress}`);
   });
 
   it("VC Fields correctly initialized.", async function () {
     expect(await vc.beneficiaryProportion(u1.address)).to.equal(300);
     expect(await vc.beneficiaryProportion(u2.address)).to.equal(700);
 
-    // console.log(await vc.startSecond())
-
     expect(await vc.startSecond()).to.equal(BigInt(1700000000));
-
-    // console.log((await vc.stageSecond(0)));
 
     expect(await vc.stageSecond(0)).to.equal(0);
     expect(await vc.stageSecond(1)).to.equal(100000);

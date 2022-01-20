@@ -10,3 +10,6 @@ artifacts
 
 wallet.json
 .env
+
+#Openzeppelin
+.Openzeppelin
