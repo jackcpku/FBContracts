@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
 
+const { deployNFTGatewayAndNFTFactory } = require('../lib/deploy.js');
 
 describe("Test NFTFactory & NFTGateway Contract", function () {
   let gateway, factory;
@@ -12,18 +13,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     [owner, gatewayAdmin, newGatewayAdmin, u2, u3, u4, anotherFactory, evenAnotherFactory, gatewayManager3] = await hre.ethers.getSigners();
 
-    // First deploy NFTGateway contract.
-    const GateWay = await hre.ethers.getContractFactory("NFTGateway");
-    gateway = await hre.upgrades.deployProxy(GateWay, [gatewayAdmin.address]);
-    await gateway.deployed();
-
-    // Then deploy NFTFactory contract using gateway address.
-    const NFTFactory = await hre.ethers.getContractFactory("NFTFactory");
-    factory = await hre.upgrades.deployProxy(NFTFactory, [gateway.address]);
-    await factory.deployed();
-
-    // Register factory address in the gateway contract.
-    await gateway.connect(gatewayAdmin).addManager(factory.address);
+    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
   });
 
   it("Should deploy a new contract on behalf of u2", async function () {
