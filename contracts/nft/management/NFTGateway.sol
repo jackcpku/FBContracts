@@ -130,7 +130,7 @@ contract NFTGateway is Initializable, AccessControl {
      * @notice Only the admin should call this function.
      */
     function addManager(address _manager) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        grantRole(GATEWAY_MANAGER_ROLE, _manager);
+        _grantRole(GATEWAY_MANAGER_ROLE, _manager);
     }
 
     /**
@@ -141,7 +141,7 @@ contract NFTGateway is Initializable, AccessControl {
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        revokeRole(GATEWAY_MANAGER_ROLE, _manager);
+        _revokeRole(GATEWAY_MANAGER_ROLE, _manager);
     }
 
     /**
@@ -178,9 +178,9 @@ contract NFTGateway is Initializable, AccessControl {
         emit GatewayOwnershipTransferred(msg.sender, _gatewayAdmin);
 
         // The new gateway manager picks up his role.
-        grantRole(DEFAULT_ADMIN_ROLE, _gatewayAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, _gatewayAdmin);
 
         // The previous gateway manager renounces his big role.
-        renounceRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 }
