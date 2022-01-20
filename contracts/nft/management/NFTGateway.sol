@@ -27,11 +27,6 @@ contract NFTGateway is Initializable, AccessControl {
     mapping(address => uint256) nftManagerGraceTimeStart;
 
     /**
-     * Record when the previous gateway manager starts transferring ownership.
-     */
-    uint256 graceTimeStart;
-
-    /**
      * Store the previous gateway manager address
      */
     address previousGatewayManager;
@@ -175,10 +170,6 @@ contract NFTGateway is Initializable, AccessControl {
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        // Revert if it has not been 1 day since last ownership transfer.
-        // This assures no more than one grace admins exist at the same time.
-        require(block.timestamp > graceTimeStart + 1 days);
-
         require(
             _gatewayAdmin != msg.sender,
             "Should set a different gateway manager"
