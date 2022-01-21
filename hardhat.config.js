@@ -71,13 +71,20 @@ module.exports = {
       rinkeby: "I3WPIABXXFG87T2P1YFW67RIAG8UVXCRE1"
     }
   },
-  abiExporter: {
-    path: './abi',
-    runOnCompile: true,
-    clear: true,
-    flat: true,
-    only: [],
-    spacing: 2,
-    pretty: true,
-  }
+  abiExporter: [
+    {
+      path: './abi/pretty',
+      pretty: true,
+      runOnCompile: true,
+      clear: true,
+      flat: true,
+    },
+    {
+      path: './abi/ugly',
+      pretty: false,
+      runOnCompile: true,
+      clear: true,
+      flat: true,
+    },
+  ]
 }
