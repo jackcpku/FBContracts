@@ -2,7 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require('@nomiclabs/hardhat-ethers');
 require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');  // For upgradeable contracts
-// require('dotenv').config();
+require('dotenv').config();
 
 // Test coverage
 require('solidity-coverage');
@@ -21,13 +21,13 @@ if (process.env.ACCOUNT_PRIVATE_KEY) {
 
 // // This is a sample Hardhat task. To learn how to create your own go to
 // // https://hardhat.org/guides/create-task.html
-// task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-//   const accounts = await hre.ethers.getSigners();
+task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners();
 
-//   for (const account of accounts) {
-//     console.log(account.address);
-//   }
-// });
+  for (const account of accounts) {
+    console.log(account.address);
+  }
+});
 
 //////////////////////////////////////////////////////
 
@@ -38,7 +38,7 @@ if (process.env.ACCOUNT_PRIVATE_KEY) {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "rinkeby",
+  defaultNetwork: "hardhat",
   networks: {
     hardhat: {
     },
