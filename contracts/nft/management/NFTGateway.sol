@@ -68,6 +68,18 @@ contract NFTGateway is Initializable, AccessControl {
     }
 
     /**
+     * Check if a signature has expired.
+     * Modifier used in every user-delegated calls.
+     */
+    modifier checkExpire(uint256 _expire) {
+        require(
+            _expire == 0 || block.timestamp < _expire,
+            "Gateway: expired signature"
+        );
+        _;
+    }
+
+    /**
      * NFTGateway is an upgradeable function.
      * When initializing the gateway, a gateway admin address
      * should be designated.
@@ -119,25 +131,28 @@ contract NFTGateway is Initializable, AccessControl {
      * Anyone can mint if they have the manager's signature
      * @param _nftContract The target NFT contract.
      * @param _recipient Whom should the newly minted NFT belong to.
-     * @param _managerSig The manager's signature of mint info.
-     * @param _saltNonce Random nonce used against replay attacks.
      * @param _tokenURI The meta data URI of the newly minted NFT.
+     * @param _expire Signature's expire moment. If 0, never expire.
+     * @param _saltNonce Random nonce used against replay attacks.
+     * @param _managerSig The manager's signature mint action.
      */
     function delegatedMint(
         address _nftContract,
         address _recipient,
-        bytes memory _managerSig,
+        string memory _tokenURI,
+        uint256 _expire,
         bytes memory _saltNonce,
-        string memory _tokenURI
-    ) public checkUsedSignature(_managerSig) {
+        bytes memory _managerSig
+    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
         /**
          * Check signature
          */
         bytes32 criteriaMessageHash = getMessageHash(
             _nftContract,
             _recipient,
-            _saltNonce,
-            _tokenURI
+            _tokenURI,
+            _expire,
+            _saltNonce
         );
         bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
             criteriaMessageHash
@@ -156,25 +171,28 @@ contract NFTGateway is Initializable, AccessControl {
      * Anyone can setTokenURI if they have the manager's signature
      * @param _nftContract The target NFT contract.
      * @param _tokenId Which token of the contract to modify.
-     * @param _managerSig The manager's signature of setTokenURI process.
-     * @param _saltNonce Random nonce used against replay attacks.
      * @param _tokenURI Set the meta data URI of the NFT.
+     * @param _expire Signature's expire moment. If 0, never expire.
+     * @param _saltNonce Random nonce used against replay attacks.
+     * @param _managerSig The manager's signature of setTokenURI action.
      */
     function delegatedSetTokenURI(
         address _nftContract,
         uint256 _tokenId,
-        bytes memory _managerSig,
+        string memory _tokenURI,
+        uint256 _expire,
         bytes memory _saltNonce,
-        string memory _tokenURI
-    ) public checkUsedSignature(_managerSig) {
+        bytes memory _managerSig
+    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
         /**
          * Check signature
          */
         bytes32 criteriaMessageHash = getMessageHash(
             _nftContract,
             _tokenId,
-            _saltNonce,
-            _tokenURI
+            _tokenURI,
+            _expire,
+            _saltNonce
         );
         bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
             criteriaMessageHash
@@ -274,32 +292,51 @@ contract NFTGateway is Initializable, AccessControl {
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    /********************************************************************
+     *                        Helper functions                          *
+     ********************************************************************/
+
+    /**
+     * For delegatedMint()
+     */
     function getMessageHash(
         address _nftContract,
         address _recipient,
-        bytes memory _saltNonce,
-        string memory _tokenURI
+        string memory _tokenURI,
+        uint256 _expire,
+        bytes memory _saltNonce
     ) internal pure returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
                     _nftContract,
                     _recipient,
-                    _saltNonce,
-                    _tokenURI
+                    _tokenURI,
+                    _expire,
+                    _saltNonce
                 )
             );
     }
 
+    /**
+     * For delegatedSetTokenURI()
+     */
     function getMessageHash(
         address _nftContract,
         uint256 _tokenId,
-        bytes memory _saltNonce,
-        string memory _tokenURI
+        string memory _tokenURI,
+        uint256 _expire,
+        bytes memory _saltNonce
     ) internal pure returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(_nftContract, _tokenId, _saltNonce, _tokenURI)
+                abi.encodePacked(
+                    _nftContract,
+                    _tokenId,
+                    _tokenURI,
+                    _expire,
+                    _saltNonce
+                )
             );
     }
 }
