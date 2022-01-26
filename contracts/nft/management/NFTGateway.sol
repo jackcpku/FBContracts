@@ -152,8 +152,8 @@ contract NFTGateway is Initializable, AccessControl {
     }
 
     /**
-     * The entrance point to managing a certain NFT contract.
-     * Set the tokenURI of a certain NFT given the contract address and tokenId.
+     * This is the delegated version of setTokenURI()
+     * Anyone can setTokenURI if they have the manager's signature
      * @param _nftContract The target NFT contract.
      * @param _tokenId Which token of the contract to modify.
      * @param _managerSig The manager's signature of setTokenURI process.
