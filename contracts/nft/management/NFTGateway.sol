@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "../common/IBaseNFTManagement.sol";
 
@@ -27,9 +28,11 @@ contract NFTGateway is Initializable, AccessControl {
     mapping(address => uint256) nftManagerGraceTimeStart;
 
     /**
-     * Store the previous gateway manager address
+     * Deprecated variable.
      */
     address previousGatewayManager;
+
+    mapping(bytes => bool) usedSignagure;
 
     event GatewayOwnershipTransferred(
         address indexed previousGatewayManager,
@@ -52,6 +55,16 @@ contract NFTGateway is Initializable, AccessControl {
             "Unauthorized"
         );
         _;
+    }
+
+    /**
+     * Check if a signature has already been used.
+     * Modifier used in every user-delegated calls.
+     */
+    modifier checkUsedSignature(bytes memory _managerSig) {
+        require(!usedSignagure[_managerSig], "Gateway: used manager signature");
+        _;
+        usedSignagure[_managerSig] = true;
     }
 
     /**
@@ -94,6 +107,83 @@ contract NFTGateway is Initializable, AccessControl {
         uint256 _tokenId,
         string memory _tokenURI
     ) public onlyManagerOf(_nftContract) {
+        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
+    }
+
+    /********************************************************************
+     *      Interfaces exposed to anyone on behalf of nft managers      *
+     ********************************************************************/
+
+    /**
+     * This is the delegated version of mint()
+     * Anyone can mint if they have the manager's signature
+     * @param _nftContract The target NFT contract.
+     * @param _recipient Whom should the newly minted NFT belong to.
+     * @param _managerSig The manager's signature of mint info.
+     * @param _saltNonce Random nonce used against replay attacks.
+     * @param _tokenURI The meta data URI of the newly minted NFT.
+     */
+    function delegatedMint(
+        address _nftContract,
+        address _recipient,
+        bytes memory _managerSig,
+        bytes memory _saltNonce,
+        string memory _tokenURI
+    ) public checkUsedSignature(_managerSig) {
+        /**
+         * Check signature
+         */
+        bytes32 criteriaMessageHash = getMessageHash(
+            _nftContract,
+            _recipient,
+            _saltNonce,
+            _tokenURI
+        );
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
+            criteriaMessageHash
+        );
+        require(
+            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
+                nftManager[_nftContract],
+            "Gateway: invalid manager signature"
+        );
+
+        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
+    }
+
+    /**
+     * The entrance point to managing a certain NFT contract.
+     * Set the tokenURI of a certain NFT given the contract address and tokenId.
+     * @param _nftContract The target NFT contract.
+     * @param _tokenId Which token of the contract to modify.
+     * @param _managerSig The manager's signature of setTokenURI process.
+     * @param _saltNonce Random nonce used against replay attacks.
+     * @param _tokenURI Set the meta data URI of the NFT.
+     */
+    function delegatedSetTokenURI(
+        address _nftContract,
+        uint256 _tokenId,
+        bytes memory _managerSig,
+        bytes memory _saltNonce,
+        string memory _tokenURI
+    ) public checkUsedSignature(_managerSig) {
+        /**
+         * Check signature
+         */
+        bytes32 criteriaMessageHash = getMessageHash(
+            _nftContract,
+            _tokenId,
+            _saltNonce,
+            _tokenURI
+        );
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
+            criteriaMessageHash
+        );
+        require(
+            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
+                nftManager[_nftContract],
+            "Gateway: invalid manager signature"
+        );
         IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
     }
 
@@ -182,5 +272,34 @@ contract NFTGateway is Initializable, AccessControl {
 
         // The previous gateway manager renounces his big role.
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function getMessageHash(
+        address _nftContract,
+        address _recipient,
+        bytes memory _saltNonce,
+        string memory _tokenURI
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    _nftContract,
+                    _recipient,
+                    _saltNonce,
+                    _tokenURI
+                )
+            );
+    }
+
+    function getMessageHash(
+        address _nftContract,
+        uint256 _tokenId,
+        bytes memory _saltNonce,
+        string memory _tokenURI
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(_nftContract, _tokenId, _saltNonce, _tokenURI)
+            );
     }
 }
