@@ -1,17 +1,18 @@
 const { expect } = require("chai");
+const { ethers } = require("hardhat");
 const hre = require("hardhat");
 
 const { deployNFTGatewayAndNFTFactory } = require('../lib/deploy.js');
 
 describe("Test NFTFactory & NFTGateway Contract", function () {
   let gateway, factory;
-  let owner, gatewayAdmin, newGatewayAdmin, u2, u3, u4, anotherFactory, evenAnotherFactory, gatewayManager3;
+  let owner, gatewayAdmin, newGatewayAdmin, u2, u3, u4, anotherFactory, evenAnotherFactory, gatewayManager3, u5, u6;
 
   beforeEach("Deploy contracts", async function () {
     // Reset test environment.
     await hre.network.provider.send("hardhat_reset");
 
-    [owner, gatewayAdmin, newGatewayAdmin, u2, u3, u4, anotherFactory, evenAnotherFactory, gatewayManager3] = await hre.ethers.getSigners();
+    [owner, gatewayAdmin, newGatewayAdmin, u2, u3, u4, anotherFactory, evenAnotherFactory, gatewayManager3, u5, u6] = await hre.ethers.getSigners();
 
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
   });
@@ -25,6 +26,101 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     let u2Contract = await hre.ethers.getContractAt("BasicERC721", u2ContractAddress);
     expect(await u2Contract.gateway()).to.equal(gateway.address);
   });
+
+  describe("Delegation", function () {
+    let u5Contract, u6Contract;
+
+    beforeEach("Deploy contracts on behalf of u5 & u6", async function () {
+      let u5ContractAddress = await factory.connect(u5).callStatic.deployBasicERC721("u5-contract", "u5T");
+      await factory.connect(u5).deployBasicERC721("u5-contract", "u5T");
+      u5Contract = await hre.ethers.getContractAt("BasicERC721", u5ContractAddress);
+
+      let u6ContractAddress = await factory.connect(u6).callStatic.deployBasicERC721("u6-contract", "u6T");
+      await factory.connect(u6).deployBasicERC721("u6-contract", "u6T");
+      u6Contract = await hre.ethers.getContractAt("BasicERC721", u6ContractAddress);
+    });
+
+    const NEVER_EXPIRE = 0;
+
+    it("Anyone should be able to mint NFT to recipient if they have the manager's signature", async function () {
+      /**
+       * For references
+       */
+      const saltNonce = "0x0000000000000000000000000000000000000000000000000000000195738178";
+      const criteriaMessageHash = ethers.utils.solidityKeccak256(
+        ["address", "address", "string", "uint256", "bytes"],
+        [
+          u5Contract.address,
+          u2.address,
+          "u5NFT",
+          NEVER_EXPIRE,
+          saltNonce
+        ]
+      )
+      const u5Sig = await u5.signMessage(ethers.utils.arrayify(criteriaMessageHash));
+
+      // u2 should not be able to mint to a different address
+      await expect(gateway.connect(u2).delegatedMint(
+        u5Contract.address,
+        u3.address,
+        "u5NFT",
+        NEVER_EXPIRE,
+        saltNonce,
+        u5Sig
+      )).to.be.revertedWith("Gateway: invalid manager signature");
+
+      // u2 should be able to mint to u2 on u5Contract
+      await gateway.connect(u2).delegatedMint(
+        u5Contract.address,
+        u2.address,
+        "u5NFT",
+        NEVER_EXPIRE,
+        saltNonce,
+        u5Sig
+      );
+    });
+
+    it("Anyone should be able to setTokenURI if they have the manager's signature", async function () {
+      // First mint an NFT
+      await gateway.connect(u5).mint(u5Contract.address, u5.address, "HAHAHA");
+
+      /**
+       * For references
+       */
+      const saltNonce = "0x0000000000000000000000000000000000000000000000000000000195738179";
+      const criteriaMessageHash = ethers.utils.solidityKeccak256(
+        ["address", "uint256", "string", "uint256", "bytes"],
+        [
+          u5Contract.address,
+          0,
+          "u5NFTTTT",
+          NEVER_EXPIRE,
+          saltNonce
+        ]
+      )
+      const u5Sig = await u5.signMessage(ethers.utils.arrayify(criteriaMessageHash));
+
+      // u2 should be able to setTokenURI on u5Contract
+      await gateway.connect(u2).delegatedSetTokenURI(
+        u5Contract.address,
+        0,
+        "u5NFTTTT",
+        NEVER_EXPIRE,
+        saltNonce,
+        u5Sig
+      );
+
+      // u2 should not be able to setTokenURI again
+      await expect(gateway.connect(u2).delegatedSetTokenURI(
+        u5Contract.address,
+        0,
+        "u5NFTTTT",
+        NEVER_EXPIRE,
+        saltNonce,
+        u5Sig
+      )).to.be.revertedWith("Gateway: used manager signature");
+    });
+  })
 
   describe("Access control", function () {
     let u2Contract, u3Contract;
@@ -117,5 +213,5 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       // newGatewayAdmin adds a gateway manager
       await gateway.connect(newGatewayAdmin).addManager(gatewayManager3.address);
     });
-  });
+  })
 });

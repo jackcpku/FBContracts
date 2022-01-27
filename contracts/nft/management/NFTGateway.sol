@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "../common/IBaseNFTManagement.sol";
 
@@ -27,9 +28,11 @@ contract NFTGateway is Initializable, AccessControl {
     mapping(address => uint256) nftManagerGraceTimeStart;
 
     /**
-     * Store the previous gateway manager address
+     * Deprecated variable.
      */
     address previousGatewayManager;
+
+    mapping(bytes => bool) usedSignagure;
 
     event GatewayOwnershipTransferred(
         address indexed previousGatewayManager,
@@ -50,6 +53,28 @@ contract NFTGateway is Initializable, AccessControl {
                     block.timestamp <
                     nftManagerGraceTimeStart[_nftContract] + 1 days),
             "Unauthorized"
+        );
+        _;
+    }
+
+    /**
+     * Check if a signature has already been used.
+     * Modifier used in every user-delegated calls.
+     */
+    modifier checkUsedSignature(bytes memory _managerSig) {
+        require(!usedSignagure[_managerSig], "Gateway: used manager signature");
+        _;
+        usedSignagure[_managerSig] = true;
+    }
+
+    /**
+     * Check if a signature has expired.
+     * Modifier used in every user-delegated calls.
+     */
+    modifier checkExpire(uint256 _expire) {
+        require(
+            _expire == 0 || block.timestamp < _expire,
+            "Gateway: expired signature"
         );
         _;
     }
@@ -94,6 +119,89 @@ contract NFTGateway is Initializable, AccessControl {
         uint256 _tokenId,
         string memory _tokenURI
     ) public onlyManagerOf(_nftContract) {
+        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
+    }
+
+    /********************************************************************
+     *      Interfaces exposed to anyone on behalf of nft managers      *
+     ********************************************************************/
+
+    /**
+     * This is the delegated version of mint()
+     * Anyone can mint if they have the manager's signature
+     * @param _nftContract The target NFT contract.
+     * @param _recipient Whom should the newly minted NFT belong to.
+     * @param _tokenURI The meta data URI of the newly minted NFT.
+     * @param _expire Signature's expire moment. If 0, never expire.
+     * @param _saltNonce Random nonce used against replay attacks.
+     * @param _managerSig The manager's signature mint action.
+     */
+    function delegatedMint(
+        address _nftContract,
+        address _recipient,
+        string memory _tokenURI,
+        uint256 _expire,
+        bytes memory _saltNonce,
+        bytes memory _managerSig
+    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
+        /**
+         * Check signature
+         */
+        bytes32 criteriaMessageHash = getMessageHash(
+            _nftContract,
+            _recipient,
+            _tokenURI,
+            _expire,
+            _saltNonce
+        );
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
+            criteriaMessageHash
+        );
+        require(
+            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
+                nftManager[_nftContract],
+            "Gateway: invalid manager signature"
+        );
+
+        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
+    }
+
+    /**
+     * This is the delegated version of setTokenURI()
+     * Anyone can setTokenURI if they have the manager's signature
+     * @param _nftContract The target NFT contract.
+     * @param _tokenId Which token of the contract to modify.
+     * @param _tokenURI Set the meta data URI of the NFT.
+     * @param _expire Signature's expire moment. If 0, never expire.
+     * @param _saltNonce Random nonce used against replay attacks.
+     * @param _managerSig The manager's signature of setTokenURI action.
+     */
+    function delegatedSetTokenURI(
+        address _nftContract,
+        uint256 _tokenId,
+        string memory _tokenURI,
+        uint256 _expire,
+        bytes memory _saltNonce,
+        bytes memory _managerSig
+    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
+        /**
+         * Check signature
+         */
+        bytes32 criteriaMessageHash = getMessageHash(
+            _nftContract,
+            _tokenId,
+            _tokenURI,
+            _expire,
+            _saltNonce
+        );
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
+            criteriaMessageHash
+        );
+        require(
+            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
+                nftManager[_nftContract],
+            "Gateway: invalid manager signature"
+        );
         IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
     }
 
@@ -182,5 +290,53 @@ contract NFTGateway is Initializable, AccessControl {
 
         // The previous gateway manager renounces his big role.
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    /********************************************************************
+     *                        Helper functions                          *
+     ********************************************************************/
+
+    /**
+     * For delegatedMint()
+     */
+    function getMessageHash(
+        address _nftContract,
+        address _recipient,
+        string memory _tokenURI,
+        uint256 _expire,
+        bytes memory _saltNonce
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    _nftContract,
+                    _recipient,
+                    _tokenURI,
+                    _expire,
+                    _saltNonce
+                )
+            );
+    }
+
+    /**
+     * For delegatedSetTokenURI()
+     */
+    function getMessageHash(
+        address _nftContract,
+        uint256 _tokenId,
+        string memory _tokenURI,
+        uint256 _expire,
+        bytes memory _saltNonce
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    _nftContract,
+                    _tokenId,
+                    _tokenURI,
+                    _expire,
+                    _saltNonce
+                )
+            );
     }
 }
