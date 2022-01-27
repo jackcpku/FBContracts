@@ -47,13 +47,7 @@ contract NFTGateway is Initializable, AccessControl {
     );
 
     modifier onlyManagerOf(address _nftContract) {
-        require(
-            msg.sender == nftManager[_nftContract] ||
-                (msg.sender == nftPreviousManager[_nftContract] &&
-                    block.timestamp <
-                    nftManagerGraceTimeStart[_nftContract] + 1 days),
-            "Unauthorized"
-        );
+        require(isInManagement(msg.sender, _nftContract), "Unauthorized");
         _;
     }
 
@@ -295,6 +289,23 @@ contract NFTGateway is Initializable, AccessControl {
     /********************************************************************
      *                        Helper functions                          *
      ********************************************************************/
+
+    /**
+     * @dev Check if address `_x` is in management.
+     * @notice If `_x` is the previous manager and the grace period has not
+     * passed, still returns true.
+     */
+    function isInManagement(address _x, address _nftContract)
+        public
+        view
+        returns (bool)
+    {
+        return
+            _x == nftManager[_nftContract] ||
+            (_x == nftPreviousManager[_nftContract] &&
+                block.timestamp <
+                nftManagerGraceTimeStart[_nftContract] + 1 days);
+    }
 
     /**
      * For delegatedMint()
