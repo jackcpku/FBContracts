@@ -193,8 +193,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      * @param _saltNonce Nonce used for the bid.
      * @param _sellerAddress Seller of the to-be-selled NFT.
      * @param _sellerSignature Seller's signature of the whole bid.
-     *
-     * 交易会将 values[1] - fee 数量的 THC 转移给 seller, 将 fee 数量的 THC 转移给 platformAddress
      */
     function buy(
         address _nftContract,
