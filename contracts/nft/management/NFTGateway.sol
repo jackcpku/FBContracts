@@ -23,7 +23,7 @@ contract NFTGateway is Initializable, AccessControl {
      * Store a one-to-one relationship between a certain nft contract
      * and a manager address.
      */
-    mapping(address => address) nftManager;
+    mapping(address => address) public nftManager;
     mapping(address => address) nftPreviousManager;
     mapping(address => uint256) nftManagerGraceTimeStart;
 

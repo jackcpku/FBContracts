@@ -8,10 +8,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../nft/management/INFTGateway.sol";
+import "../nft/management/NFTGateway.sol";
 
 contract Marketplace is Initializable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20;
@@ -366,7 +365,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             "Marketplace: buyer doesn't approve marketplace to spend payment amount"
         );
 
-        address managerRole = INFTGateway(nftGateway).nftManager(_nftContract);
+        address managerRole = NFTGateway(nftGateway).nftManager(_nftContract);
         bool isExoticContract = (managerRole == address(0));
         if (isExoticContract) {
             require(
@@ -382,7 +381,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         uint256[3] memory payments;
 
         if (
-            INFTGateway(nftGateway).isInManagement(
+            NFTGateway(nftGateway).isInManagement(
                 _sellerAddress,
                 _nftContract
             ) || (isExoticContract && _sellerAddress == managerRole)
