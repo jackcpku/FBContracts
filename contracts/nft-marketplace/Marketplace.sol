@@ -357,11 +357,11 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         // Check payment approval and buyer balance
         IERC20 paymentContract = IERC20(_paymentTokenContract);
         require(
-            paymentContract.balanceOf(msg.sender) >= _price,
+            paymentContract.balanceOf(_buyerAddress) >= _price,
             "Marketplace: buyer doesn't have enough token to buy this item"
         );
         require(
-            paymentContract.allowance(msg.sender, address(this)) >= _price,
+            paymentContract.allowance(_buyerAddress, address(this)) >= _price,
             "Marketplace: buyer doesn't approve marketplace to spend payment amount"
         );
 
