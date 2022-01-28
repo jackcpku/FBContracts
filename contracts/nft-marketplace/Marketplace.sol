@@ -239,6 +239,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             msg.sender
         );
 
+        cancelledOrFinalized[_sellerSignature] = true;
+
         // Emit sale event
         emit MatchTransaction(
             _nftContract,
