@@ -16,28 +16,52 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20;
     using SafeMath for uint256;
 
+    /********************************************************************
+     *                      Convenience structs                         *
+     ********************************************************************/
+
+    struct OrderMetadata {
+        uint256 listingTime;
+        uint256 expirationTime;
+        uint256 maximumFill;
+        uint256 salt;
+    }
+
+    struct Order {
+        address marketplaceAddress;
+        address targetTokenAddress;
+        uint256 targetTokenId;
+        address paymentTokenAddress;
+        uint256 price;
+        uint256 serviceFee;
+        uint256 royaltyFee;
+        address royaltyFeeReceipient;
+    }
+
+    uint256 public constant BASE = 10000;
+    uint256 public constant BURN = BASE / 2;
+
+    /********************************************************************
+     *                        Transaction modes                         *
+     ********************************************************************/
+
+    bytes32 public constant ERC721_FOR_ERC20 = keccak256("ERC721_FOR_ERC20");
+
+    /********************************************************************
+     *                         State variables                          *
+     ********************************************************************/
+
     // Supported payment ERC20 tokens
     mapping(address => bool) public paymentTokens;
-
-    // Used signatures
-    mapping(bytes => bool) public cancelledOrFinalized;
-
-    // When an NFT contract does not associate with the gateway,
-    // assign a fallback manager for it to receive transaction fee.
-    mapping(address => address) public fallbackManager;
+    address mainPaymentToken;
 
     // Platform address that receives transaction fee
     address public platformAddress;
 
-    // NFT Gateway contract address
-    address public nftGateway;
+    /********************************************************************
+     *                             Events                               *
+     ********************************************************************/
 
-    // When manager sells, fees[0] / 10000 goes to platform
-    // When non-manager sells, fees[1] / 10000 goes to platform
-    // When non-manager sells, fees[2] / 10000 goes to manager
-    uint256[3] private fees;
-
-    // Events
     event MatchTransaction(
         address indexed contractAddress,
         uint256 indexed tokenId,
@@ -49,42 +73,14 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     function initialize() public initializer {
         __Ownable_init();
-
-        // When manager sells, 5000 / 10000 goes to us
-        fees[0] = 5000;
-        // When non-manager sells, 100 / 10000 goes to us
-        fees[1] = 100;
-        // When non-manager sells, another 100 / 10000 goes to game provider (i.e. manager)
-        fees[2] = 100;
     }
 
     /********************************************************************
      *                      Owner-only functions                        *
      ********************************************************************/
 
-    function setNftGateway(address _nftGateway) public onlyOwner {
-        nftGateway = _nftGateway;
-    }
-
-    /**
-     * @dev In case that an NFT contract doesn't associate with the gateway contract,
-     * a fallback manager is needed to receive the transaction fee.
-     */
-    function setFallbackManager(address _nftContract, address _fallbackManager)
-        public
-        onlyOwner
-    {
-        fallbackManager[_nftContract] = _fallbackManager;
-    }
-
     function setPlatformAddress(address _platformAddress) public onlyOwner {
         platformAddress = _platformAddress;
-    }
-
-    function setFees(uint256[3] memory _fees) public onlyOwner {
-        fees[0] = _fees[0];
-        fees[1] = _fees[1];
-        fees[2] = _fees[2];
     }
 
     function setPaymentTokens(address[] calldata _paymentTokens)
@@ -109,354 +105,340 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         }
     }
 
+    function setMainPaymentToken(address _mainPaymentToken) public onlyOwner {
+        mainPaymentToken = _mainPaymentToken;
+        paymentTokens[_mainPaymentToken] = true;
+    }
+
+    /********************************************************************
+     *                      New functions                       *
+     ********************************************************************/
+
+    mapping(address => mapping(bytes => bool)) cancelledOrFinalized;
+
+    function atomicMatch_(
+        bytes32 transactionType,
+        bytes memory _order,
+        address seller,
+        bytes memory _sellerMetadata,
+        bytes memory sellerSig,
+        address buyer,
+        bytes memory _buyerMetadata,
+        bytes memory buyerSig
+    ) public {
+        /*
+         * `sellerData` detail
+         * uint256 listingTime
+         * uint256 expirationTime
+         * uint256 maximumFill
+         * uint256 salt
+         *
+         * `buyerData` detail
+         * uint256 listingTime
+         * uint256 expirationTime
+         * uint256 maximumFill
+         * uint256 salt
+         *
+         * `order` detail
+         * address marketplaceAddress
+         * address targetTokenAddress
+         * uint256 targetTokenId
+         * address paymentTokenAddress
+         * uint256 price
+         * uint256 serviceFee -> platformAddress
+         * uint256 royaltyFee -> royaltyFeeReceipient
+         * address royaltyFeeReceipient
+         */
+        Order memory order;
+        {
+            (
+                address marketplaceAddress,
+                address targetTokenAddress,
+                uint256 targetTokenId,
+                address paymentTokenAddress,
+                uint256 price,
+                uint256 serviceFee,
+                uint256 royaltyFee,
+                address royaltyFeeReceipient
+            ) = abi.decode(
+                    _order,
+                    (
+                        address,
+                        address,
+                        uint256,
+                        address,
+                        uint256,
+                        uint256,
+                        uint256,
+                        address
+                    )
+                );
+            order = Order(
+                marketplaceAddress,
+                targetTokenAddress,
+                targetTokenId,
+                paymentTokenAddress,
+                price,
+                serviceFee,
+                royaltyFee,
+                royaltyFeeReceipient
+            );
+        }
+        OrderMetadata memory sellerMetadata;
+        {
+            (
+                uint256 listingTime,
+                uint256 expirationTime,
+                uint256 maximumFill,
+                uint256 salt
+            ) = abi.decode(
+                    _sellerMetadata,
+                    (uint256, uint256, uint256, uint256)
+                );
+            sellerMetadata = OrderMetadata(
+                listingTime,
+                expirationTime,
+                maximumFill,
+                salt
+            );
+        }
+        OrderMetadata memory buyerMetadata;
+        {
+            (
+                uint256 listingTime,
+                uint256 expirationTime,
+                uint256 maximumFill,
+                uint256 salt
+            ) = abi.decode(
+                    _buyerMetadata,
+                    (uint256, uint256, uint256, uint256)
+                );
+            buyerMetadata = OrderMetadata(
+                listingTime,
+                expirationTime,
+                maximumFill,
+                salt
+            );
+        }
+        return
+            atomicMatch(
+                transactionType,
+                order,
+                seller,
+                sellerMetadata,
+                sellerSig,
+                buyer,
+                buyerMetadata,
+                buyerSig
+            );
+    }
+
+    function atomicMatch(
+        bytes32 transactionType,
+        Order memory order,
+        address seller,
+        OrderMetadata memory sellerMetadata,
+        bytes memory sellerSig,
+        address buyer,
+        OrderMetadata memory buyerMetadata,
+        bytes memory buyerSig
+    ) internal {
+        if (transactionType == ERC721_FOR_ERC20) {
+            /*  CHECKS  */
+            require(
+                !cancelledOrFinalized[seller][sellerSig] &&
+                    !cancelledOrFinalized[buyer][buyerSig],
+                "Signature has been used"
+            );
+            require(
+                sellerMetadata.listingTime < block.timestamp &&
+                    (sellerMetadata.expirationTime == 0 ||
+                        sellerMetadata.expirationTime > block.timestamp),
+                "Sell order expired"
+            );
+            require(
+                buyerMetadata.listingTime < block.timestamp &&
+                    (buyerMetadata.expirationTime == 0 ||
+                        buyerMetadata.expirationTime > block.timestamp),
+                "Buy order expired"
+            );
+            require(
+                paymentTokens[order.paymentTokenAddress] == true,
+                "Marketplace: invalid payment method"
+            );
+
+            // Check signature validity
+            require(
+                checkSigValidity(seller, order, sellerMetadata, sellerSig),
+                "Seller signature is not valid"
+            );
+            require(
+                checkSigValidity(buyer, order, buyerMetadata, buyerSig),
+                "Buyer signature is not valid"
+            );
+
+            /*  EFFECTS  */
+            executeTransfers(order, seller, buyer);
+
+            /*  LOGS  */
+            emit MatchTransaction(
+                order.targetTokenAddress,
+                order.targetTokenId,
+                order.paymentTokenAddress,
+                order.price,
+                seller,
+                buyer
+            );
+        }
+    }
+
     /********************************************************************
      *                      User-called functions                       *
      ********************************************************************/
 
     /**
      * Ignore a single signature.
-     * @dev Called when a seller wants to cancel a bid.
-     * @param _nftContract Identify the to-be-selled NFT.
-     * @param _tokenId Identify the to-be-selled NFT.
-     * @param _paymentTokenContract Set the payment token.
-     * @param _price Cancel the bid of which price.
-     * @param _saltNonce Nonce used for the bid.
-     * @param _signature Seller's signature of the whole bid.
+     * @param signature Bidder's signature of the order.
      */
-    function ignoreSignature(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256 _price,
-        uint256 _saltNonce,
-        bytes memory _signature
-    ) public {
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _saltNonce
-        );
+    function ignoreSignature(bytes memory signature) public {
         require(
-            ECDSA.recover(ethSignedMessageHash, _signature) == msg.sender,
-            "Marketplace: invalid seller signature"
+            cancelledOrFinalized[msg.sender][signature] == false,
+            "Signature has been cancelled or used"
         );
 
-        cancelledOrFinalized[_signature] = true;
+        cancelledOrFinalized[msg.sender][signature] = true;
     }
 
     /**
      * Ignore a bunch of signatures. Parameters similar to the single-cancel version.
-     * @dev Called when a seller wants to cancel multiple bids.
-     * @param _nftContract Identify the to-be-selled NFT.
-     * @param _tokenId Identify the to-be-selled NFT.
-     * @param _paymentTokenContract Set the payment token.
-     * @param _price Cancel the bid of which price.
-     * @param _saltNonce Nonce used for the bid.
-     * @param _signature Seller's signature of the whole bid.
      */
-    function ignoreSignatures(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256[] memory _price,
-        uint256[] memory _saltNonce,
-        bytes[] memory _signature
-    ) public {
-        uint256 len_price = _price.length;
-        uint256 len_saltNonce = _saltNonce.length;
-        uint256 len_signature = _signature.length;
-        require(
-            len_price == len_saltNonce && len_price == len_signature,
-            "Marketplace: invalid parameters"
-        );
-
-        for (uint256 i = 0; i < len_price; i++) {
-            ignoreSignature(
-                _nftContract,
-                _tokenId,
-                _paymentTokenContract,
-                _price[i],
-                _saltNonce[i],
-                _signature[i]
-            );
+    function ignoreSignatures(bytes[] memory signatures) public {
+        for (uint256 i = 0; i < signatures.length; i++) {
+            ignoreSignature(signatures[i]);
         }
-    }
-
-    /**
-     * @dev Called when buyer matches a sell order.
-     * @param _nftContract Identify the to-be-selled NFT.
-     * @param _tokenId Identify the to-be-selled NFT.
-     * @param _paymentTokenContract Set the payment token.
-     * @param _price Cancel the bid of which price.
-     * @param _saltNonce Nonce used for the bid.
-     * @param _sellerAddress Seller of the to-be-selled NFT.
-     * @param _sellerSignature Seller's signature of the whole bid.
-     */
-    function buy(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256 _price,
-        uint256 _saltNonce,
-        address _sellerAddress,
-        bytes memory _sellerSignature
-    ) external {
-        require(
-            paymentTokens[_paymentTokenContract] == true,
-            "Marketplace: invalid payment method"
-        );
-
-        require(
-            !cancelledOrFinalized[_sellerSignature],
-            "Marketplace: signature used"
-        );
-
-        // When sellers place a sell bid, they sign the following items.
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _saltNonce
-        );
-
-        require(
-            ECDSA.recover(ethSignedMessageHash, _sellerSignature) ==
-                _sellerAddress,
-            "Marketplace: invalid seller signature"
-        );
-
-        matchTransactionUnchecked(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _sellerAddress,
-            msg.sender
-        );
-
-        cancelledOrFinalized[_sellerSignature] = true;
-
-        // Emit sale event
-        emit MatchTransaction(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _sellerAddress,
-            msg.sender
-        );
     }
 
     /********************************************************************
      *                Delegated buyer-called functions                  *
      ********************************************************************/
 
-    /**
-     * @dev Called when buyer wants to match an sell order.
-     * @notice Delegator covers the gas fee.
-     * @param _nftContract Identify the to-be-selled NFT.
-     * @param _tokenId Identify the to-be-selled NFT.
-     * @param _paymentTokenContract Set the payment token.
-     * @param _price Cancel the bid of which price.
-     * @param _saltNonce Nonce used for the bid.
-     * @param _sellerAddress Seller of the to-be-selled NFT.
-     * @param _sellerSignature Seller's signature of the whole bid.
-     * @param _buyerAddress Buyer of the to-be-selled NFT.
-     * @param _buyerSignature Buyer's signature of the whole bid.
-     *
-     */
-    function delegatedBuy(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256 _price,
-        uint256 _saltNonce,
-        address _sellerAddress,
-        bytes memory _sellerSignature,
-        address _buyerAddress,
-        bytes memory _buyerSignature
-    ) external {
-        require(
-            paymentTokens[_paymentTokenContract] == true,
-            "Marketplace: invalid payment method"
-        );
-
-        require(
-            !cancelledOrFinalized[_sellerSignature] &&
-                !cancelledOrFinalized[_buyerSignature],
-            "Marketplace: signature used"
-        );
-
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _saltNonce
-        );
-
-        // Check seller's signature
-        require(
-            ECDSA.recover(ethSignedMessageHash, _sellerSignature) ==
-                _sellerAddress,
-            "Marketplace: invalid seller signature"
-        );
-
-        // Check buyer's signature
-        require(
-            ECDSA.recover(ethSignedMessageHash, _buyerSignature) ==
-                _buyerAddress,
-            "Marketplace: invalid buyer signature"
-        );
-
-        matchTransactionUnchecked(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _sellerAddress,
-            _buyerAddress
-        );
-
-        cancelledOrFinalized[_sellerSignature] = true;
-        cancelledOrFinalized[_buyerSignature] = true;
-
-        // Emit sale event
-        emit MatchTransaction(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _sellerAddress,
-            _buyerAddress
-        );
-    }
-
     /********************************************************************
      *                        Helper functions                          *
      ********************************************************************/
 
-    function matchTransactionUnchecked(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256 _price,
-        address _sellerAddress,
-        address _buyerAddress
-    ) internal {
-        // Check current ownership
-        IERC721 nft = IERC721(_nftContract);
-        require(
-            nft.ownerOf(_tokenId) == _sellerAddress,
-            "Marketplace: seller is not owner of this item now"
-        );
-
-        // Check payment approval and buyer balance
-        IERC20 paymentContract = IERC20(_paymentTokenContract);
-        require(
-            paymentContract.balanceOf(_buyerAddress) >= _price,
-            "Marketplace: buyer doesn't have enough token to buy this item"
-        );
-        require(
-            paymentContract.allowance(_buyerAddress, address(this)) >= _price,
-            "Marketplace: buyer doesn't approve marketplace to spend payment amount"
-        );
-
-        address managerRole = NFTGateway(nftGateway).nftManager(_nftContract);
-        bool isExoticContract = (managerRole == address(0));
-        if (isExoticContract) {
-            require(
-                fallbackManager[_nftContract] != address(0),
-                "Marketplace: NFT contract manager not found"
-            );
-            managerRole = fallbackManager[_nftContract];
+    function checkSigValidity(
+        address x,
+        Order memory order,
+        OrderMetadata memory metadata,
+        bytes memory sig
+    ) internal view returns (bool) {
+        if (x == msg.sender) {
+            return true;
         }
 
-        // payments[0]: to platform
-        // payments[1]: to manager
-        // payments[2]: to seller
-        uint256[3] memory payments;
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(order, metadata);
+        if (ECDSA.recover(ethSignedMessageHash, sig) != x) return false;
 
-        if (
-            NFTGateway(nftGateway).isInManagement(
-                _sellerAddress,
-                _nftContract
-            ) || (isExoticContract && _sellerAddress == managerRole)
-        ) {
-            payments[0] = fees[0].mul(_price).div(10000);
-        } else {
-            payments[0] = fees[1].mul(_price).div(10000);
-            payments[1] = fees[2].mul(_price).div(10000);
-        }
-
-        payments[2] = _price.sub(payments[0]).sub(payments[1]);
-
-        // Transfer money to seller
-        paymentContract.transferFrom(
-            _buyerAddress,
-            _sellerAddress,
-            payments[2]
-        );
-
-        // Transfer fee
-        if (payments[0] > 0) {
-            paymentContract.transferFrom(
-                _buyerAddress,
-                platformAddress,
-                payments[0]
-            );
-        }
-        if (payments[1] > 0) {
-            paymentContract.transferFrom(
-                _buyerAddress,
-                managerRole,
-                payments[1]
-            );
-        }
-
-        // Transfer item to buyer
-        nft.safeTransferFrom(_sellerAddress, _buyerAddress, _tokenId);
+        return true;
     }
 
     function getEthSignedMessageHash(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256 _price,
-        uint256 _saltNonce
+        Order memory order,
+        OrderMetadata memory metadata
     ) internal pure returns (bytes32) {
-        bytes32 criteriaMessageHash = getMessageHash(
-            _nftContract,
-            _tokenId,
-            _paymentTokenContract,
-            _price,
-            _saltNonce
-        );
+        bytes32 criteriaMessageHash = getMessageHash(order, metadata);
         return ECDSA.toEthSignedMessageHash(criteriaMessageHash);
     }
 
     /**
      * @dev Calculate sell order digest.
      */
-    function getMessageHash(
-        address _nftContract,
-        uint256 _tokenId,
-        address _paymentTokenContract,
-        uint256 _price,
-        uint256 _saltNonce
-    ) internal pure returns (bytes32) {
+    function getMessageHash(Order memory order, OrderMetadata memory metadata)
+        internal
+        pure
+        returns (bytes32)
+    {
         return
             keccak256(
                 abi.encodePacked(
-                    _nftContract,
-                    _tokenId,
-                    _paymentTokenContract,
-                    _price,
-                    _saltNonce
+                    order.marketplaceAddress,
+                    order.targetTokenAddress,
+                    order.targetTokenId,
+                    order.paymentTokenAddress,
+                    order.price,
+                    order.serviceFee,
+                    order.royaltyFee,
+                    order.royaltyFeeReceipient,
+                    metadata.listingTime,
+                    metadata.expirationTime,
+                    metadata.maximumFill,
+                    metadata.salt
                 )
             );
+    }
+
+    function executeTransfers(
+        Order memory order,
+        address seller,
+        address buyer
+    ) internal {
+        // Check balance requirement
+        IERC721 nft = IERC721(order.targetTokenAddress);
+        require(
+            nft.ownerOf(order.targetTokenId) == seller,
+            "Marketplace: seller is not owner of this item now"
+        );
+        IERC20 paymentContract = IERC20(order.paymentTokenAddress);
+        require(
+            paymentContract.balanceOf(buyer) >= order.price,
+            "Marketplace: buyer doesn't have enough token to buy this item"
+        );
+        require(
+            paymentContract.allowance(buyer, address(this)) >= order.price,
+            "Marketplace: buyer doesn't approve marketplace to spend payment amount"
+        );
+
+        // Transfer ERC721
+        nft.safeTransferFrom(seller, buyer, order.targetTokenId);
+
+        // Calculate ERC20 fees
+        uint256 fee2platform;
+        uint256 fee2burn;
+        uint256 fee2cp;
+        if (
+            order.royaltyFee == 0 &&
+            order.serviceFee > BASE / 2 &&
+            order.paymentTokenAddress == mainPaymentToken
+        ) {
+            // Case where manager sells directly
+            fee2cp = 0;
+            fee2burn = (order.price * order.serviceFee * BURN) / (BASE * BASE);
+            fee2platform = (order.price * order.serviceFee) / BASE - fee2burn;
+        } else {
+            // Case where users sell to each other
+            fee2cp = (order.price * order.royaltyFee) / BASE;
+            fee2burn = 0;
+            fee2platform = (order.price * order.serviceFee) / BASE;
+        }
+
+        // Transfer ERC20 to multiple addresses
+        if (fee2platform > 0) {
+            paymentContract.transferFrom(buyer, platformAddress, fee2platform);
+        }
+        if (fee2burn > 0) {
+            paymentContract.transferFrom(buyer, address(0), fee2burn);
+        }
+        if (fee2cp > 0) {
+            paymentContract.transferFrom(
+                buyer,
+                order.royaltyFeeReceipient,
+                fee2cp
+            );
+        }
+        paymentContract.transferFrom(
+            buyer,
+            seller,
+            order.price - fee2platform - fee2burn - fee2cp
+        );
     }
 }
