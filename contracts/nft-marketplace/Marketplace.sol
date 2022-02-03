@@ -412,7 +412,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         uint256 fee2cp;
         if (
             order.royaltyFee == 0 &&
-            order.serviceFee > BASE / 2 &&
+            order.serviceFee > BASE / 10 &&
             order.paymentTokenAddress == mainPaymentToken
         ) {
             // Case where manager sells directly
@@ -431,7 +431,11 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             paymentContract.transferFrom(buyer, platformAddress, fee2platform);
         }
         if (fee2burn > 0) {
-            paymentContract.transferFrom(buyer, address(0), fee2burn);
+            paymentContract.transferFrom(
+                buyer,
+                0x000000000000000000000000000000000000dEaD,
+                fee2burn
+            );
         }
         if (fee2cp > 0) {
             paymentContract.transferFrom(
