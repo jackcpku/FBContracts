@@ -246,6 +246,11 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         if (transactionType == ERC721_FOR_ERC20) {
             /*  CHECKS  */
             require(
+                order.marketplaceAddress == address(this),
+                "Wrong market address"
+            );
+
+            require(
                 !cancelledOrFinalized[seller][sellerSig] &&
                     !cancelledOrFinalized[buyer][buyerSig],
                 "Signature has been used"
