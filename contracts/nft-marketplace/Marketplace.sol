@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
@@ -44,6 +45,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      ********************************************************************/
 
     bytes32 public constant ERC721_FOR_ERC20 = keccak256("ERC721_FOR_ERC20");
+    bytes32 public constant ERC1155_FOR_ERC20 = keccak256("ERC1155_FOR_ERC20");
 
     /********************************************************************
      *                         State variables                          *
@@ -65,6 +67,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         uint256 indexed tokenId,
         address indexed paymentToken,
         uint256 price,
+        uint256 fill,
         address seller,
         address buyer
     );
@@ -280,16 +283,11 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         );
 
         /*  EFFECTS  */
-        uint256 fill = executeTransfers(
-            transactionType,
-            order,
-            seller,
-            buyer,
-            sellerMetadata.maximumFill,
-            buyerMetadata.maximumFill,
-            sellerSig,
-            buyerSig
+        uint256 fill = Math.min(
+            sellerMetadata.maximumFill - fills[seller][sellerSig],
+            buyerMetadata.maximumFill - fills[buyer][buyerSig]
         );
+        executeTransfers(transactionType, order, fill, seller, buyer);
 
         /*  LOGS  */
         // TODO add fill in event
@@ -298,6 +296,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             order.targetTokenId,
             order.paymentTokenAddress,
             order.price,
+            fill,
             seller,
             buyer
         );
@@ -440,12 +439,15 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             require(fill == 1, "Invalid fill");
             // Check balance requirement
             IERC721 nft = IERC721(order.targetTokenAddress);
-            require(
-                nft.ownerOf(order.targetTokenId) == seller,
-                "Marketplace: seller is not owner of this item now"
-            );
+
             // Transfer ERC721
             nft.safeTransferFrom(seller, buyer, order.targetTokenId);
+        } else if (transactionType == ERC1155_FOR_ERC20) {
+            IERC1155MetadataURI nft = IERC1155MetadataURI(
+                order.targetTokenAddress
+            );
+
+            nft.safeTransferFrom(seller, buyer, order.targetTokenId, fill, "");
         }
     }
 
@@ -523,20 +525,10 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     function executeTransfers(
         bytes32 transactionType,
         Order memory order,
+        uint256 fill,
         address seller,
-        address buyer,
-        uint256 sellerMaximumFill,
-        uint256 buyerMaximumFill,
-        bytes memory sellerSig,
-        bytes memory buyerSig
-    ) internal returns (uint256) {
-        // Calculate maximum fill
-        uint256 fill;
-        uint256 sellerFill = sellerMaximumFill - fills[seller][sellerSig];
-        uint256 buyerFill = buyerMaximumFill - fills[buyer][buyerSig];
-        if (sellerFill < buyerFill) fill = sellerFill;
-        else fill = buyerFill;
-
+        address buyer
+    ) internal {
         executeTransferNFT(transactionType, order, fill, seller, buyer);
         executeTransferERC20(transactionType, order, fill, seller, buyer);
     }

@@ -646,7 +646,7 @@ describe("Test Marketplace Contract", function () {
         buyerMetadataBytes,
         buyerSig
       )
-    ).to.be.revertedWith("Marketplace: seller is not owner of this item now");
+    ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
   });
 
   it("Seller cancels order", async function () {
