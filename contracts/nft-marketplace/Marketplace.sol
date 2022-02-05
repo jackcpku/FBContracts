@@ -458,18 +458,18 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address seller,
         address buyer
     ) internal {
-        uint256 totalPrice = order.price * fill;
+        uint256 totalCost = order.price * fill;
 
         // Check balance requirement
         IERC20Upgradeable paymentContract = IERC20Upgradeable(
             order.paymentTokenAddress
         );
         require(
-            paymentContract.balanceOf(buyer) >= totalPrice,
+            paymentContract.balanceOf(buyer) >= totalCost,
             "Marketplace: buyer doesn't have enough token to buy this item"
         );
         require(
-            paymentContract.allowance(buyer, address(this)) >= totalPrice,
+            paymentContract.allowance(buyer, address(this)) >= totalCost,
             "Marketplace: buyer doesn't approve marketplace to spend payment amount"
         );
 
@@ -484,13 +484,13 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         ) {
             // Case where the NFT creator's initial sell
             fee2cp = 0;
-            fee2burn = (totalPrice * order.serviceFee * BURN) / (BASE * BASE);
-            fee2service = (totalPrice * order.serviceFee) / BASE - fee2burn;
+            fee2burn = (totalCost * order.serviceFee * BURN) / (BASE * BASE);
+            fee2service = (totalCost * order.serviceFee) / BASE - fee2burn;
         } else {
             // Case where users sell to each other
-            fee2cp = (totalPrice * order.royaltyFee) / BASE;
+            fee2cp = (totalCost * order.royaltyFee) / BASE;
             fee2burn = 0;
-            fee2service = (totalPrice * order.serviceFee) / BASE;
+            fee2service = (totalCost * order.serviceFee) / BASE;
         }
 
         // Transfer ERC20 to multiple addresses
@@ -518,7 +518,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         paymentContract.safeTransferFrom(
             buyer,
             seller,
-            totalPrice - fee2service - fee2burn - fee2cp
+            totalCost - fee2service - fee2burn - fee2cp
         );
     }
 
