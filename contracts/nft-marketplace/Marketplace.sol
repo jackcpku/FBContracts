@@ -353,24 +353,37 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         );
 
         require(
-            !cancelled[seller][sellerSig] && !cancelled[buyer][buyerSig],
-            "Signature has been cancelled"
+            !cancelled[seller][sellerSig],
+            "Seller signature has been revoked"
         );
         require(
-            fills[seller][sellerSig] < sellerMetadata.maximumFill &&
-                fills[buyer][buyerSig] < buyerMetadata.maximumFill,
-            "Order has been filled"
+            !cancelled[buyer][buyerSig],
+            "Buyer signature has been revoked"
         );
         require(
-            sellerMetadata.listingTime < block.timestamp &&
-                (sellerMetadata.expirationTime == 0 ||
-                    sellerMetadata.expirationTime > block.timestamp),
+            fills[seller][sellerSig] < sellerMetadata.maximumFill,
+            "Sell order has been filled"
+        );
+        require(
+            fills[buyer][buyerSig] < buyerMetadata.maximumFill,
+            "Buy order has been filled"
+        );
+        require(
+            sellerMetadata.listingTime < block.timestamp,
+            "Sell order not in effect"
+        );
+        require(
+            sellerMetadata.expirationTime == 0 ||
+                sellerMetadata.expirationTime > block.timestamp,
             "Sell order expired"
         );
         require(
-            buyerMetadata.listingTime < block.timestamp &&
-                (buyerMetadata.expirationTime == 0 ||
-                    buyerMetadata.expirationTime > block.timestamp),
+            buyerMetadata.listingTime < block.timestamp,
+            "Buy order not in effect"
+        );
+        require(
+            buyerMetadata.expirationTime == 0 ||
+                buyerMetadata.expirationTime > block.timestamp,
             "Buy order expired"
         );
 

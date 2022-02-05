@@ -427,7 +427,7 @@ describe("Test Marketplace Contract", function () {
       );
     });
 
-    it("Sell order expired - case 1", async function () {
+    it("Sell order not started", async function () {
       const tokenId = 0;
       const price = 1000;
       const balance = 1000;
@@ -479,7 +479,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Sell order expired");
+      ).to.be.revertedWith("ell order not in effect");
     });
 
     it("Sell order expired - case 2", async function () {
@@ -656,7 +656,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Order has been filled");
+      ).to.be.revertedWith("Sell order has been filled");
     });
 
     it("Seller cancels order", async function () {
@@ -713,7 +713,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Signature has been cancelled");
+      ).to.be.revertedWith("Seller signature has been revoked");
     });
 
     it("Buyer cancels order", async function () {
@@ -770,7 +770,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Signature has been cancelled");
+      ).to.be.revertedWith("Buyer signature has been revoked");
     });
 
     it("Seller cancels twice", async function () {
@@ -1476,7 +1476,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Order has been filled");
+      ).to.be.revertedWith("Buy order has been filled");
     });
 
     it("Buy twice using different signature", async function () {
