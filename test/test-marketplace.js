@@ -90,6 +90,8 @@ describe("Test Marketplace Contract", function () {
     sellerSalt,
     buyerSalt,
   }) => {
+    const transactionType = await marketplace.ERC721_FOR_ERC20();
+
     // Mints fbt to buyer
     await fbt.transfer(buyer.address, balance);
     // Manager1 mints an NFT to seller.
@@ -168,6 +170,7 @@ describe("Test Marketplace Contract", function () {
     // Seller signs
     const sellerMessageHash = ethers.utils.solidityKeccak256(
       [
+        "bytes32",
         "address",
         "address",
         "uint256",
@@ -182,6 +185,7 @@ describe("Test Marketplace Contract", function () {
         "uint256",
       ],
       [
+        transactionType,
         order.marketplaceAddress,
         order.targetTokenAddress,
         order.targetTokenId,
@@ -220,6 +224,7 @@ describe("Test Marketplace Contract", function () {
     // Buyer signs
     const buyerMessageHash = ethers.utils.solidityKeccak256(
       [
+        "bytes32",
         "address",
         "address",
         "uint256",
@@ -234,6 +239,7 @@ describe("Test Marketplace Contract", function () {
         "uint256",
       ],
       [
+        transactionType,
         order.marketplaceAddress,
         order.targetTokenAddress,
         order.targetTokenId,
@@ -253,6 +259,7 @@ describe("Test Marketplace Contract", function () {
     );
 
     return {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -276,6 +283,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000012";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -303,7 +311,7 @@ describe("Test Marketplace Contract", function () {
     await fbt.connect(buyer).approve(marketplace.address, price);
 
     await marketplace.atomicMatch_(
-      await marketplace.ERC721_FOR_ERC20(),
+      transactionType,
       orderBytes,
       seller.address,
       sellerMetadataBytes,
@@ -341,6 +349,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000014";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -370,7 +379,7 @@ describe("Test Marketplace Contract", function () {
     await marketplace
       .connect(seller)
       .atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -408,6 +417,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000016";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -437,7 +447,7 @@ describe("Test Marketplace Contract", function () {
     await marketplace
       .connect(buyer)
       .atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -475,6 +485,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000018";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -503,7 +514,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -529,6 +540,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000018";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -557,7 +569,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -583,6 +595,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000022";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -611,7 +624,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -639,6 +652,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000024";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -666,7 +680,7 @@ describe("Test Marketplace Contract", function () {
     await fbt.connect(buyer).approve(marketplace.address, price);
 
     await marketplace.atomicMatch_(
-      await marketplace.ERC721_FOR_ERC20(),
+      transactionType,
       orderBytes,
       seller.address,
       sellerMetadataBytes,
@@ -677,7 +691,7 @@ describe("Test Marketplace Contract", function () {
     );
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -703,6 +717,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000026";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -733,7 +748,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -759,6 +774,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000028";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -789,7 +805,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -815,6 +831,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000052";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -861,6 +878,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000032";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -889,7 +907,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -915,6 +933,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000034";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -943,7 +962,7 @@ describe("Test Marketplace Contract", function () {
 
     await expect(
       marketplace.atomicMatch_(
-        await marketplace.ERC721_FOR_ERC20(),
+        transactionType,
         orderBytes,
         seller.address,
         sellerMetadataBytes,
@@ -969,6 +988,7 @@ describe("Test Marketplace Contract", function () {
       "0x0000000000000000000000000000000000000000000000000000000000000036";
 
     const {
+      transactionType,
       order,
       orderBytes,
       sellerMetadataBytes,
@@ -996,7 +1016,7 @@ describe("Test Marketplace Contract", function () {
     await fbt.connect(buyer).approve(marketplace.address, price);
 
     await marketplace.atomicMatch_(
-      await marketplace.ERC721_FOR_ERC20(),
+      transactionType,
       orderBytes,
       seller.address,
       sellerMetadataBytes,

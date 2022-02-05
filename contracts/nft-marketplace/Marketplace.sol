@@ -276,11 +276,23 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
             // Check signature validity
             require(
-                checkSigValidity(seller, order, sellerMetadata, sellerSig),
+                checkSigValidity(
+                    seller,
+                    transactionType,
+                    order,
+                    sellerMetadata,
+                    sellerSig
+                ),
                 "Seller signature is not valid"
             );
             require(
-                checkSigValidity(buyer, order, buyerMetadata, buyerSig),
+                checkSigValidity(
+                    buyer,
+                    transactionType,
+                    order,
+                    buyerMetadata,
+                    buyerSig
+                ),
                 "Buyer signature is not valid"
             );
 
@@ -331,6 +343,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     function checkSigValidity(
         address x,
+        bytes32 transactionType,
         Order memory order,
         OrderMetadata memory metadata,
         bytes memory sig
@@ -339,31 +352,41 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             return true;
         }
 
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(order, metadata);
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(
+            transactionType,
+            order,
+            metadata
+        );
         if (ECDSA.recover(ethSignedMessageHash, sig) != x) return false;
 
         return true;
     }
 
     function getEthSignedMessageHash(
+        bytes32 transactionType,
         Order memory order,
         OrderMetadata memory metadata
     ) internal pure returns (bytes32) {
-        bytes32 criteriaMessageHash = getMessageHash(order, metadata);
+        bytes32 criteriaMessageHash = getMessageHash(
+            transactionType,
+            order,
+            metadata
+        );
         return ECDSA.toEthSignedMessageHash(criteriaMessageHash);
     }
 
     /**
      * @dev Calculate sell order digest.
      */
-    function getMessageHash(Order memory order, OrderMetadata memory metadata)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function getMessageHash(
+        bytes32 transactionType,
+        Order memory order,
+        OrderMetadata memory metadata
+    ) internal pure returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
+                    transactionType,
                     order.marketplaceAddress,
                     order.targetTokenAddress,
                     order.targetTokenId,
