@@ -121,7 +121,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     mapping(address => mapping(bytes => bool)) cancelled;
     mapping(address => mapping(bytes => uint256)) fills;
 
-    function atomicMatch_(
+    function atomicMatch(
         bytes32 transactionType,
         bytes memory _order,
         address seller,
@@ -248,7 +248,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             );
         }
         return
-            atomicMatch(
+            _atomicMatch(
                 transactionType,
                 order,
                 seller,
@@ -260,7 +260,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             );
     }
 
-    function atomicMatch(
+    function _atomicMatch(
         bytes32 transactionType,
         Order memory order,
         address seller,

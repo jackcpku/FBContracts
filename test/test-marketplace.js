@@ -266,7 +266,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -334,7 +334,7 @@ describe("Test Marketplace Contract", function () {
 
       await marketplace
         .connect(seller)
-        .atomicMatch_(
+        .atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -402,7 +402,7 @@ describe("Test Marketplace Contract", function () {
 
       await marketplace
         .connect(buyer)
-        .atomicMatch_(
+        .atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -469,7 +469,7 @@ describe("Test Marketplace Contract", function () {
       await fbt.connect(buyer).approve(marketplace.address, price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -524,7 +524,7 @@ describe("Test Marketplace Contract", function () {
       await fbt.connect(buyer).approve(marketplace.address, price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -579,7 +579,7 @@ describe("Test Marketplace Contract", function () {
       await fbt.connect(buyer).approve(marketplace.address, price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -635,7 +635,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -646,7 +646,7 @@ describe("Test Marketplace Contract", function () {
         buyerSig
       );
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -703,7 +703,7 @@ describe("Test Marketplace Contract", function () {
       await marketplace.connect(seller).ignoreSignature(sellerSig);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -760,7 +760,7 @@ describe("Test Marketplace Contract", function () {
       await marketplace.connect(buyer).ignoreSignature(buyerSig);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -862,7 +862,7 @@ describe("Test Marketplace Contract", function () {
       await fbt.connect(buyer).approve(marketplace.address, price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -917,7 +917,7 @@ describe("Test Marketplace Contract", function () {
       await fbt.connect(buyer).approve(marketplace.address, price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -974,7 +974,7 @@ describe("Test Marketplace Contract", function () {
       await fbt.connect(buyer).approve(marketplace.address, price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -1028,7 +1028,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1231,7 +1231,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1304,7 +1304,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1377,7 +1377,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1450,7 +1450,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1466,7 +1466,7 @@ describe("Test Marketplace Contract", function () {
         .approve(marketplace.address, buyerMaximumFill * price);
 
       await expect(
-        marketplace.atomicMatch_(
+        marketplace.atomicMatch(
           transactionType,
           orderBytes,
           seller.address,
@@ -1519,7 +1519,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1559,7 +1559,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1630,7 +1630,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
@@ -1670,7 +1670,7 @@ describe("Test Marketplace Contract", function () {
         .connect(buyer)
         .approve(marketplace.address, buyerMaximumFill * price);
 
-      await marketplace.atomicMatch_(
+      await marketplace.atomicMatch(
         transactionType,
         orderBytes,
         seller.address,
