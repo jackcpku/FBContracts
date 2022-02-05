@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../nft/management/NFTGateway.sol";
-
 contract Marketplace is Initializable, OwnableUpgradeable {
-    using SafeERC20Upgradeable for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeMath for uint256;
 
     /********************************************************************
@@ -35,7 +33,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         uint256 price;
         uint256 serviceFee;
         uint256 royaltyFee;
-        address royaltyFeeReceipient;
+        address royaltyFeeRecipient;
     }
 
     uint256 public constant BASE = 10000;
@@ -55,8 +53,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     mapping(address => bool) public paymentTokens;
     address mainPaymentToken;
 
-    // Platform address that receives transaction fee
-    address public platformAddress;
+    // Platform address
+    address public serviceFeeRecipient;
 
     /********************************************************************
      *                             Events                               *
@@ -79,11 +77,14 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                      Owner-only functions                        *
      ********************************************************************/
 
-    function setPlatformAddress(address _platformAddress) public onlyOwner {
-        platformAddress = _platformAddress;
+    function setServiceFeeRecipient(address _serviceFeeRecipient)
+        public
+        onlyOwner
+    {
+        serviceFeeRecipient = _serviceFeeRecipient;
     }
 
-    function setPaymentTokens(address[] calldata _paymentTokens)
+    function addPaymentTokens(address[] calldata _paymentTokens)
         public
         onlyOwner
     {
@@ -111,7 +112,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     }
 
     /********************************************************************
-     *                      New functions                       *
+     *                         Core functions                           *
      ********************************************************************/
 
     mapping(address => mapping(bytes => bool)) cancelledOrFinalized;
@@ -145,9 +146,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
          * uint256 targetTokenId
          * address paymentTokenAddress
          * uint256 price
-         * uint256 serviceFee -> platformAddress
-         * uint256 royaltyFee -> royaltyFeeReceipient
-         * address royaltyFeeReceipient
+         * uint256 serviceFee -> serviceFeeRecipient
+         * uint256 royaltyFee -> royaltyFeeRecipient
+         * address royaltyFeeRecipient
          */
         Order memory order;
         {
@@ -159,7 +160,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 uint256 price,
                 uint256 serviceFee,
                 uint256 royaltyFee,
-                address royaltyFeeReceipient
+                address royaltyFeeRecipient
             ) = abi.decode(
                     _order,
                     (
@@ -181,7 +182,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 price,
                 serviceFee,
                 royaltyFee,
-                royaltyFeeReceipient
+                royaltyFeeRecipient
             );
         }
         OrderMetadata memory sellerMetadata;
@@ -244,6 +245,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes memory buyerSig
     ) internal {
         if (transactionType == ERC721_FOR_ERC20) {
+            // TODO extract common check
             /*  CHECKS  */
             require(
                 order.marketplaceAddress == address(this),
@@ -324,10 +326,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     }
 
     /********************************************************************
-     *                Delegated buyer-called functions                  *
-     ********************************************************************/
-
-    /********************************************************************
      *                        Helper functions                          *
      ********************************************************************/
 
@@ -373,7 +371,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                     order.price,
                     order.serviceFee,
                     order.royaltyFee,
-                    order.royaltyFeeReceipient,
+                    order.royaltyFeeRecipient,
                     metadata.listingTime,
                     metadata.expirationTime,
                     metadata.maximumFill,
@@ -393,7 +391,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             nft.ownerOf(order.targetTokenId) == seller,
             "Marketplace: seller is not owner of this item now"
         );
-        IERC20 paymentContract = IERC20(order.paymentTokenAddress);
+        IERC20Upgradeable paymentContract = IERC20Upgradeable(
+            order.paymentTokenAddress
+        );
         require(
             paymentContract.balanceOf(buyer) >= order.price,
             "Marketplace: buyer doesn't have enough token to buy this item"
@@ -407,7 +407,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         nft.safeTransferFrom(seller, buyer, order.targetTokenId);
 
         // Calculate ERC20 fees
-        uint256 fee2platform;
+        uint256 fee2service;
         uint256 fee2burn;
         uint256 fee2cp;
         if (
@@ -415,39 +415,43 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             order.serviceFee > BASE / 10 &&
             order.paymentTokenAddress == mainPaymentToken
         ) {
-            // Case where manager sells directly
+            // Case where the NFT creator's initial sell
             fee2cp = 0;
             fee2burn = (order.price * order.serviceFee * BURN) / (BASE * BASE);
-            fee2platform = (order.price * order.serviceFee) / BASE - fee2burn;
+            fee2service = (order.price * order.serviceFee) / BASE - fee2burn;
         } else {
             // Case where users sell to each other
             fee2cp = (order.price * order.royaltyFee) / BASE;
             fee2burn = 0;
-            fee2platform = (order.price * order.serviceFee) / BASE;
+            fee2service = (order.price * order.serviceFee) / BASE;
         }
 
         // Transfer ERC20 to multiple addresses
-        if (fee2platform > 0) {
-            paymentContract.transferFrom(buyer, platformAddress, fee2platform);
+        if (fee2service > 0) {
+            paymentContract.safeTransferFrom(
+                buyer,
+                serviceFeeRecipient,
+                fee2service
+            );
         }
         if (fee2burn > 0) {
-            paymentContract.transferFrom(
+            paymentContract.safeTransferFrom(
                 buyer,
                 0x000000000000000000000000000000000000dEaD,
                 fee2burn
             );
         }
         if (fee2cp > 0) {
-            paymentContract.transferFrom(
+            paymentContract.safeTransferFrom(
                 buyer,
-                order.royaltyFeeReceipient,
+                order.royaltyFeeRecipient,
                 fee2cp
             );
         }
-        paymentContract.transferFrom(
+        paymentContract.safeTransferFrom(
             buyer,
             seller,
-            order.price - fee2platform - fee2burn - fee2cp
+            order.price - fee2service - fee2burn - fee2cp
         );
     }
 }

@@ -76,7 +76,7 @@ describe("Test Marketplace Contract", function () {
 
     // Initialize the marketplace contract.
     await marketplace.setMainPaymentToken(fbt.address);
-    await marketplace.setPlatformAddress(platform.address);
+    await marketplace.setServiceFeeRecipient(platform.address);
   });
 
   const getOrderInfo = async ({
