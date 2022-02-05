@@ -89,6 +89,8 @@ describe("Test Marketplace Contract", function () {
     sellerExpirationTime,
     sellerSalt,
     buyerSalt,
+    sellerMaximumFill,
+    buyerMaximumFill,
   }) => {
     const transactionType = await marketplace.ERC721_FOR_ERC20();
 
@@ -154,7 +156,7 @@ describe("Test Marketplace Contract", function () {
     const sellerMetadata = {
       listingTime: sellerListingTime,
       expirationTime: sellerExpirationTime,
-      maximumFill: 1,
+      maximumFill: sellerMaximumFill || 1,
       salt: sellerSalt,
     };
     const sellerMetadataBytes = encoder.encode(
@@ -180,7 +182,7 @@ describe("Test Marketplace Contract", function () {
     const buyerMetadata = {
       listingTime: 0,
       expirationTime: 0,
-      maximumFill: 1,
+      maximumFill: buyerMaximumFill || 1,
       salt: buyerSalt,
     };
     const buyerMetadataBytes = encoder.encode(
@@ -701,7 +703,7 @@ describe("Test Marketplace Contract", function () {
         buyerMetadataBytes,
         buyerSig
       )
-    ).to.be.revertedWith("Signature has been used");
+    ).to.be.revertedWith("Signature has been cancelled");
   });
 
   it("Buyer cancels order", async function () {
@@ -758,7 +760,7 @@ describe("Test Marketplace Contract", function () {
         buyerMetadataBytes,
         buyerSig
       )
-    ).to.be.revertedWith("Signature has been used");
+    ).to.be.revertedWith("Signature has been cancelled");
   });
 
   it("Seller cancels twice", async function () {
@@ -916,6 +918,63 @@ describe("Test Marketplace Contract", function () {
         sellerSig // Wrong buyer signature
       )
     ).to.be.revertedWith("Buyer signature is not valid");
+  });
+
+  it("Invalid fill", async function () {
+    const tokenId = 0;
+    const price = 1000;
+    const balance = 1000;
+    const serviceFee = 100;
+    const royaltyFee = 100;
+    const sellerListingTime = 0;
+    const sellerExpirationTime = 0;
+    const sellerSalt =
+      "0x0000000000000000000000000000000000000000000000000000000000000061";
+    const buyerSalt =
+      "0x0000000000000000000000000000000000000000000000000000000000000062";
+
+    const {
+      transactionType,
+      order,
+      orderBytes,
+      sellerMetadataBytes,
+      sellerSig,
+      buyerMetadataBytes,
+      buyerSig,
+    } = await getOrderInfo({
+      tokenId,
+      price,
+      balance,
+      serviceFee,
+      royaltyFee,
+      sellerListingTime,
+      sellerExpirationTime,
+      sellerSalt,
+      buyerSalt,
+      buyerMaximumFill: 1,
+      sellerMaximumFill: 2,
+    });
+
+    /**
+     * Transaction preparations.
+     * 1. Seller approves the marketplace contract of spending `tokenId`.
+     * 2. Buyer approves the marketplace contract of spending `price` amount.
+     */
+    await nftContract1.connect(seller).approve(marketplace.address, tokenId);
+    await fbt.connect(buyer).approve(marketplace.address, price);
+
+    await expect(
+      marketplace.atomicMatch_(
+        transactionType,
+        orderBytes,
+        seller.address,
+        sellerMetadataBytes,
+        sellerSig,
+        buyer.address,
+        buyerMetadataBytes,
+        buyerSig
+      )
+    ).to.be.revertedWith("Invalid maximumFill");
   });
 
   it("Manager <> user transaction", async function () {

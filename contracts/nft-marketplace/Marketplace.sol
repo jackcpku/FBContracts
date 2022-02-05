@@ -115,7 +115,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                         Core functions                           *
      ********************************************************************/
 
-    mapping(address => mapping(bytes => bool)) cancelledOrFinalized;
+    mapping(address => mapping(bytes => bool)) cancelled;
+    mapping(address => mapping(bytes => uint256)) fills;
 
     function atomicMatch_(
         bytes32 transactionType,
@@ -266,31 +267,40 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         OrderMetadata memory buyerMetadata,
         bytes memory buyerSig
     ) internal {
-        if (transactionType == ERC721_FOR_ERC20) {
-            /*  CHECKS  */
-            checkMetaInfo(
-                order,
-                seller,
-                buyer,
-                sellerSig,
-                buyerSig,
-                sellerMetadata,
-                buyerMetadata
-            );
+        /*  CHECKS  */
+        checkMetaInfo(
+            transactionType,
+            order,
+            seller,
+            buyer,
+            sellerMetadata,
+            buyerMetadata,
+            sellerSig,
+            buyerSig
+        );
 
-            /*  EFFECTS  */
-            executeTransfers(order, seller, buyer);
+        /*  EFFECTS  */
+        uint256 fill = executeTransfers(
+            transactionType,
+            order,
+            seller,
+            buyer,
+            sellerMetadata.maximumFill,
+            buyerMetadata.maximumFill,
+            sellerSig,
+            buyerSig
+        );
 
-            /*  LOGS  */
-            emit MatchTransaction(
-                order.targetTokenAddress,
-                order.targetTokenId,
-                order.paymentTokenAddress,
-                order.price,
-                seller,
-                buyer
-            );
-        }
+        /*  LOGS  */
+        // TODO add fill in event
+        emit MatchTransaction(
+            order.targetTokenAddress,
+            order.targetTokenId,
+            order.paymentTokenAddress,
+            order.price,
+            seller,
+            buyer
+        );
     }
 
     /********************************************************************
@@ -303,11 +313,11 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      */
     function ignoreSignature(bytes memory signature) public {
         require(
-            cancelledOrFinalized[msg.sender][signature] == false,
+            cancelled[msg.sender][signature] == false,
             "Signature has been cancelled or used"
         );
 
-        cancelledOrFinalized[msg.sender][signature] = true;
+        cancelled[msg.sender][signature] = true;
     }
 
     /**
@@ -324,13 +334,14 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      ********************************************************************/
 
     function checkMetaInfo(
+        bytes32 transactionType,
         Order memory order,
         address seller,
         address buyer,
-        bytes memory sellerSig,
-        bytes memory buyerSig,
         OrderMetadata memory sellerMetadata,
-        OrderMetadata memory buyerMetadata
+        OrderMetadata memory buyerMetadata,
+        bytes memory sellerSig,
+        bytes memory buyerSig
     ) internal view {
         require(
             order.marketplaceAddress == address(this),
@@ -342,9 +353,13 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         );
 
         require(
-            !cancelledOrFinalized[seller][sellerSig] &&
-                !cancelledOrFinalized[buyer][buyerSig],
-            "Signature has been used"
+            !cancelled[seller][sellerSig] && !cancelled[buyer][buyerSig],
+            "Signature has been cancelled"
+        );
+        require(
+            fills[seller][sellerSig] < sellerMetadata.maximumFill &&
+                fills[buyer][buyerSig] < buyerMetadata.maximumFill,
+            "Order has been filled"
         );
         require(
             sellerMetadata.listingTime < block.timestamp &&
@@ -358,6 +373,15 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                     buyerMetadata.expirationTime > block.timestamp),
             "Buy order expired"
         );
+
+        // Check mode-specific parameters
+        if (transactionType == ERC721_FOR_ERC20) {
+            require(
+                sellerMetadata.maximumFill == 1 &&
+                    sellerMetadata.maximumFill == 1,
+                "Invalid maximumFill"
+            );
+        }
     }
 
     function checkSigValidity(
@@ -405,31 +429,47 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         return keccak256(abi.encodePacked(transactionType, order, metadata));
     }
 
-    function executeTransfers(
+    function executeTransferNFT(
+        bytes32 transactionType,
         Order memory order,
+        uint256 fill,
         address seller,
         address buyer
     ) internal {
+        if (transactionType == ERC721_FOR_ERC20) {
+            require(fill == 1, "Invalid fill");
+            // Check balance requirement
+            IERC721 nft = IERC721(order.targetTokenAddress);
+            require(
+                nft.ownerOf(order.targetTokenId) == seller,
+                "Marketplace: seller is not owner of this item now"
+            );
+            // Transfer ERC721
+            nft.safeTransferFrom(seller, buyer, order.targetTokenId);
+        }
+    }
+
+    function executeTransferERC20(
+        bytes32 transactionType, // TODO unused
+        Order memory order,
+        uint256 fill,
+        address seller,
+        address buyer
+    ) internal {
+        uint256 totalPrice = order.price * fill;
+
         // Check balance requirement
-        IERC721 nft = IERC721(order.targetTokenAddress);
-        require(
-            nft.ownerOf(order.targetTokenId) == seller,
-            "Marketplace: seller is not owner of this item now"
-        );
         IERC20Upgradeable paymentContract = IERC20Upgradeable(
             order.paymentTokenAddress
         );
         require(
-            paymentContract.balanceOf(buyer) >= order.price,
+            paymentContract.balanceOf(buyer) >= totalPrice,
             "Marketplace: buyer doesn't have enough token to buy this item"
         );
         require(
-            paymentContract.allowance(buyer, address(this)) >= order.price,
+            paymentContract.allowance(buyer, address(this)) >= totalPrice,
             "Marketplace: buyer doesn't approve marketplace to spend payment amount"
         );
-
-        // Transfer ERC721
-        nft.safeTransferFrom(seller, buyer, order.targetTokenId);
 
         // Calculate ERC20 fees
         uint256 fee2service;
@@ -442,13 +482,13 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         ) {
             // Case where the NFT creator's initial sell
             fee2cp = 0;
-            fee2burn = (order.price * order.serviceFee * BURN) / (BASE * BASE);
-            fee2service = (order.price * order.serviceFee) / BASE - fee2burn;
+            fee2burn = (totalPrice * order.serviceFee * BURN) / (BASE * BASE);
+            fee2service = (totalPrice * order.serviceFee) / BASE - fee2burn;
         } else {
             // Case where users sell to each other
-            fee2cp = (order.price * order.royaltyFee) / BASE;
+            fee2cp = (totalPrice * order.royaltyFee) / BASE;
             fee2burn = 0;
-            fee2service = (order.price * order.serviceFee) / BASE;
+            fee2service = (totalPrice * order.serviceFee) / BASE;
         }
 
         // Transfer ERC20 to multiple addresses
@@ -476,7 +516,28 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         paymentContract.safeTransferFrom(
             buyer,
             seller,
-            order.price - fee2service - fee2burn - fee2cp
+            totalPrice - fee2service - fee2burn - fee2cp
         );
+    }
+
+    function executeTransfers(
+        bytes32 transactionType,
+        Order memory order,
+        address seller,
+        address buyer,
+        uint256 sellerMaximumFill,
+        uint256 buyerMaximumFill,
+        bytes memory sellerSig,
+        bytes memory buyerSig
+    ) internal returns (uint256) {
+        // Calculate maximum fill
+        uint256 fill;
+        uint256 sellerFill = sellerMaximumFill - fills[seller][sellerSig];
+        uint256 buyerFill = buyerMaximumFill - fills[buyer][buyerSig];
+        if (sellerFill < buyerFill) fill = sellerFill;
+        else fill = buyerFill;
+
+        executeTransferNFT(transactionType, order, fill, seller, buyer);
+        executeTransferERC20(transactionType, order, fill, seller, buyer);
     }
 }
