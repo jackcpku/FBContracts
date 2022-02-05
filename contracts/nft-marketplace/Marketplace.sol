@@ -288,6 +288,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             buyerMetadata.maximumFill - fills[buyer][buyerSig]
         );
         executeTransfers(transactionType, order, fill, seller, buyer);
+        fills[seller][sellerSig] += fill;
+        fills[buyer][buyerSig] += fill;
 
         /*  LOGS  */
         emit MatchTransaction(
