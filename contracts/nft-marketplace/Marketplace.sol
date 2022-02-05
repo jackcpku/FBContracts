@@ -290,7 +290,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         executeTransfers(transactionType, order, fill, seller, buyer);
 
         /*  LOGS  */
-        // TODO add fill in event
         emit MatchTransaction(
             order.targetTokenAddress,
             order.targetTokenId,
@@ -452,7 +451,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     }
 
     function executeTransferERC20(
-        bytes32 transactionType, // TODO unused
         Order memory order,
         uint256 fill,
         address seller,
@@ -530,6 +528,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address buyer
     ) internal {
         executeTransferNFT(transactionType, order, fill, seller, buyer);
-        executeTransferERC20(transactionType, order, fill, seller, buyer);
+        executeTransferERC20(order, fill, seller, buyer);
     }
 }
