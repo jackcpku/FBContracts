@@ -6,7 +6,7 @@ import "../common/MostBaseERC721.sol";
 /**
  * A test NFT contract that doesn't use gateway logic.
  */
-contract ExoticNFT is MostBaseERC721 {
+contract SomeERC721 is MostBaseERC721 {
     constructor(string memory _name, string memory _symbol)
         MostBaseERC721(_name, _symbol)
     {}

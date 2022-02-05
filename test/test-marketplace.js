@@ -9,11 +9,11 @@ describe("Test Marketplace Contract", function () {
   let gateway, factory, marketplace, fbt;
   let nftContract1; // NFT contract deployed by manager1.
   let nftContract2; // NFT contract deployed by manager2.
-  let exoticNftContract; // NFT contract deployed by exoticManager.
+  let someERC721Contract; // NFT contract deployed by someERC721Manager.
   // Addresses
   let owner, gatewayAdmin;
   let platform; // The Big Brother
-  let manager1, manager2, exoticManager; // Game providers
+  let manager1, manager2, someERC721Manager; // Game providers
   let seller, buyer, user3, randomUser; // users
 
   const BASE = 10000;
@@ -28,7 +28,7 @@ describe("Test Marketplace Contract", function () {
       platform,
       manager1,
       manager2,
-      exoticManager,
+      someERC721Manager,
       seller,
       buyer,
       user3,
@@ -62,12 +62,11 @@ describe("Test Marketplace Contract", function () {
       nftContract2Address
     );
 
-    let ExoticNftContract = await hre.ethers.getContractFactory("ExoticNFT");
-    exoticNftContract = await ExoticNftContract.connect(exoticManager).deploy(
-      "Some NFT",
-      "SNFT"
-    );
-    await exoticNftContract.deployed();
+    let SomeERC721Contract = await hre.ethers.getContractFactory("SomeERC721");
+    someERC721Contract = await SomeERC721Contract.connect(
+      someERC721Manager
+    ).deploy("Some NFT", "SNFT");
+    await someERC721Contract.deployed();
 
     // Deploy the marketplace contract.
     const Marketplace = await hre.ethers.getContractFactory("Marketplace");
