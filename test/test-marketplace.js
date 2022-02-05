@@ -169,36 +169,8 @@ describe("Test Marketplace Contract", function () {
 
     // Seller signs
     const sellerMessageHash = ethers.utils.solidityKeccak256(
-      [
-        "bytes32",
-        "address",
-        "address",
-        "uint256",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "uint256",
-      ],
-      [
-        transactionType,
-        order.marketplaceAddress,
-        order.targetTokenAddress,
-        order.targetTokenId,
-        order.paymentTokenAddress,
-        order.price,
-        order.serviceFee,
-        order.royaltyFee,
-        order.royaltyFeeReceipient,
-        sellerMetadata.listingTime,
-        sellerMetadata.expirationTime,
-        sellerMetadata.maximumFill,
-        sellerMetadata.salt,
-      ]
+      ["bytes32", "bytes", "bytes"],
+      [transactionType, orderBytes, sellerMetadataBytes]
     );
     const sellerSig = await seller.signMessage(
       ethers.utils.arrayify(sellerMessageHash)
@@ -223,36 +195,8 @@ describe("Test Marketplace Contract", function () {
 
     // Buyer signs
     const buyerMessageHash = ethers.utils.solidityKeccak256(
-      [
-        "bytes32",
-        "address",
-        "address",
-        "uint256",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "uint256",
-      ],
-      [
-        transactionType,
-        order.marketplaceAddress,
-        order.targetTokenAddress,
-        order.targetTokenId,
-        order.paymentTokenAddress,
-        order.price,
-        order.serviceFee,
-        order.royaltyFee,
-        order.royaltyFeeReceipient,
-        buyerMetadata.listingTime,
-        buyerMetadata.expirationTime,
-        buyerMetadata.maximumFill,
-        buyerMetadata.salt,
-      ]
+      ["bytes32", "bytes", "bytes"],
+      [transactionType, orderBytes, buyerMetadataBytes]
     );
     const buyerSig = await buyer.signMessage(
       ethers.utils.arrayify(buyerMessageHash)

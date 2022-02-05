@@ -127,6 +127,28 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes memory _buyerMetadata,
         bytes memory buyerSig
     ) public {
+        // Check signature validity
+        require(
+            checkSigValidity(
+                seller,
+                transactionType,
+                _order,
+                _sellerMetadata,
+                sellerSig
+            ),
+            "Seller signature is not valid"
+        );
+        require(
+            checkSigValidity(
+                buyer,
+                transactionType,
+                _order,
+                _buyerMetadata,
+                buyerSig
+            ),
+            "Buyer signature is not valid"
+        );
+
         /*
          * `sellerData` detail
          * uint256 listingTime
@@ -245,55 +267,15 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes memory buyerSig
     ) internal {
         if (transactionType == ERC721_FOR_ERC20) {
-            // TODO extract common check
             /*  CHECKS  */
-            require(
-                order.marketplaceAddress == address(this),
-                "Wrong market address"
-            );
-
-            require(
-                !cancelledOrFinalized[seller][sellerSig] &&
-                    !cancelledOrFinalized[buyer][buyerSig],
-                "Signature has been used"
-            );
-            require(
-                sellerMetadata.listingTime < block.timestamp &&
-                    (sellerMetadata.expirationTime == 0 ||
-                        sellerMetadata.expirationTime > block.timestamp),
-                "Sell order expired"
-            );
-            require(
-                buyerMetadata.listingTime < block.timestamp &&
-                    (buyerMetadata.expirationTime == 0 ||
-                        buyerMetadata.expirationTime > block.timestamp),
-                "Buy order expired"
-            );
-            require(
-                paymentTokens[order.paymentTokenAddress] == true,
-                "Marketplace: invalid payment method"
-            );
-
-            // Check signature validity
-            require(
-                checkSigValidity(
-                    seller,
-                    transactionType,
-                    order,
-                    sellerMetadata,
-                    sellerSig
-                ),
-                "Seller signature is not valid"
-            );
-            require(
-                checkSigValidity(
-                    buyer,
-                    transactionType,
-                    order,
-                    buyerMetadata,
-                    buyerSig
-                ),
-                "Buyer signature is not valid"
+            checkMetaInfo(
+                order,
+                seller,
+                buyer,
+                sellerSig,
+                buyerSig,
+                sellerMetadata,
+                buyerMetadata
             );
 
             /*  EFFECTS  */
@@ -341,11 +323,48 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                        Helper functions                          *
      ********************************************************************/
 
+    function checkMetaInfo(
+        Order memory order,
+        address seller,
+        address buyer,
+        bytes memory sellerSig,
+        bytes memory buyerSig,
+        OrderMetadata memory sellerMetadata,
+        OrderMetadata memory buyerMetadata
+    ) internal view {
+        require(
+            order.marketplaceAddress == address(this),
+            "Wrong market address"
+        );
+        require(
+            paymentTokens[order.paymentTokenAddress] == true,
+            "Marketplace: invalid payment method"
+        );
+
+        require(
+            !cancelledOrFinalized[seller][sellerSig] &&
+                !cancelledOrFinalized[buyer][buyerSig],
+            "Signature has been used"
+        );
+        require(
+            sellerMetadata.listingTime < block.timestamp &&
+                (sellerMetadata.expirationTime == 0 ||
+                    sellerMetadata.expirationTime > block.timestamp),
+            "Sell order expired"
+        );
+        require(
+            buyerMetadata.listingTime < block.timestamp &&
+                (buyerMetadata.expirationTime == 0 ||
+                    buyerMetadata.expirationTime > block.timestamp),
+            "Buy order expired"
+        );
+    }
+
     function checkSigValidity(
         address x,
         bytes32 transactionType,
-        Order memory order,
-        OrderMetadata memory metadata,
+        bytes memory order,
+        bytes memory metadata,
         bytes memory sig
     ) internal view returns (bool) {
         if (x == msg.sender) {
@@ -364,8 +383,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     function getEthSignedMessageHash(
         bytes32 transactionType,
-        Order memory order,
-        OrderMetadata memory metadata
+        bytes memory order,
+        bytes memory metadata
     ) internal pure returns (bytes32) {
         bytes32 criteriaMessageHash = getMessageHash(
             transactionType,
@@ -380,27 +399,10 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      */
     function getMessageHash(
         bytes32 transactionType,
-        Order memory order,
-        OrderMetadata memory metadata
+        bytes memory order,
+        bytes memory metadata
     ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    transactionType,
-                    order.marketplaceAddress,
-                    order.targetTokenAddress,
-                    order.targetTokenId,
-                    order.paymentTokenAddress,
-                    order.price,
-                    order.serviceFee,
-                    order.royaltyFee,
-                    order.royaltyFeeRecipient,
-                    metadata.listingTime,
-                    metadata.expirationTime,
-                    metadata.maximumFill,
-                    metadata.salt
-                )
-            );
+        return keccak256(abi.encodePacked(transactionType, order, metadata));
     }
 
     function executeTransfers(
