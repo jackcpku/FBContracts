@@ -165,7 +165,7 @@ contract PresaleContract {
     }
 
     /**
-        query white list of [from , to]
+        query white list of [from , to]  1-based 
      */
     function getWhiteList(uint256 from, uint256 to) external view returns (address[] memory) {
         require(
@@ -178,6 +178,13 @@ contract PresaleContract {
             (ret[i], ) = limitAmount.at(i);
         }
         return ret;
+    }
+
+    /**
+        total # of white list user
+     */
+    function numberOfWhiteList() external view returns (uint256) {
+        return limitAmount.length();
     }
 }
 
