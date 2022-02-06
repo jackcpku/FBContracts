@@ -48,13 +48,13 @@ describe("Test PresaleContract", function () {
 
         it("Test Get Stable Coin List", async function () {
             const coins = await ps.getStableCoinLists();
-            console.log(coins);
+            // console.log(coins);
             expect(coins[0]).to.equal(sbc.address);
         });
 
         it("Test White List", async function () {
-            const whitelists = await ps.getWhiteList(1, 4);
-            console.log(whitelists);
+            const whitelists = await ps.getWhiteList(0, 3);
+            // console.log(whitelists);
             expect(whitelists[0]).to.equal(u1.address);
         });
 
@@ -82,12 +82,26 @@ describe("Test PresaleContract", function () {
             expect(await sbc.balanceOf(ps.address)).to.equal(num * preSalePrice);
         });
 
+        it ("Test withdrawToken function", async function () {
+            const num = 5;
+            const amountToWithdraw = 2;
+            await sbc.connect(u1).approve(ps.address, num * preSalePrice);
+            await ps.connect(u1).buyPresale(sbc.address, num);
+
+            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
+
+            expect (await ps.withdrawToken(fbt.address, u3.address, amountToWithdraw)).to.emit(ps, "WithdrawToken").withArgs(fbt.address, u3.address, amountToWithdraw);
+
+            expect(await fbt.balanceOf(ps.address)).to.equal(totalAmount - num - amountToWithdraw);
+            expect(await fbt.balanceOf(u3.address)).to.equal(amountToWithdraw);
+        });
+
         it ("Test withdraw function", async function () {
             const num = 5;
             await sbc.connect(u1).approve(ps.address, num * preSalePrice);
             await ps.connect(u1).buyPresale(sbc.address, num);
 
-            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager can withdraw");
+            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
 
             // await ps.withdraw(u3.address);
             expect (await ps.withdraw(u3.address)).to.emit(ps, "Withdrawed").withArgs(u3.address, (await ps.getTotalSold()));

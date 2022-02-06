@@ -25,7 +25,13 @@ contract PresaleContract {
     AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; // map of (addr , # of token has bought)
 
     event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
+    event WithdrawToken(address indexed token, address indexed toAddr, uint256 amount);
     event Withdrawed(address indexed toAddr, uint256 totalSold);
+
+    modifier restricted() {
+        require(msg.sender == manager, "Only manager has permission"); //only manager can modify this 
+        _;
+    }
 
     constructor (
         address _manager,
@@ -40,8 +46,7 @@ contract PresaleContract {
     /**
         add accepted stable coin 
      */
-    function setStableCoinList(address[] memory stableCoins) public {
-        require(msg.sender == manager, "Only manager can add stable coin list");
+    function setStableCoinList(address[] memory stableCoins) public restricted {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             stableCoinSet.add(stableCoins[i]);
         }
@@ -50,8 +55,7 @@ contract PresaleContract {
     /**
         set whitelists with limit amounts
      */
-    function setWhiteLists(address[] memory addrs, uint256[] memory amounts) public {
-        require(msg.sender == manager, "Only manager can modify white list");
+    function setWhiteLists(address[] memory addrs, uint256[] memory amounts) public restricted {
         for (uint256 i = 0; i < addrs.length; i++) {
             setWhiteList(addrs[i], amounts[i]);
         }
@@ -79,6 +83,7 @@ contract PresaleContract {
         totalSold += amountToBuy;
         boughtAmount.set(msg.sender, boughtAmount.get(msg.sender) + amountToBuy);
 
+        //1. todo decimal
         uint256 cost = presalePrice * amountToBuy;
 
         //Transfer the corresponding amount of stablecoins from the whitelisted address to this contract address. 
@@ -100,11 +105,20 @@ contract PresaleContract {
     }
 
     /**
+        the manager withdraw specific token to toAddr
+     */
+    function withdrawToken(address token, address toAddr, uint256 amount) public restricted {
+        emit WithdrawToken(token, toAddr, amount);
+        IERC20(token).safeTransfer(
+            toAddr,
+            amount
+        );
+    }
+
+    /**
         the manager withdraw rest of tokens including our platform token and stable coin to a new address
      */
-    function withdraw(address toAddr) public {
-        require(msg.sender == manager, "Only manager can withdraw");
-
+    function withdraw(address toAddr) public restricted {
         emit Withdrawed(toAddr, totalSold);     
 
         // send ERC20 token to `toAddr`.
@@ -169,16 +183,16 @@ contract PresaleContract {
     }
 
     /**
-        query white list of [from , to]  1-based 
+        query white list of [from , to]  0-based 
      */
     function getWhiteList(uint256 from, uint256 to) external view returns (address[] memory) {
         require(
-            (from > 0) && (from <= to) && (to <= limitAmount.length()) && ((to - from + 1) <= 50),
+            (from >= 0) && (from <= to) && (to < limitAmount.length()),
             "Query Params Illegal"
         );
 
         address[] memory ret = new address[](to - from + 1);
-        for (uint i = from - 1; i < to; i++) {
+        for (uint i = from; i <= to; i++) {
             (ret[i], ) = limitAmount.at(i);
         }
         return ret;
