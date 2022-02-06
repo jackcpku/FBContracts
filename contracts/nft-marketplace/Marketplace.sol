@@ -63,15 +63,19 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                             Events                               *
      ********************************************************************/
 
-    event MatchTransaction(
+    event OrderMatched(
         address indexed contractAddress,
         uint256 indexed tokenId,
         address indexed paymentToken,
         uint256 price,
         uint256 fill,
         address seller,
-        address buyer
+        address buyer,
+        bytes32 hashedSellerSignature,
+        bytes32 hashedBuyerSignature
     );
+
+    event SignatureIgnored(address indexed operator, bytes32 hashedSignature);
 
     function initialize() public initializer {
         __Ownable_init();
@@ -119,8 +123,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                         Core functions                           *
      ********************************************************************/
 
-    mapping(address => mapping(bytes => bool)) cancelled;
-    mapping(address => mapping(bytes => uint256)) fills;
+    mapping(address => mapping(bytes32 => bool)) cancelled;
+    mapping(address => mapping(bytes32 => uint256)) fills;
 
     function atomicMatch(
         bytes32 transactionType,
@@ -258,10 +262,10 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 order,
                 seller,
                 sellerMetadata,
-                sellerSig,
+                keccak256(sellerSig),
                 buyer,
                 buyerMetadata,
-                buyerSig
+                keccak256(buyerSig)
             );
     }
 
@@ -270,10 +274,10 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         Order memory order,
         address seller,
         OrderMetadata memory sellerMetadata,
-        bytes memory sellerSig,
+        bytes32 hashedSellerSignature,
         address buyer,
         OrderMetadata memory buyerMetadata,
-        bytes memory buyerSig
+        bytes32 hashedBuyerSignature
     ) internal {
         /*  CHECKS  */
         checkMetaInfo(
@@ -283,28 +287,30 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             buyer,
             sellerMetadata,
             buyerMetadata,
-            sellerSig,
-            buyerSig
+            hashedSellerSignature,
+            hashedBuyerSignature
         );
 
         /*  EFFECTS  */
         uint256 fill = Math.min(
-            sellerMetadata.maximumFill - fills[seller][sellerSig],
-            buyerMetadata.maximumFill - fills[buyer][buyerSig]
+            sellerMetadata.maximumFill - fills[seller][hashedSellerSignature],
+            buyerMetadata.maximumFill - fills[buyer][hashedBuyerSignature]
         );
         executeTransfers(transactionType, order, fill, seller, buyer);
-        fills[seller][sellerSig] += fill;
-        fills[buyer][buyerSig] += fill;
+        fills[seller][hashedSellerSignature] += fill;
+        fills[buyer][hashedBuyerSignature] += fill;
 
         /*  LOGS  */
-        emit MatchTransaction(
+        emit OrderMatched(
             order.targetTokenAddress,
             order.targetTokenId,
             order.paymentTokenAddress,
             order.price,
             fill,
             seller,
-            buyer
+            buyer,
+            hashedSellerSignature,
+            hashedBuyerSignature
         );
     }
 
@@ -317,12 +323,14 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      * @param signature Bidder's signature of the order.
      */
     function ignoreSignature(bytes memory signature) public {
+        bytes32 hashedSignature = keccak256(signature);
         require(
-            cancelled[msg.sender][signature] == false,
+            cancelled[msg.sender][hashedSignature] == false,
             "Signature has been cancelled or used"
         );
 
-        cancelled[msg.sender][signature] = true;
+        cancelled[msg.sender][hashedSignature] = true;
+        emit SignatureIgnored(msg.sender, hashedSignature);
     }
 
     /**
@@ -345,8 +353,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address buyer,
         OrderMetadata memory sellerMetadata,
         OrderMetadata memory buyerMetadata,
-        bytes memory sellerSig,
-        bytes memory buyerSig
+        bytes32 hashedSellerSignature,
+        bytes32 hashedBuyerSignature
     ) internal view {
         require(
             order.marketplaceAddress == address(this),
@@ -361,19 +369,19 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         require(buyerMetadata.sellOrBuy == false, "Buyer should buy");
 
         require(
-            !cancelled[seller][sellerSig],
+            !cancelled[seller][hashedSellerSignature],
             "Seller signature has been revoked"
         );
         require(
-            !cancelled[buyer][buyerSig],
+            !cancelled[buyer][hashedBuyerSignature],
             "Buyer signature has been revoked"
         );
         require(
-            fills[seller][sellerSig] < sellerMetadata.maximumFill,
+            fills[seller][hashedSellerSignature] < sellerMetadata.maximumFill,
             "Sell order has been filled"
         );
         require(
-            fills[buyer][buyerSig] < buyerMetadata.maximumFill,
+            fills[buyer][hashedBuyerSignature] < buyerMetadata.maximumFill,
             "Buy order has been filled"
         );
         require(
