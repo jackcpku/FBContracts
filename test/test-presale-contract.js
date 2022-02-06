@@ -3,7 +3,7 @@ const hre = require("hardhat");
 
 describe("Test PresaleContract", function () {
     let fbt, sbc, ps;                               // Contract objects
-    let ownerContractAddress;      // TODO ownerContractAddress should be a multisig wallet
+    let ownerContractAddress;      
   
     const totalAmount = 1000000;
     const stableCoinAmount = 999999;

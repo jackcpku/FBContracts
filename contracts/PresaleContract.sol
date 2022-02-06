@@ -13,21 +13,16 @@ contract PresaleContract {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableMap for EnumerableMap.UintToAddressMap;
-
     using AddressToIntEnumerableMap for AddressToIntEnumerableMap.AddressToUintMap;
-
 
     address public manager;         //admin
     address public tokenAddress;    //token
     uint256 presalePrice;           //the token price / USD 
-    
-    EnumerableSet.AddressSet private stableCoinSet;     //允许使用的稳定币集合
+    uint256 totalSold;                 //已经出卖出的平台币总量
 
-    EnumerableSet.AddressSet private whiteListSet;          //白名单地址集合
+    EnumerableSet.AddressSet private stableCoinSet;     //允许使用的稳定币集合
     AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  //每个白名单地址的申购数量 限额
     AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; //现在每个白名单地址的 已经购买的额度
-
-    uint totalSold;                 //已经出卖出的平台币总量
 
     event Withdrawed(address toAddr, uint256 amount);
 
@@ -61,7 +56,6 @@ contract PresaleContract {
 
     function setWhiteList(address addr, uint256 amount) internal {
         require(amount >= 0, "white list limit amount must >= 0");
-        whiteListSet.add(addr);
         limitAmount.set(addr, amount);
         if (!boughtAmount.contains(addr)) {
             boughtAmount.set(addr, 0);
@@ -130,11 +124,6 @@ contract PresaleContract {
         查询 支持的稳定币 列表
     */
     function getStableCoinLists() external view returns (address[] memory) {
-        // address[] memory result = new address[](stableCoinSet.length());
-        // for (uint i = 0; i < stableCoinSet.length(); i++) {
-        //     result[i] = stableCoinSet.at(i);
-        // }
-        // return result;
         return stableCoinSet.values();
     }
 
@@ -174,21 +163,14 @@ contract PresaleContract {
         return totalSold;
     }
 
-    /**
-        查询所有预售白名单地址
-    */
+    //分页
     function getWhiteList() external view returns (address[] memory) {
-        return whiteListSet.values();
+        address[] memory ret = new address[](limitAmount.length());
+        for (uint i = 0; i < limitAmount.length(); i++) {
+            (ret[i], ) = limitAmount.at(i);
+        }
+        return ret;
     }
-
-
-    // function getWhiteListLimitAmount() external view returns (address[] memory) {
-    //     address[] memory ret = new address[](limitAmount.length());
-    //     for (uint i = 0; i < limitAmount.length(); i++) {
-    //         // ret[i] = limitAmount.at(i);
-    //     }
-    //     return ret;
-    // }
 
     /**
         查询某稳定币的allowance
