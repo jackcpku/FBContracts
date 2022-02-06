@@ -20,6 +20,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      ********************************************************************/
 
     struct OrderMetadata {
+        bool sellOrBuy; // true for sell, false for buy
         uint256 listingTime;
         uint256 expirationTime;
         uint256 maximumFill;
@@ -214,15 +215,17 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         OrderMetadata memory sellerMetadata;
         {
             (
+                bool sellOrBuy,
                 uint256 listingTime,
                 uint256 expirationTime,
                 uint256 maximumFill,
                 uint256 salt
             ) = abi.decode(
                     _sellerMetadata,
-                    (uint256, uint256, uint256, uint256)
+                    (bool, uint256, uint256, uint256, uint256)
                 );
             sellerMetadata = OrderMetadata(
+                sellOrBuy,
                 listingTime,
                 expirationTime,
                 maximumFill,
@@ -232,15 +235,17 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         OrderMetadata memory buyerMetadata;
         {
             (
+                bool sellOrBuy,
                 uint256 listingTime,
                 uint256 expirationTime,
                 uint256 maximumFill,
                 uint256 salt
             ) = abi.decode(
                     _buyerMetadata,
-                    (uint256, uint256, uint256, uint256)
+                    (bool, uint256, uint256, uint256, uint256)
                 );
             buyerMetadata = OrderMetadata(
+                sellOrBuy,
                 listingTime,
                 expirationTime,
                 maximumFill,
@@ -351,6 +356,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             paymentTokens[order.paymentTokenAddress] == true,
             "Marketplace: invalid payment method"
         );
+
+        require(sellerMetadata.sellOrBuy == true, "Seller should sell");
+        require(buyerMetadata.sellOrBuy == false, "Buyer should buy");
 
         require(
             !cancelled[seller][sellerSig],
