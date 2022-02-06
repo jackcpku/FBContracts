@@ -24,7 +24,8 @@ contract PresaleContract {
     AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  // map of (addr , max # of token can buy)
     AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; // map of (addr , # of token has bought)
 
-    // event Withdrawed(address toAddr, uint256 amount);
+    event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
+    event Withdrawed(address indexed toAddr, uint256 totalSold);
 
     constructor (
         address _manager,
@@ -84,6 +85,9 @@ contract PresaleContract {
         //allowance needs to be enough
         uint256 allowance = IERC20(coin).allowance(msg.sender, address(this));
         require(allowance >= cost, "Insufficient Stable Coin allowance");
+
+        emit BuyPresale(msg.sender, coin, cost);
+
         IERC20(coin).safeTransferFrom(
             msg.sender, address(this), cost
         );
@@ -101,7 +105,7 @@ contract PresaleContract {
     function withdraw(address toAddr) public {
         require(msg.sender == manager, "Only manager can withdraw");
 
-        // emit Withdrawed(toAddr, 0);     //todo amount 
+        emit Withdrawed(toAddr, totalSold);     
 
         // send ERC20 token to `toAddr`.
         IERC20(tokenAddress).safeTransfer(
