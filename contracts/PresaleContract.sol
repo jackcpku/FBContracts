@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
-// 最新openzeppelin 还不支持 addr -> uint EnumerableMap 先本地拷贝
+// lasted version of openzeppelin does not support addr -> uint EnumerableMap, just copy ToDo remove
 import "./utils/AddressToIntEnumerableMap.sol";
 
 contract PresaleContract {
@@ -16,15 +16,15 @@ contract PresaleContract {
     using AddressToIntEnumerableMap for AddressToIntEnumerableMap.AddressToUintMap;
 
     address public manager;         //admin
-    address public tokenAddress;    //token
+    address public tokenAddress;    //platform token
     uint256 presalePrice;           //the token price / USD 
-    uint256 totalSold;                 //已经出卖出的平台币总量
+    uint256 totalSold;              //The total amount of platform coin that has been sold
 
-    EnumerableSet.AddressSet private stableCoinSet;     //允许使用的稳定币集合
-    AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  //每个白名单地址的申购数量 限额
-    AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; //现在每个白名单地址的 已经购买的额度
+    EnumerableSet.AddressSet private stableCoinSet;                  // allowed stable coins set
+    AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  // map of (addr , max # of token can buy)
+    AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; // map of (addr , # of token has bought)
 
-    event Withdrawed(address toAddr, uint256 amount);
+    // event Withdrawed(address toAddr, uint256 amount);
 
     constructor (
         address _manager,
@@ -36,7 +36,9 @@ contract PresaleContract {
         tokenAddress = _tokenAddress;
     }
 
-    //设允许使用的 稳定币 种类
+    /**
+        add accepted stable coin 
+     */
     function setStableCoinList(address[] memory stableCoins) public {
         require(msg.sender == manager, "Only manager can add stable coin list");
         for (uint256 i = 0; i < stableCoins.length; i++) {
@@ -45,7 +47,7 @@ contract PresaleContract {
     }
 
     /**
-    设置 修改 白名单 
+        set whitelists with limit amounts
      */
     function setWhiteLists(address[] memory addrs, uint256[] memory amounts) public {
         require(msg.sender == manager, "Only manager can modify white list");
@@ -54,6 +56,9 @@ contract PresaleContract {
         }
     }
 
+    /**
+        set whitelist with limit amount
+     */
     function setWhiteList(address addr, uint256 amount) internal {
         require(amount >= 0, "white list limit amount must >= 0");
         limitAmount.set(addr, amount);
@@ -66,25 +71,24 @@ contract PresaleContract {
         whitelist user buy presale with stablecoin address:coin & amount:amountToBuy
      */
     function buyPresale(address coin, uint256 amountToBuy) public {
-        //预售额度
         require(boughtAmount.get(msg.sender) + amountToBuy <= limitAmount.get(msg.sender), "Exceed the purchase limit");
-        //合约拥有的平台Token数量足够
         require((IERC20(tokenAddress).balanceOf(address(this))) >= amountToBuy, "Insufficient platform tokens");
-        //使用的稳定币是否在稳定币白名单中
         require(stableCoinSet.contains(coin), "Payment with this type of stablecoin is not supported");
 
         totalSold += amountToBuy;
         boughtAmount.set(msg.sender, boughtAmount.get(msg.sender) + amountToBuy);
 
-        //计算要购买的平台Token对应的稳定币数量
         uint256 cost = presalePrice * amountToBuy;
-        //从该白名单地址转移相应数量的稳定币到此合约地址。allowance需要足够
+
+        //Transfer the corresponding amount of stablecoins from the whitelisted address to this contract address. 
+        //allowance needs to be enough
         uint256 allowance = IERC20(coin).allowance(msg.sender, address(this));
         require(allowance >= cost, "Insufficient Stable Coin allowance");
         IERC20(coin).safeTransferFrom(
             msg.sender, address(this), cost
         );
-        //从合约地址转移 该白名单用户购买的平台Token到该白名单地址
+
+        // send ERC20 token to `buyer`.
         IERC20(tokenAddress).safeTransfer(
             msg.sender,
             amountToBuy
@@ -106,77 +110,74 @@ contract PresaleContract {
         );
         // send All kinds of stable coin to toAddr
         for (uint256 i = 0; i < stableCoinSet.length(); i++) {
-            IERC20(stableCoinSet.at(i)).safeTransfer(
+            address coin = stableCoinSet.at(i);
+            IERC20(coin).safeTransfer(
                 toAddr,
-                IERC20(stableCoinSet.at(i)).balanceOf(address(this))
+                IERC20(coin).balanceOf(address(this))
             );
         }
     }
 
-    /**
-        查询预售价格
-    */
     function getPresalePrice() external view returns (uint256) {
         return presalePrice;
     }
 
     /**
-        查询 支持的稳定币 列表
-    */
+        stable coin allowed list
+     */
     function getStableCoinLists() external view returns (address[] memory) {
         return stableCoinSet.values();
     }
 
     /**
-        该合约地址 持有的平台币token总量
-    */
+        The # of platform token held by our contract now
+     */
     function totalToken() external view returns (uint256) {
         return IERC20(tokenAddress).balanceOf(address(this));
     }
 
     /**
-        查询指定地址的预售额度
-    */
+        ceil # of token for addr
+     */
     function getLimitAmountOfAddress(address addr) external view returns (uint256) {
         return limitAmount.get(addr);
     }
 
     /**
-        查询指定地址已经购买的额度
-    */
+        has bought # of token for addr
+     */
     function getBoughtAmountOfAddress(address addr) external view returns (uint256) {
-        // return boughtAmount[addr];
         return boughtAmount.get(addr);
     }
 
     /**
-        查询指定地址还可以购买的额度
-    */
+        remain # of token for addr can buy
+     */
     function getRemainAmountOfAddress(address addr) external view returns (uint256) {
         return limitAmount.get(addr) - boughtAmount.get(addr);
     }
 
     /**
-        查询已经售出的总数量
-    */
+       sum # of platform token has been sold
+     */
     function getTotalSold() external view returns (uint256) {
         return totalSold;
     }
 
-    //分页
-    function getWhiteList() external view returns (address[] memory) {
-        address[] memory ret = new address[](limitAmount.length());
-        for (uint i = 0; i < limitAmount.length(); i++) {
+    /**
+        query white list of [from , to]
+     */
+    function getWhiteList(uint256 from, uint256 to) external view returns (address[] memory) {
+        require(
+            (from > 0) && (from <= to) && (to <= limitAmount.length()) && ((to - from + 1) <= 50),
+            "Query Params Illegal"
+        );
+
+        address[] memory ret = new address[](to - from + 1);
+        for (uint i = from - 1; i < to; i++) {
             (ret[i], ) = limitAmount.at(i);
         }
         return ret;
-    }
-
-    /**
-        查询某稳定币的allowance
-     */
-    function getAllowance(address coin) external view returns (uint256) {
-        return IERC20(coin).allowance(msg.sender, address(this));
     }
 }
 

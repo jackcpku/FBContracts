@@ -33,14 +33,13 @@ describe("Test PresaleContract", function () {
     });
 
     describe("Dealing with FBT & StableCoins.", function () {
-        beforeEach("Send 1000000 FBT to VestingContract.", async function () {
+        beforeEach("init coins and whitelists.", async function () {
             expect(await fbt.balanceOf(owner.address)).to.equal(BigInt(10) ** BigInt(27));
 
             await fbt.transfer(ps.address, totalAmount)
             await sbc.transfer(u1.address, stableCoinAmount);
 
             await ps.setStableCoinList([sbc.address]);
-
             await ps.setWhiteLists([u1.address, u2.address, u3.address, u4.address], [100, 1000, 10000, 0]);
 
             expect(await fbt.balanceOf(ps.address)).to.equal(totalAmount);
@@ -53,7 +52,7 @@ describe("Test PresaleContract", function () {
         });
 
         it("Test White List", async function () {
-            const whitelists = await ps.getWhiteList();
+            const whitelists = await ps.getWhiteList(1, 4);
             console.log(whitelists);
             expect(whitelists[0]).to.equal(u1.address);
         });
@@ -63,38 +62,26 @@ describe("Test PresaleContract", function () {
             // console.log(await sbc.balanceOf(ps.address));
             // console.log(await fbt.balanceOf(u1.address));
             // console.log(await sbc.balanceOf(u1.address));
-
-            // await u1.approve(ps.address, 5 * ps.getPresalePrice());
             await expect(ps.connect(u1).buyPresale(sbc.address, 50000000000)).to.be.revertedWith("Exceed the purchase limit");
             await expect(ps.connect(u1).buyPresale(u2.address, 5)).to.be.revertedWith("Payment with this type of stablecoin is not supported");
-            
-
-            // ps.getAllowance(sbc.address)
 
             await sbc.connect(u1).approve(ps.address, 3 * 100);
             await expect(ps.connect(u1).buyPresale(sbc.address, 5)).to.be.revertedWith("Insufficient Stable Coin allowance");
 
             await sbc.connect(u1).approve(ps.address, 5 * 100);
-            expect(await ps.connect(u1).getAllowance(sbc.address)).to.equal(5*100);
-
             await ps.connect(u1).buyPresale(sbc.address, 5);
 
             // console.log(await fbt.balanceOf(ps.address));
             // console.log(await sbc.balanceOf(ps.address));
             // console.log(await fbt.balanceOf(u1.address));
             // console.log(await sbc.balanceOf(u1.address));
-
             expect(await fbt.balanceOf(u1.address)).to.equal(5);
             expect(await fbt.balanceOf(ps.address)).to.equal(totalAmount - 5);
             expect(await sbc.balanceOf(u1.address)).to.equal(stableCoinAmount - 5 * 100);
             expect(await sbc.balanceOf(ps.address)).to.equal(5 * 100);
         });
 
-
-
         it ("Test withdraw function", async function () {
-            // await ps.setStableCoinList([sbc.address]);
-
             await sbc.connect(u1).approve(ps.address, 5 * 100);
             await ps.connect(u1).buyPresale(sbc.address, 5);
 
@@ -104,10 +91,8 @@ describe("Test PresaleContract", function () {
 
             // console.log(await fbt.balanceOf(ps.address));
             // console.log(await sbc.balanceOf(ps.address));
-
             // console.log(await fbt.balanceOf(u3.address));
             // console.log(await sbc.balanceOf(u3.address));
-
             expect(await fbt.balanceOf(ps.address)).to.equal(0);
             expect(await sbc.balanceOf(ps.address)).to.equal(0);
             expect(await fbt.balanceOf(u3.address)).to.equal(totalAmount - 5);
