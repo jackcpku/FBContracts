@@ -39,19 +39,20 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     }
 
     /********************************************************************
-     *                        Transaction modes                         *
+     *                            Constants                             *
      ********************************************************************/
 
+    // Transaction modes
     bytes32 public constant ERC721_FOR_ERC20 = keccak256("ERC721_FOR_ERC20");
     bytes32 public constant ERC1155_FOR_ERC20 = keccak256("ERC1155_FOR_ERC20");
 
-    /********************************************************************
-     *                      Other State variables                       *
-     ********************************************************************/
-
-    // Fee related constants
+    // Fee related magic numbers
     uint256 public constant BASE = 10000;
     uint256 public constant BURN = BASE / 2;
+
+    /********************************************************************
+     *                         State variables                          *
+     ********************************************************************/
 
     // Supported payment ERC20 tokens
     mapping(address => bool) public paymentTokens;
@@ -178,68 +179,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 buyer,
                 buyerMetadata,
                 buyerMessageHash
-            );
-    }
-
-    function decodeOrder(bytes memory _order)
-        internal
-        pure
-        returns (Order memory)
-    {
-        (
-            address marketplaceAddress,
-            address targetTokenAddress,
-            uint256 targetTokenId,
-            address paymentTokenAddress,
-            uint256 price,
-            uint256 serviceFee,
-            uint256 royaltyFee,
-            address royaltyFeeRecipient
-        ) = abi.decode(
-                _order,
-                (
-                    address,
-                    address,
-                    uint256,
-                    address,
-                    uint256,
-                    uint256,
-                    uint256,
-                    address
-                )
-            );
-        return
-            Order(
-                marketplaceAddress,
-                targetTokenAddress,
-                targetTokenId,
-                paymentTokenAddress,
-                price,
-                serviceFee,
-                royaltyFee,
-                royaltyFeeRecipient
-            );
-    }
-
-    function decodeOrderMetadata(bytes memory _metadata)
-        internal
-        pure
-        returns (OrderMetadata memory)
-    {
-        (
-            bool sellOrBuy,
-            uint256 listingTime,
-            uint256 expirationTime,
-            uint256 maximumFill,
-            uint256 salt
-        ) = abi.decode(_metadata, (bool, uint256, uint256, uint256, uint256));
-        return
-            OrderMetadata(
-                sellOrBuy,
-                listingTime,
-                expirationTime,
-                maximumFill,
-                salt
             );
     }
 
@@ -394,10 +333,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes memory sig
     ) internal view returns (bool valid, bytes32 messageHash) {
         messageHash = getMessageHash(transactionType, order, metadata);
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
         valid =
             x == msg.sender ||
-            ECDSA.recover(ethSignedMessageHash, sig) == x;
+            x == ECDSA.recover(getEthSignedMessageHash(messageHash), sig);
     }
 
     function getEthSignedMessageHash(bytes32 criteriaMessageHash)
@@ -522,5 +460,67 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     ) internal {
         executeTransferNFT(transactionType, order, fill, seller, buyer);
         executeTransferERC20(order, fill, seller, buyer);
+    }
+
+    function decodeOrder(bytes memory _order)
+        internal
+        pure
+        returns (Order memory)
+    {
+        (
+            address marketplaceAddress,
+            address targetTokenAddress,
+            uint256 targetTokenId,
+            address paymentTokenAddress,
+            uint256 price,
+            uint256 serviceFee,
+            uint256 royaltyFee,
+            address royaltyFeeRecipient
+        ) = abi.decode(
+                _order,
+                (
+                    address,
+                    address,
+                    uint256,
+                    address,
+                    uint256,
+                    uint256,
+                    uint256,
+                    address
+                )
+            );
+        return
+            Order(
+                marketplaceAddress,
+                targetTokenAddress,
+                targetTokenId,
+                paymentTokenAddress,
+                price,
+                serviceFee,
+                royaltyFee,
+                royaltyFeeRecipient
+            );
+    }
+
+    function decodeOrderMetadata(bytes memory _metadata)
+        internal
+        pure
+        returns (OrderMetadata memory)
+    {
+        (
+            bool sellOrBuy,
+            uint256 listingTime,
+            uint256 expirationTime,
+            uint256 maximumFill,
+            uint256 salt
+        ) = abi.decode(_metadata, (bool, uint256, uint256, uint256, uint256));
+        return
+            OrderMetadata(
+                sellOrBuy,
+                listingTime,
+                expirationTime,
+                maximumFill,
+                salt
+            );
     }
 }
