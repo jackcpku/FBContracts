@@ -38,9 +38,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address royaltyFeeRecipient;
     }
 
-    uint256 public constant BASE = 10000;
-    uint256 public constant BURN = BASE / 2;
-
     /********************************************************************
      *                        Transaction modes                         *
      ********************************************************************/
@@ -49,8 +46,12 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     bytes32 public constant ERC1155_FOR_ERC20 = keccak256("ERC1155_FOR_ERC20");
 
     /********************************************************************
-     *                         State variables                          *
+     *                      Other State variables                       *
      ********************************************************************/
+
+    // Fee related constants
+    uint256 public constant BASE = 10000;
+    uint256 public constant BURN = BASE / 2;
 
     // Supported payment ERC20 tokens
     mapping(address => bool) public paymentTokens;
@@ -59,18 +60,29 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     // Platform address
     address public serviceFeeRecipient;
 
+    // Store order states
+    mapping(address => mapping(bytes32 => bool)) cancelled;
+    mapping(address => mapping(bytes32 => uint256)) fills;
+
     /********************************************************************
      *                             Events                               *
      ********************************************************************/
 
-    event MatchTransaction(
+    event OrderMatched(
         address indexed contractAddress,
         uint256 indexed tokenId,
         address indexed paymentToken,
         uint256 price,
         uint256 fill,
         address seller,
-        address buyer
+        address buyer,
+        bytes32 sellerMessageHash,
+        bytes32 buyerMessageHash
+    );
+
+    event MessageHashIgnored(
+        address indexed operator,
+        bytes32 indexed messageHash
     );
 
     function initialize() public initializer {
@@ -119,9 +131,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                         Core functions                           *
      ********************************************************************/
 
-    mapping(address => mapping(bytes => bool)) cancelled;
-    mapping(address => mapping(bytes => uint256)) fills;
-
     function atomicMatch(
         bytes32 transactionType,
         bytes memory _order,
@@ -133,75 +142,74 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes memory buyerSig
     ) public {
         // Check signature validity
-        require(
-            checkSigValidity(
-                seller,
-                transactionType,
-                _order,
-                _sellerMetadata,
-                sellerSig
-            ),
-            "Seller signature is not valid"
+        (bool sellerSigValid, bytes32 sellerMessageHash) = checkSigValidity(
+            seller,
+            transactionType,
+            _order,
+            _sellerMetadata,
+            sellerSig
         );
-        require(
-            checkSigValidity(
-                buyer,
-                transactionType,
-                _order,
-                _buyerMetadata,
-                buyerSig
-            ),
-            "Buyer signature is not valid"
+        require(sellerSigValid, "Seller signature is not valid");
+
+        (bool buyerSigValid, bytes32 buyerMessageHash) = checkSigValidity(
+            buyer,
+            transactionType,
+            _order,
+            _buyerMetadata,
+            buyerSig
+        );
+        require(buyerSigValid, "Buyer signature is not valid");
+
+        Order memory order = decodeOrder(_order);
+        OrderMetadata memory sellerMetadata = decodeOrderMetadata(
+            _sellerMetadata
+        );
+        OrderMetadata memory buyerMetadata = decodeOrderMetadata(
+            _buyerMetadata
         );
 
-        /*
-         * `sellerData` detail
-         * uint256 listingTime
-         * uint256 expirationTime
-         * uint256 maximumFill
-         * uint256 salt
-         *
-         * `buyerData` detail
-         * uint256 listingTime
-         * uint256 expirationTime
-         * uint256 maximumFill
-         * uint256 salt
-         *
-         * `order` detail
-         * address marketplaceAddress
-         * address targetTokenAddress
-         * uint256 targetTokenId
-         * address paymentTokenAddress
-         * uint256 price
-         * uint256 serviceFee -> serviceFeeRecipient
-         * uint256 royaltyFee -> royaltyFeeRecipient
-         * address royaltyFeeRecipient
-         */
-        Order memory order;
-        {
-            (
-                address marketplaceAddress,
-                address targetTokenAddress,
-                uint256 targetTokenId,
-                address paymentTokenAddress,
-                uint256 price,
-                uint256 serviceFee,
-                uint256 royaltyFee,
-                address royaltyFeeRecipient
-            ) = abi.decode(
-                    _order,
-                    (
-                        address,
-                        address,
-                        uint256,
-                        address,
-                        uint256,
-                        uint256,
-                        uint256,
-                        address
-                    )
-                );
-            order = Order(
+        return
+            _atomicMatch(
+                transactionType,
+                order,
+                seller,
+                sellerMetadata,
+                sellerMessageHash,
+                buyer,
+                buyerMetadata,
+                buyerMessageHash
+            );
+    }
+
+    function decodeOrder(bytes memory _order)
+        internal
+        pure
+        returns (Order memory)
+    {
+        (
+            address marketplaceAddress,
+            address targetTokenAddress,
+            uint256 targetTokenId,
+            address paymentTokenAddress,
+            uint256 price,
+            uint256 serviceFee,
+            uint256 royaltyFee,
+            address royaltyFeeRecipient
+        ) = abi.decode(
+                _order,
+                (
+                    address,
+                    address,
+                    uint256,
+                    address,
+                    uint256,
+                    uint256,
+                    uint256,
+                    address
+                )
+            );
+        return
+            Order(
                 marketplaceAddress,
                 targetTokenAddress,
                 targetTokenId,
@@ -211,57 +219,27 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 royaltyFee,
                 royaltyFeeRecipient
             );
-        }
-        OrderMetadata memory sellerMetadata;
-        {
-            (
-                bool sellOrBuy,
-                uint256 listingTime,
-                uint256 expirationTime,
-                uint256 maximumFill,
-                uint256 salt
-            ) = abi.decode(
-                    _sellerMetadata,
-                    (bool, uint256, uint256, uint256, uint256)
-                );
-            sellerMetadata = OrderMetadata(
-                sellOrBuy,
-                listingTime,
-                expirationTime,
-                maximumFill,
-                salt
-            );
-        }
-        OrderMetadata memory buyerMetadata;
-        {
-            (
-                bool sellOrBuy,
-                uint256 listingTime,
-                uint256 expirationTime,
-                uint256 maximumFill,
-                uint256 salt
-            ) = abi.decode(
-                    _buyerMetadata,
-                    (bool, uint256, uint256, uint256, uint256)
-                );
-            buyerMetadata = OrderMetadata(
-                sellOrBuy,
-                listingTime,
-                expirationTime,
-                maximumFill,
-                salt
-            );
-        }
+    }
+
+    function decodeOrderMetadata(bytes memory _metadata)
+        internal
+        pure
+        returns (OrderMetadata memory)
+    {
+        (
+            bool sellOrBuy,
+            uint256 listingTime,
+            uint256 expirationTime,
+            uint256 maximumFill,
+            uint256 salt
+        ) = abi.decode(_metadata, (bool, uint256, uint256, uint256, uint256));
         return
-            _atomicMatch(
-                transactionType,
-                order,
-                seller,
-                sellerMetadata,
-                sellerSig,
-                buyer,
-                buyerMetadata,
-                buyerSig
+            OrderMetadata(
+                sellOrBuy,
+                listingTime,
+                expirationTime,
+                maximumFill,
+                salt
             );
     }
 
@@ -270,10 +248,10 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         Order memory order,
         address seller,
         OrderMetadata memory sellerMetadata,
-        bytes memory sellerSig,
+        bytes32 sellerMessageHash,
         address buyer,
         OrderMetadata memory buyerMetadata,
-        bytes memory buyerSig
+        bytes32 buyerMessageHash
     ) internal {
         /*  CHECKS  */
         checkMetaInfo(
@@ -283,28 +261,30 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             buyer,
             sellerMetadata,
             buyerMetadata,
-            sellerSig,
-            buyerSig
+            sellerMessageHash,
+            buyerMessageHash
         );
 
         /*  EFFECTS  */
         uint256 fill = Math.min(
-            sellerMetadata.maximumFill - fills[seller][sellerSig],
-            buyerMetadata.maximumFill - fills[buyer][buyerSig]
+            sellerMetadata.maximumFill - fills[seller][sellerMessageHash],
+            buyerMetadata.maximumFill - fills[buyer][buyerMessageHash]
         );
         executeTransfers(transactionType, order, fill, seller, buyer);
-        fills[seller][sellerSig] += fill;
-        fills[buyer][buyerSig] += fill;
+        fills[seller][sellerMessageHash] += fill;
+        fills[buyer][buyerMessageHash] += fill;
 
         /*  LOGS  */
-        emit MatchTransaction(
+        emit OrderMatched(
             order.targetTokenAddress,
             order.targetTokenId,
             order.paymentTokenAddress,
             order.price,
             fill,
             seller,
-            buyer
+            buyer,
+            sellerMessageHash,
+            buyerMessageHash
         );
     }
 
@@ -313,24 +293,25 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      ********************************************************************/
 
     /**
-     * Ignore a single signature.
-     * @param signature Bidder's signature of the order.
+     * Revoke a single order.
      */
-    function ignoreSignature(bytes memory signature) public {
+    function ignoreMessageHash(bytes32 messageHash) public {
         require(
-            cancelled[msg.sender][signature] == false,
-            "Signature has been cancelled or used"
+            cancelled[msg.sender][messageHash] == false,
+            "Order has been revoked"
         );
 
-        cancelled[msg.sender][signature] = true;
+        cancelled[msg.sender][messageHash] = true;
+
+        emit MessageHashIgnored(msg.sender, messageHash);
     }
 
     /**
-     * Ignore a bunch of signatures. Parameters similar to the single-cancel version.
+     * Revoke a bunch of orders. Parameters similar to the single version.
      */
-    function ignoreSignatures(bytes[] memory signatures) public {
-        for (uint256 i = 0; i < signatures.length; i++) {
-            ignoreSignature(signatures[i]);
+    function ignoreMessageHashs(bytes32[] memory messageHashs) public {
+        for (uint256 i = 0; i < messageHashs.length; i++) {
+            ignoreMessageHash(messageHashs[i]);
         }
     }
 
@@ -345,8 +326,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address buyer,
         OrderMetadata memory sellerMetadata,
         OrderMetadata memory buyerMetadata,
-        bytes memory sellerSig,
-        bytes memory buyerSig
+        bytes32 sellerMessageHash,
+        bytes32 buyerMessageHash
     ) internal view {
         require(
             order.marketplaceAddress == address(this),
@@ -361,19 +342,19 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         require(buyerMetadata.sellOrBuy == false, "Buyer should buy");
 
         require(
-            !cancelled[seller][sellerSig],
-            "Seller signature has been revoked"
+            !cancelled[seller][sellerMessageHash],
+            "Sell order has been revoked"
         );
         require(
-            !cancelled[buyer][buyerSig],
-            "Buyer signature has been revoked"
+            !cancelled[buyer][buyerMessageHash],
+            "Buy order has been revoked"
         );
         require(
-            fills[seller][sellerSig] < sellerMetadata.maximumFill,
+            fills[seller][sellerMessageHash] < sellerMetadata.maximumFill,
             "Sell order has been filled"
         );
         require(
-            fills[buyer][buyerSig] < buyerMetadata.maximumFill,
+            fills[buyer][buyerMessageHash] < buyerMetadata.maximumFill,
             "Buy order has been filled"
         );
         require(
@@ -411,36 +392,25 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes memory order,
         bytes memory metadata,
         bytes memory sig
-    ) internal view returns (bool) {
-        if (x == msg.sender) {
-            return true;
-        }
-
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(
-            transactionType,
-            order,
-            metadata
-        );
-        if (ECDSA.recover(ethSignedMessageHash, sig) != x) return false;
-
-        return true;
+    ) internal view returns (bool valid, bytes32 messageHash) {
+        messageHash = getMessageHash(transactionType, order, metadata);
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+        valid =
+            x == msg.sender ||
+            ECDSA.recover(ethSignedMessageHash, sig) == x;
     }
 
-    function getEthSignedMessageHash(
-        bytes32 transactionType,
-        bytes memory order,
-        bytes memory metadata
-    ) internal pure returns (bytes32) {
-        bytes32 criteriaMessageHash = getMessageHash(
-            transactionType,
-            order,
-            metadata
-        );
+    function getEthSignedMessageHash(bytes32 criteriaMessageHash)
+        internal
+        pure
+        returns (bytes32)
+    {
         return ECDSA.toEthSignedMessageHash(criteriaMessageHash);
     }
 
     /**
-     * @dev Calculate sell order digest.
+     * @dev Calculate order digest.
+     * @notice messageHash is used as index in `cancelled` and `fills`.
      */
     function getMessageHash(
         bytes32 transactionType,

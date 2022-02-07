@@ -226,8 +226,10 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
+        buyerMessageHash,
       };
     };
 
@@ -684,8 +686,10 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
+        buyerMessageHash,
       } = await getOrderInfo({
         tokenId,
         price,
@@ -706,7 +710,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.connect(seller).ignoreSignature(sellerSig);
+      await marketplace.connect(seller).ignoreMessageHash(sellerMessageHash);
 
       await expect(
         marketplace.atomicMatch(
@@ -719,7 +723,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Seller signature has been revoked");
+      ).to.be.revertedWith("Sell order has been revoked");
     });
 
     it("Buyer cancels order", async function () {
@@ -741,8 +745,10 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
+        buyerMessageHash,
       } = await getOrderInfo({
         tokenId,
         price,
@@ -763,7 +769,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.connect(buyer).ignoreSignature(buyerSig);
+      await marketplace.connect(buyer).ignoreMessageHash(buyerMessageHash);
 
       await expect(
         marketplace.atomicMatch(
@@ -776,7 +782,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Buyer signature has been revoked");
+      ).to.be.revertedWith("Buy order has been revoked");
     });
 
     it("Seller cancels twice", async function () {
@@ -798,6 +804,7 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
       } = await getOrderInfo({
@@ -820,10 +827,10 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.connect(seller).ignoreSignature(sellerSig);
+      await marketplace.connect(seller).ignoreMessageHash(sellerMessageHash);
       await expect(
-        marketplace.connect(seller).ignoreSignature(sellerSig)
-      ).to.be.revertedWith("Signature has been cancelled or used");
+        marketplace.connect(seller).ignoreMessageHash(sellerMessageHash)
+      ).to.be.revertedWith("Order has been revoked");
     });
 
     it("Invalid seller signature", async function () {
