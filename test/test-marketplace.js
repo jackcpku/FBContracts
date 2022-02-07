@@ -101,6 +101,8 @@ describe("Test Marketplace Contract", function () {
       buyerSalt,
       sellerMaximumFill,
       buyerMaximumFill,
+      sellerSellOrBuy,
+      buyerSellOrBuy,
     }) => {
       const transactionType = await marketplace.ERC721_FOR_ERC20();
 
@@ -164,14 +166,16 @@ describe("Test Marketplace Contract", function () {
 
       // Prepare seller metadata
       const sellerMetadata = {
+        sellOrBuy: sellerSellOrBuy == undefined ? true : sellerSellOrBuy,
         listingTime: sellerListingTime,
         expirationTime: sellerExpirationTime,
         maximumFill: sellerMaximumFill || 1,
         salt: sellerSalt,
       };
       const sellerMetadataBytes = encoder.encode(
-        ["uint256", "uint256", "uint256", "uint256"],
+        ["bool", "uint256", "uint256", "uint256", "uint256"],
         [
+          sellerMetadata.sellOrBuy,
           sellerMetadata.listingTime,
           sellerMetadata.expirationTime,
           sellerMetadata.maximumFill,
@@ -190,14 +194,16 @@ describe("Test Marketplace Contract", function () {
 
       // Prepare buyer metadata
       const buyerMetadata = {
+        sellOrBuy: buyerSellOrBuy == undefined ? false : buyerSellOrBuy,
         listingTime: 0,
         expirationTime: 0,
         maximumFill: buyerMaximumFill || 1,
         salt: buyerSalt,
       };
       const buyerMetadataBytes = encoder.encode(
-        ["uint256", "uint256", "uint256", "uint256"],
+        ["bool", "uint256", "uint256", "uint256", "uint256"],
         [
+          buyerMetadata.sellOrBuy,
           buyerMetadata.listingTime,
           buyerMetadata.expirationTime,
           buyerMetadata.maximumFill,
@@ -220,8 +226,10 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
+        buyerMessageHash,
       };
     };
 
@@ -678,8 +686,10 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
+        buyerMessageHash,
       } = await getOrderInfo({
         tokenId,
         price,
@@ -700,7 +710,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.connect(seller).ignoreSignature(sellerSig);
+      await marketplace.connect(seller).ignoreMessageHash(sellerMessageHash);
 
       await expect(
         marketplace.atomicMatch(
@@ -713,7 +723,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Seller signature has been revoked");
+      ).to.be.revertedWith("Sell order has been revoked");
     });
 
     it("Buyer cancels order", async function () {
@@ -735,8 +745,10 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
+        buyerMessageHash,
       } = await getOrderInfo({
         tokenId,
         price,
@@ -757,7 +769,7 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.connect(buyer).ignoreSignature(buyerSig);
+      await marketplace.connect(buyer).ignoreMessageHash(buyerMessageHash);
 
       await expect(
         marketplace.atomicMatch(
@@ -770,7 +782,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Buyer signature has been revoked");
+      ).to.be.revertedWith("Buy order has been revoked");
     });
 
     it("Seller cancels twice", async function () {
@@ -792,6 +804,7 @@ describe("Test Marketplace Contract", function () {
         orderBytes,
         sellerMetadataBytes,
         sellerSig,
+        sellerMessageHash,
         buyerMetadataBytes,
         buyerSig,
       } = await getOrderInfo({
@@ -814,10 +827,10 @@ describe("Test Marketplace Contract", function () {
       await nftContract1.connect(seller).approve(marketplace.address, tokenId);
       await fbt.connect(buyer).approve(marketplace.address, price);
 
-      await marketplace.connect(seller).ignoreSignature(sellerSig);
+      await marketplace.connect(seller).ignoreMessageHash(sellerMessageHash);
       await expect(
-        marketplace.connect(seller).ignoreSignature(sellerSig)
-      ).to.be.revertedWith("Signature has been cancelled or used");
+        marketplace.connect(seller).ignoreMessageHash(sellerMessageHash)
+      ).to.be.revertedWith("Order has been revoked");
     });
 
     it("Invalid seller signature", async function () {
@@ -987,6 +1000,118 @@ describe("Test Marketplace Contract", function () {
       ).to.be.revertedWith("Invalid maximumFill");
     });
 
+    it("Seller buys", async function () {
+      const tokenId = 0;
+      const price = 1000;
+      const balance = 1000;
+      const serviceFee = 100;
+      const royaltyFee = 100;
+      const sellerListingTime = 0;
+      const sellerExpirationTime = 0;
+      const sellerSalt =
+        "0x0000000000000000000000000000000000000000000000000000000000000091";
+      const buyerSalt =
+        "0x0000000000000000000000000000000000000000000000000000000000000092";
+
+      const {
+        transactionType,
+        order,
+        orderBytes,
+        sellerMetadataBytes,
+        sellerSig,
+        buyerMetadataBytes,
+        buyerSig,
+      } = await getOrderInfo({
+        tokenId,
+        price,
+        balance,
+        serviceFee,
+        royaltyFee,
+        sellerListingTime,
+        sellerExpirationTime,
+        sellerSalt,
+        buyerSalt,
+        sellerSellOrBuy: false,
+      });
+
+      /**
+       * Transaction preparations.
+       * 1. Seller approves the marketplace contract of spending `tokenId`.
+       * 2. Buyer approves the marketplace contract of spending `price` amount.
+       */
+      await nftContract1.connect(seller).approve(marketplace.address, tokenId);
+      await fbt.connect(buyer).approve(marketplace.address, price);
+
+      await expect(
+        marketplace.atomicMatch(
+          transactionType,
+          orderBytes,
+          seller.address,
+          sellerMetadataBytes,
+          sellerSig,
+          buyer.address,
+          buyerMetadataBytes,
+          buyerSig
+        )
+      ).to.be.revertedWith("Seller should sell");
+    });
+
+    it("Buyer sells", async function () {
+      const tokenId = 0;
+      const price = 1000;
+      const balance = 1000;
+      const serviceFee = 100;
+      const royaltyFee = 100;
+      const sellerListingTime = 0;
+      const sellerExpirationTime = 0;
+      const sellerSalt =
+        "0x0000000000000000000000000000000000000000000000000000000000000091";
+      const buyerSalt =
+        "0x0000000000000000000000000000000000000000000000000000000000000092";
+
+      const {
+        transactionType,
+        order,
+        orderBytes,
+        sellerMetadataBytes,
+        sellerSig,
+        buyerMetadataBytes,
+        buyerSig,
+      } = await getOrderInfo({
+        tokenId,
+        price,
+        balance,
+        serviceFee,
+        royaltyFee,
+        sellerListingTime,
+        sellerExpirationTime,
+        sellerSalt,
+        buyerSalt,
+        buyerSellOrBuy: true,
+      });
+
+      /**
+       * Transaction preparations.
+       * 1. Seller approves the marketplace contract of spending `tokenId`.
+       * 2. Buyer approves the marketplace contract of spending `price` amount.
+       */
+      await nftContract1.connect(seller).approve(marketplace.address, tokenId);
+      await fbt.connect(buyer).approve(marketplace.address, price);
+
+      await expect(
+        marketplace.atomicMatch(
+          transactionType,
+          orderBytes,
+          seller.address,
+          sellerMetadataBytes,
+          sellerSig,
+          buyer.address,
+          buyerMetadataBytes,
+          buyerSig
+        )
+      ).to.be.revertedWith("Buyer should buy");
+    });
+
     it("Manager <> user transaction", async function () {
       const tokenId = 0;
       const price = 1000;
@@ -1071,6 +1196,8 @@ describe("Test Marketplace Contract", function () {
       buyerSalt,
       sellerListingTime,
       sellerExpirationTime,
+      sellerSellOrBuy,
+      buyerSellOrBuy,
     }) => {
       const transactionType = await marketplace.ERC1155_FOR_ERC20();
 
@@ -1125,14 +1252,16 @@ describe("Test Marketplace Contract", function () {
 
       // Prepare seller metadata
       const sellerMetadata = {
+        sellOrBuy: sellerSellOrBuy == undefined ? true : sellerSellOrBuy,
         listingTime: sellerListingTime || 0,
         expirationTime: sellerExpirationTime || 0,
         maximumFill: sellerMaximumFill,
         salt: sellerSalt,
       };
       const sellerMetadataBytes = encoder.encode(
-        ["uint256", "uint256", "uint256", "uint256"],
+        ["bool", "uint256", "uint256", "uint256", "uint256"],
         [
+          sellerMetadata.sellOrBuy,
           sellerMetadata.listingTime,
           sellerMetadata.expirationTime,
           sellerMetadata.maximumFill,
@@ -1151,14 +1280,16 @@ describe("Test Marketplace Contract", function () {
 
       // Prepare buyer metadata
       const buyerMetadata = {
+        sellOrBuy: buyerSellOrBuy == undefined ? false : buyerSellOrBuy,
         listingTime: 0,
         expirationTime: 0,
         maximumFill: buyerMaximumFill,
         salt: buyerSalt,
       };
       const buyerMetadataBytes = encoder.encode(
-        ["uint256", "uint256", "uint256", "uint256"],
+        ["bool", "uint256", "uint256", "uint256", "uint256"],
         [
+          buyerMetadata.sellOrBuy,
           buyerMetadata.listingTime,
           buyerMetadata.expirationTime,
           buyerMetadata.maximumFill,
