@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -15,14 +16,19 @@ contract PresaleContract {
     using EnumerableMap for EnumerableMap.UintToAddressMap;
     using AddressToIntEnumerableMap for AddressToIntEnumerableMap.AddressToUintMap;
 
-    address public manager;         //admin
-    address public tokenAddress;    //platform token
-    uint256 public presalePrice;           //the token price / USD 
-    uint256 public totalSold;              //The total amount of platform coin that has been sold
+    address public manager;                                          //admin
+    address public tokenAddress;                                     //platform token
+    uint256 public totalSold;                                        //The total amount of platform coin that has been sold
+    
+    uint256 public presalePrice;                                     
+    uint256 public constant PRICE_DENOMINATOR = 10000;                // tokenprice / USD = presalePrice / PRICE_DENOMINATOR
 
     EnumerableSet.AddressSet private stableCoinSet;                  // allowed stable coins set
     AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  // map of (addr , max # of token can buy)
     AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; // map of (addr , # of token has bought)
+
+    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;               
+    mapping(address => uint8) coinDecimals;                          // stable coins not with 18-decimal 
 
     event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
     event WithdrawToken(address indexed token, address indexed toAddr, uint256 amount);
@@ -48,7 +54,12 @@ contract PresaleContract {
      */
     function setStableCoinList(address[] memory stableCoins) public restricted {
         for (uint256 i = 0; i < stableCoins.length; i++) {
-            stableCoinSet.add(stableCoins[i]);
+            address coin = stableCoins[i];
+            stableCoinSet.add(coin);
+            //handle for special decimal stable coin
+            if (ERC20(coin).decimals() != DEFAULT_TOKEN_DECIMAL) {
+                coinDecimals[coin] = ERC20(coin).decimals();
+            }
         }
     }
 
@@ -83,8 +94,7 @@ contract PresaleContract {
         totalSold += amountToBuy;
         boughtAmount.set(msg.sender, boughtAmount.get(msg.sender) + amountToBuy);
 
-        //1. todo decimal
-        uint256 cost = presalePrice * amountToBuy;
+        uint256 cost = calculateCost(coin, amountToBuy);
 
         //Transfer the corresponding amount of stablecoins from the whitelisted address to this contract address. 
         //allowance needs to be enough
@@ -203,6 +213,26 @@ contract PresaleContract {
      */
     function numberOfWhiteList() external view returns (uint256) {
         return limitAmount.length();
+    }
+
+    /**
+        calculate cost of stable coins with diff decimals
+     */
+    function calculateCost(address coin, uint256 amountToBuy) public view returns (uint256) {
+        uint256 cost;
+        if (ERC20(coin).decimals() == DEFAULT_TOKEN_DECIMAL) {
+            cost = amountToBuy * presalePrice / PRICE_DENOMINATOR;
+        } else if (coinDecimals[coin] > ERC20(tokenAddress).decimals()) {
+            cost = amountToBuy * presalePrice * (10 ** (coinDecimals[coin] - ERC20(tokenAddress).decimals())) / PRICE_DENOMINATOR;
+        } else {
+            cost = amountToBuy * presalePrice / (10 ** (ERC20(tokenAddress).decimals() - coinDecimals[coin])) / PRICE_DENOMINATOR;
+        }
+        return cost;
+    }
+
+
+    function coinDecimal(address coin) external view returns (uint8) {
+        return ERC20(coin).decimals();
     }
 }
 
