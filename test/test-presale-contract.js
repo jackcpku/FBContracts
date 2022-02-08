@@ -47,13 +47,13 @@ describe("Test PresaleContract", function () {
         });
 
         it("Test Get Stable Coin List", async function () {
-            const coins = await ps.getStableCoinLists();
+            const coins = await ps.stableCoinLists();
             // console.log(coins);
             expect(coins[0]).to.equal(sbc.address);
         });
 
         it("Test White List", async function () {
-            const whitelists = await ps.getWhiteList(0, 3);
+            const whitelists = await ps.whiteList(0, 3);
             // console.log(whitelists);
             expect(whitelists[0]).to.equal(u1.address);
         });
@@ -104,7 +104,7 @@ describe("Test PresaleContract", function () {
             await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
 
             // await ps.withdraw(u3.address);
-            expect (await ps.withdraw(u3.address)).to.emit(ps, "Withdrawed").withArgs(u3.address, (await ps.getTotalSold()));
+            expect (await ps.withdraw(u3.address)).to.emit(ps, "Withdrawed").withArgs(u3.address, (await ps.soldAmount()));
 
             // console.log(await fbt.balanceOf(ps.address));
             // console.log(await sbc.balanceOf(ps.address));

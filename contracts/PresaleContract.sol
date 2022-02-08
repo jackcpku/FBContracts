@@ -17,8 +17,8 @@ contract PresaleContract {
 
     address public manager;         //admin
     address public tokenAddress;    //platform token
-    uint256 presalePrice;           //the token price / USD 
-    uint256 totalSold;              //The total amount of platform coin that has been sold
+    uint256 public presalePrice;           //the token price / USD 
+    uint256 public totalSold;              //The total amount of platform coin that has been sold
 
     EnumerableSet.AddressSet private stableCoinSet;                  // allowed stable coins set
     AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  // map of (addr , max # of token can buy)
@@ -136,14 +136,14 @@ contract PresaleContract {
         }
     }
 
-    function getPresalePrice() external view returns (uint256) {
+    function price() external view returns (uint256) {
         return presalePrice;
     }
 
     /**
         stable coin allowed list
      */
-    function getStableCoinLists() external view returns (address[] memory) {
+    function stableCoinLists() external view returns (address[] memory) {
         return stableCoinSet.values();
     }
 
@@ -157,35 +157,35 @@ contract PresaleContract {
     /**
         ceil # of token for addr
      */
-    function getLimitAmountOfAddress(address addr) external view returns (uint256) {
+    function limitAmountOfAddress(address addr) external view returns (uint256) {
         return limitAmount.get(addr);
     }
 
     /**
         has bought # of token for addr
      */
-    function getBoughtAmountOfAddress(address addr) external view returns (uint256) {
+    function boughtAmountOfAddress(address addr) external view returns (uint256) {
         return boughtAmount.get(addr);
     }
 
     /**
         remain # of token for addr can buy
      */
-    function getRemainAmountOfAddress(address addr) external view returns (uint256) {
+    function remainAmountOfAddress(address addr) external view returns (uint256) {
         return limitAmount.get(addr) - boughtAmount.get(addr);
     }
 
     /**
        sum # of platform token has been sold
      */
-    function getTotalSold() external view returns (uint256) {
+    function soldAmount() external view returns (uint256) {
         return totalSold;
     }
 
     /**
         query white list of [from , to]  0-based 
      */
-    function getWhiteList(uint256 from, uint256 to) external view returns (address[] memory) {
+    function whiteList(uint256 from, uint256 to) external view returns (address[] memory) {
         require(
             (from >= 0) && (from <= to) && (to < limitAmount.length()),
             "Query Params Illegal"
