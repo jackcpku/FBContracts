@@ -7,14 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
-// lasted version of openzeppelin does not support addr -> uint EnumerableMap, just copy ToDo remove
-import "./utils/AddressToIntEnumerableMap.sol";
-
 contract PresaleContract {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableMap for EnumerableMap.UintToAddressMap;
-    using AddressToIntEnumerableMap for AddressToIntEnumerableMap.AddressToUintMap;
 
     address public manager;                                          //admin
     address public tokenAddress;                                     //platform token
@@ -24,8 +20,10 @@ contract PresaleContract {
     uint256 public constant PRICE_DENOMINATOR = 10000;                // tokenprice / USD = presalePrice / PRICE_DENOMINATOR
 
     EnumerableSet.AddressSet private stableCoinSet;                  // allowed stable coins set
-    AddressToIntEnumerableMap.AddressToUintMap private limitAmount;  // map of (addr , max # of token can buy)
-    AddressToIntEnumerableMap.AddressToUintMap private boughtAmount; // map of (addr , # of token has bought)
+
+    EnumerableSet.AddressSet private whiteListUserSet;  
+    mapping(address => uint256) private limitAmount;                 //map of (addr , max # of token can buy)
+    mapping(address => uint256) private boughtAmount;                // map of (addr , # of token has bought)
 
     uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;               
     mapping(address => uint8) coinDecimals;                          // stable coins not with 18-decimal 
@@ -77,9 +75,10 @@ contract PresaleContract {
      */
     function setWhiteList(address addr, uint256 amount) internal {
         require(amount >= 0, "white list limit amount must >= 0");
-        limitAmount.set(addr, amount);
-        if (!boughtAmount.contains(addr)) {
-            boughtAmount.set(addr, 0);
+        limitAmount[addr] = amount;
+        if (!whiteListUserSet.contains(addr)) {
+            whiteListUserSet.add(addr);
+            boughtAmount[addr] = 0;
         }
     }
 
@@ -87,12 +86,13 @@ contract PresaleContract {
         whitelist user buy presale with stablecoin address:coin & amount:amountToBuy
      */
     function buyPresale(address coin, uint256 amountToBuy) public {
-        require(boughtAmount.get(msg.sender) + amountToBuy <= limitAmount.get(msg.sender), "Exceed the purchase limit");
+        require(boughtAmount[msg.sender] + amountToBuy <= limitAmount[msg.sender], "Exceed the purchase limit");
+
         require((IERC20(tokenAddress).balanceOf(address(this))) >= amountToBuy, "Insufficient platform tokens");
         require(stableCoinSet.contains(coin), "Payment with this type of stablecoin is not supported");
 
         totalSold += amountToBuy;
-        boughtAmount.set(msg.sender, boughtAmount.get(msg.sender) + amountToBuy);
+        boughtAmount[msg.sender] += amountToBuy;
 
         uint256 cost = calculateCost(coin, amountToBuy);
 
@@ -168,21 +168,21 @@ contract PresaleContract {
         ceil # of token for addr
      */
     function limitAmountOfAddress(address addr) external view returns (uint256) {
-        return limitAmount.get(addr);
+        return limitAmount[addr];
     }
 
     /**
         has bought # of token for addr
      */
     function boughtAmountOfAddress(address addr) external view returns (uint256) {
-        return boughtAmount.get(addr);
+        return boughtAmount[addr];
     }
 
     /**
         remain # of token for addr can buy
      */
     function remainAmountOfAddress(address addr) external view returns (uint256) {
-        return limitAmount.get(addr) - boughtAmount.get(addr);
+        return limitAmount[addr] - boughtAmount[addr];
     }
 
     /**
@@ -197,13 +197,13 @@ contract PresaleContract {
      */
     function whiteList(uint256 from, uint256 to) external view returns (address[] memory) {
         require(
-            (from >= 0) && (from <= to) && (to < limitAmount.length()),
+            (from >= 0) && (from <= to) && (to < whiteListUserSet.length()),
             "Query Params Illegal"
         );
 
         address[] memory ret = new address[](to - from + 1);
         for (uint i = from; i <= to; i++) {
-            (ret[i], ) = limitAmount.at(i);
+            ret[i] = whiteListUserSet.at(i);
         }
         return ret;
     }
@@ -212,7 +212,7 @@ contract PresaleContract {
         total # of white list user
      */
     function numberOfWhiteList() external view returns (uint256) {
-        return limitAmount.length();
+        return whiteListUserSet.length();
     }
 
     /**
