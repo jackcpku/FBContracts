@@ -25,8 +25,9 @@ contract PresaleContract {
     mapping(address => uint256) private limitAmount;                 //map of (addr , max # of token can buy)
     mapping(address => uint256) private boughtAmount;                // map of (addr , # of token has bought)
 
-    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;               
-    mapping(address => uint8) coinDecimals;                          // stable coins not with 18-decimal 
+    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;           
+    mapping(address => bool) private isCoinDecimalRecorded;                                   
+    mapping(address => uint8) private coinDecimals;                          // stable coins not with 18-decimal 
 
     event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
     event WithdrawToken(address indexed token, address indexed toAddr, uint256 amount);
@@ -54,10 +55,17 @@ contract PresaleContract {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             address coin = stableCoins[i];
             stableCoinSet.add(coin);
-            //handle for special decimal stable coin
-            if (ERC20(coin).decimals() != DEFAULT_TOKEN_DECIMAL) {
-                coinDecimals[coin] = ERC20(coin).decimals();
-            }
+        }
+    }
+
+    /**
+        set decimals for our platform token and stable coins
+     */
+    function setCoinDecimals(address[] memory coins, uint8[] memory decimals) public restricted {
+        require(coins.length == decimals.length, "length of coins and decimals does not match");
+        for (uint256 i = 0; i < coins.length; i++) {
+            isCoinDecimalRecorded[coins[i]] = true;
+            coinDecimals[coins[i]] = decimals[i];
         }
     }
 
@@ -215,25 +223,28 @@ contract PresaleContract {
         return whiteListUserSet.length();
     }
 
+    function coinDecimal(address coin) internal view returns (uint8){
+         if (!isCoinDecimalRecorded[coin]) {
+            return DEFAULT_TOKEN_DECIMAL;
+        }
+        return coinDecimals[coin];
+    }
+
     /**
         calculate cost of stable coins with diff decimals
      */
     function calculateCost(address coin, uint256 amountToBuy) public view returns (uint256) {
         uint256 cost;
-        if (ERC20(coin).decimals() == DEFAULT_TOKEN_DECIMAL) {
-            cost = amountToBuy * presalePrice / PRICE_DENOMINATOR;
-        } else if (coinDecimals[coin] > ERC20(tokenAddress).decimals()) {
-            cost = amountToBuy * presalePrice * (10 ** (coinDecimals[coin] - ERC20(tokenAddress).decimals())) / PRICE_DENOMINATOR;
+        uint8 coinDec = coinDecimal(coin);
+        uint8 tokenDec = coinDecimal(tokenAddress);
+
+        if (coinDec >= tokenDec) {
+            cost = amountToBuy * presalePrice * (10 ** (coinDec - tokenDec)) / PRICE_DENOMINATOR;
         } else {
-            cost = amountToBuy * presalePrice / (10 ** (ERC20(tokenAddress).decimals() - coinDecimals[coin])) / PRICE_DENOMINATOR;
+            cost = amountToBuy * presalePrice / (10 ** (tokenDec - coinDec)) / PRICE_DENOMINATOR;
         }
         return cost;
-    }
-
-
-    function coinDecimal(address coin) external view returns (uint8) {
-        return ERC20(coin).decimals();
-    }
+    }    
 }
 
 
