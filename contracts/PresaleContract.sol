@@ -50,7 +50,7 @@ contract PresaleContract {
     /**
         add accepted stable coin 
      */
-    function setStableCoinList(address[] memory stableCoins) public restricted {
+    function setStableCoinList(address[] calldata stableCoins) external restricted {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             address coin = stableCoins[i];
             stableCoinSet.add(coin);
@@ -60,7 +60,7 @@ contract PresaleContract {
     /**
         set decimals for our platform token and stable coins
      */
-    function setCoinDecimals(address[] memory coins, uint8[] memory decimals) public restricted {
+    function setCoinDecimals(address[] calldata coins, uint8[] calldata decimals) external restricted {
         require(coins.length == decimals.length, "length of coins and decimals does not match");
         for (uint256 i = 0; i < coins.length; i++) {
             coinDecimals[coins[i]] = decimals[i];
@@ -70,7 +70,7 @@ contract PresaleContract {
     /**
         set whitelists with limit amounts
      */
-    function setWhiteLists(address[] memory addrs, uint256[] memory amounts) public restricted {
+    function setWhiteLists(address[] calldata addrs, uint256[] calldata amounts) external restricted {
         for (uint256 i = 0; i < addrs.length; i++) {
             setWhiteList(addrs[i], amounts[i]);
         }
@@ -80,7 +80,6 @@ contract PresaleContract {
         set whitelist with limit amount
      */
     function setWhiteList(address addr, uint256 amount) internal {
-        require(amount >= 0, "white list limit amount must >= 0");
         limitAmount[addr] = amount;
         if (!whiteListUserSet.contains(addr)) {
             whiteListUserSet.add(addr);
