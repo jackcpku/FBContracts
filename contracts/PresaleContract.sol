@@ -25,8 +25,7 @@ contract PresaleContract {
     mapping(address => uint256) private limitAmount;                 //map of (addr , max # of token can buy)
     mapping(address => uint256) private boughtAmount;                // map of (addr , # of token has bought)
 
-    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;           
-    mapping(address => bool) private isCoinDecimalRecorded;                                   
+    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;                                          
     mapping(address => uint8) private coinDecimals;                          // stable coins not with 18-decimal 
 
     event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
@@ -64,7 +63,6 @@ contract PresaleContract {
     function setCoinDecimals(address[] memory coins, uint8[] memory decimals) public restricted {
         require(coins.length == decimals.length, "length of coins and decimals does not match");
         for (uint256 i = 0; i < coins.length; i++) {
-            isCoinDecimalRecorded[coins[i]] = true;
             coinDecimals[coins[i]] = decimals[i];
         }
     }
@@ -224,7 +222,7 @@ contract PresaleContract {
     }
 
     function coinDecimal(address coin) internal view returns (uint8){
-         if (!isCoinDecimalRecorded[coin]) {
+         if (coinDecimals[coin] == 0) {
             return DEFAULT_TOKEN_DECIMAL;
         }
         return coinDecimals[coin];
