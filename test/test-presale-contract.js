@@ -46,8 +46,12 @@ describe("Test PresaleContract", function () {
             await ps.setCoinDecimals([sbc.address, usdt.address], [18, 6]);
         });
 
-        it("Test coinDecimals", async function () {
-            const coins = await ps.stableCoinLists();
+        it("Test init", async function () {
+
+            expect(await ps.price()).to.equal(preSalePrice);
+            await fbt.transfer(ps.address, totalAmount)
+            expect(await ps.totalToken()).to.equal(totalAmount);
+            // const coins = await ps.stableCoinLists();
             // console.log(coins);
             // expect(coins[0]).to.equal(sbc.address);
             // expect(coins[1]).to.equal(usdt.address);
@@ -202,17 +206,19 @@ describe("Test PresaleContract", function () {
         });
 
         it("u3 buy once", async function () {
+            expect(await ps.numberOfWhiteList()).to.equal([u1.address, u2.address, u3.address, u4.address].length);
+
             await expect(ps.connect(u3).buyPresale(usdt.address, 50)).to.be.revertedWith("Exceed the purchase limit");
             //set 100 fbt limit to u3
-            const first_limit = [BigInt(100) * BigInt(10) ** BigInt(18)];
-            await ps.setWhiteLists([u3.address], first_limit);
+            const first_limit = BigInt(100) * BigInt(10) ** BigInt(18);
+            await ps.setWhiteLists([u3.address], [first_limit]);
             // console.log('u3 limit amount is: ', await ps.limitAmountOfAddress(u3.address));
             // console.log('u3 bought amount is: ', await ps.boughtAmountOfAddress(u3.address));
             // console.log('u3 remain amount is: ', await ps.remainAmountOfAddress(u3.address));
 
-            await expect(ps.connect(u3).buyPresale(usdt.address, first_limit + 1)).to.be.revertedWith("Exceed the purchase limit");
+            await expect(ps.connect(u3).buyPresale(usdt.address, first_limit + BigInt(1))).to.be.revertedWith("Exceed the purchase limit");
 
-            const fist_buy_amount = BigInt(50) * BigInt(10) ** BigInt(18); ;
+            const fist_buy_amount = BigInt(50) * BigInt(10) ** BigInt(18);
             const cost = await ps.calculateCost(usdt.address, fist_buy_amount);
             // const div =  BigInt(10) ** BigInt((await fbt.decimals()) - (await usdt.decimals()));
             // expect(await ps.calculateCost(usdt.address, fist_buy_amount)).to.equal(
@@ -229,6 +235,13 @@ describe("Test PresaleContract", function () {
             // console.log('ps USDT : ', await usdt.balanceOf(ps.address));
             // console.log('u3 FBT : ', await fbt.balanceOf(u3.address));
             // console.log('ps FBT : ', await fbt.balanceOf(ps.address))
+
+            expect(await ps.totalToken()).to.equal(totalAmount - fist_buy_amount);
+
+            expect(await ps.limitAmountOfAddress(u3.address)).to.equal(first_limit);
+            expect(await ps.boughtAmountOfAddress(u3.address)).to.equal(fist_buy_amount);
+            expect(await ps.remainAmountOfAddress(u3.address)).to.equal(first_limit - fist_buy_amount);
+
         });
 
         it("u3 buy twice", async function () {
@@ -243,6 +256,8 @@ describe("Test PresaleContract", function () {
             const cost = await ps.calculateCost(usdt.address, fist_buy_amount);
             await usdt.connect(u3).approve(ps.address, cost);
             await ps.connect(u3).buyPresale(usdt.address, fist_buy_amount);
+
+            expect(await ps.boughtAmountOfAddress(u3.address)).to.equal(fist_buy_amount);
 
             //second buy 55 
             const second_buy_amount = BigInt(55) * BigInt(10) ** BigInt(18);
