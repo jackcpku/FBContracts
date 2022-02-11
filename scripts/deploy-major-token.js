@@ -9,7 +9,7 @@ const main = async () => {
         case "rinkeby":
             multisigWallet = "0xf0F8c924480e514fAe98f1834B84CC5A363EFa10";
             break;
-        case "ethereum":
+        case "mainnet":
             // TODO: Mainnet Multisig Wallet
             multisigWallet = "";
             break;
