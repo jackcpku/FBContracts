@@ -16,7 +16,6 @@ describe("Test PresaleContract", function () {
         await hre.network.provider.send("hardhat_reset");
 
         [owner, u1, u2, u3, u4] = await hre.ethers.getSigners();
-        ownerContractAddress = owner.address;
 
         const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
         fbt = await FunBoxToken.deploy();
@@ -32,7 +31,6 @@ describe("Test PresaleContract", function () {
 
         const PresaleContract = await hre.ethers.getContractFactory("PresaleContract");
         ps = await PresaleContract.deploy(
-            ownerContractAddress,
             preSalePrice,          // _presale price,
             fbt.address  // address _tokenAddress,
         )
@@ -157,7 +155,7 @@ describe("Test PresaleContract", function () {
             await sbc.connect(u1).approve(ps.address, cost);
             await ps.connect(u1).buyPresale(sbc.address, num);
 
-            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
+            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Ownable: caller is not the owner");
 
             expect(await ps.withdrawToken(fbt.address, u3.address, amountToWithdraw)).to.emit(ps, "TokenWithdrawed").withArgs(fbt.address, u3.address, amountToWithdraw);
 
@@ -172,7 +170,7 @@ describe("Test PresaleContract", function () {
             await sbc.connect(u1).approve(ps.address, cost);
             await ps.connect(u1).buyPresale(sbc.address, num);
 
-            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
+            await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Ownable: caller is not the owner");
 
             // await ps.withdraw(u3.address);
             expect(await ps.withdraw(u3.address)).to.emit(ps, "AllWithdrawed").withArgs(u3.address, (await ps.totalSold()));

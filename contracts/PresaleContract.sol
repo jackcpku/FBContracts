@@ -5,12 +5,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract PresaleContract {
+contract PresaleContract is Ownable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    address public manager;                                          //admin
     address public tokenAddress;                                     //platform token
     uint256 public totalSold;                                        //The total amount of platform coin that has been sold
     
@@ -31,24 +31,17 @@ contract PresaleContract {
     event TokenWithdrawed(address indexed token, address indexed toAddr, uint256 amount);
     event AllWithdrawed(address indexed toAddr, uint256 totalSold);
 
-    modifier restricted() {
-        require(msg.sender == manager, "Only manager has permission"); //only manager can modify this 
-        _;
-    }
-
     constructor (
-        address _manager,
         uint256 _presalePrice,
         address _tokenAddress
     ) {
-        manager = _manager;
         presalePrice = _presalePrice;
         tokenAddress = _tokenAddress;
     }
 
     
     // Add accepted stable coins
-    function addStableCoins(address[] calldata stableCoins) external restricted {
+    function addStableCoins(address[] calldata stableCoins) external onlyOwner {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             address coin = stableCoins[i];
             stableCoinSet.add(coin);
@@ -56,17 +49,17 @@ contract PresaleContract {
     }
 
     // Remove accepted stable coin
-    function removeStableCoin(address stableCoin) external restricted {
+    function removeStableCoin(address stableCoin) external onlyOwner {
         stableCoinSet.remove(stableCoin);
     }
 
     // Set token decimal
-    function setTokenDecimal(address token, uint8 decimal) external restricted {
+    function setTokenDecimal(address token, uint8 decimal) external onlyOwner {
         tokenDecimals[token] = decimal;
     }
 
     // Set whitelists with limit amounts
-    function setWhitelists(address[] calldata addrs, uint256[] calldata amounts) external restricted {
+    function setWhitelists(address[] calldata addrs, uint256[] calldata amounts) external onlyOwner {
         require(addrs.length == amounts.length, "length of addrs and amounts does not match");
         for (uint256 i = 0; i < addrs.length; i++) {
             limitAmount[addrs[i]] = amounts[i];
@@ -75,7 +68,7 @@ contract PresaleContract {
     }
 
     // Set whitelist with limit amount
-    function setWhitelist(address addr, uint256 amount) external restricted {
+    function setWhitelist(address addr, uint256 amount) external onlyOwner {
         limitAmount[addr] = amount;
         whitelistUserSet.add(addr);
     }
@@ -112,7 +105,7 @@ contract PresaleContract {
     }
 
     // the manager withdraw specific token to toAddr
-    function withdrawToken(address token, address toAddr, uint256 amount) public restricted {
+    function withdrawToken(address token, address toAddr, uint256 amount) public onlyOwner {
         emit TokenWithdrawed(token, toAddr, amount);
         IERC20(token).safeTransfer(
             toAddr,
@@ -121,7 +114,7 @@ contract PresaleContract {
     }
 
     // the manager withdraw rest of tokens including our platform token and stable coin to a new address
-    function withdraw(address toAddr) public restricted {
+    function withdraw(address toAddr) public onlyOwner {
         emit AllWithdrawed(toAddr, totalSold);     
 
         // send ERC20 token to `toAddr`.
