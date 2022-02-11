@@ -9,7 +9,8 @@ require('dotenv').config();
 require('solidity-coverage');
 
 const fs = require("fs")
-const { ethers } = require("ethers")
+const { ethers } = require("ethers");
+const { extendEnvironment } = require("hardhat/config");
 
 let privateKey = "";
 if (process.env.ACCOUNT_PRIVATE_KEY) {
@@ -30,6 +31,32 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
+extendEnvironment((hre) => {
+  let token = "";
+  let vesting = "";
+  let presale = "";
+  switch (hre.network.name) {
+    case "rinkeby":
+      token = "0x91b296ff4aE2fD3dc0f56e3AB37A130974201e97";
+      presale = "0x15121FaE2D09a327351BfEDaf2A243F1b9196CfE";
+      vesting = "0x5e2625548a09C165174CE41C1050FC3Be4cc7167";
+      break;
+    case "mainnet":
+      // TODO:
+      token = "";
+      presale = "";
+      break;
+  }
+  hre.addrs = {
+    token, vesting, presale
+  }
+  hre.contracts = {
+    token: token == "" ? null : hre.ethers.getContractAt("FunBoxToken", token),
+    vesting: vesting == "" ? null : hre.ethers.getContractAt("VestingContract", vesting),
+    presale: presale == "" ? null : hre.ethers.getContractAt("PresaleContract", presale),
+  }
+})
+
 //////////////////////////////////////////////////////
 
 // You need to export an object to set up your config
@@ -46,7 +73,9 @@ module.exports = {
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/20541cd23231420da4f0513da4c451e9",
       accounts: privateKey != "" ? [privateKey] : []
-    }
+    },
+    // mainnet: {
+    // }
   },
   solidity: {
     version: "0.8.4",

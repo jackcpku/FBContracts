@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
-import "../common/MostBaseERC721.sol";
+import "../nft/common/MostBaseERC721.sol";
 
 /**
  * A test NFT contract that doesn't use gateway logic.

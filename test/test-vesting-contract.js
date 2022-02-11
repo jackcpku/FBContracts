@@ -1,54 +1,48 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-
+const { deployMajorToken, deployVesting } = require("../lib/deploy")
 
 describe("Test VestingContract", function () {
   let fbt, vc;                               // Contract objects
   let owner, owner2, u1, u2, u3, u4;         // Signers
 
-  let ownerContractAddress;      // TODO ownerContractAddress should be a multisig wallet
-
   const startTime = 1700000000;
   const stages = [0, 100000];
-  const unlockProportion = [0, 400];
+  const unlockProportion = [0, 4000];
 
   const totalAmount = BigInt(1000000);
-  const proportions = [300, 700];
+  const proportions = [3000, 7000];
 
   beforeEach("Two contracts deployed.", async function () {
     // Reset test environment.
     await hre.network.provider.send("hardhat_reset");
 
     [owner, owner2, u1, u2, u3, u4] = await hre.ethers.getSigners();
-    ownerContractAddress = owner.address;
-    const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
-    fbt = await FunBoxToken.deploy();
-    await fbt.deployed();
 
-    const VestingContract = await hre.ethers.getContractFactory("VestingContract");
-    vc = await VestingContract.deploy(
-      ownerContractAddress,  // address _owner,
-      fbt.address,  // address _tokenAddress,
-      [u1.address, u2.address],    // address[] memory _beneficiaries,
-      proportions,  // uint256[] memory _proportions,
-      startTime,  // uint256 _start,
-      stages, // uint256[] memory _stages,
-      unlockProportion     // uint256[] memory _unlockProportion
+    fbt = await deployMajorToken(owner.address);
+
+    vc = await deployVesting(
+      owner.address,
+      fbt.address,
+      [u1.address, u2.address],
+      proportions,
+      startTime,
+      stages,
+      unlockProportion
     )
-    await vc.deployed();
 
   });
 
   it("VC Fields correctly initialized.", async function () {
-    expect(await vc.beneficiaryProportion(u1.address)).to.equal(300);
-    expect(await vc.beneficiaryProportion(u2.address)).to.equal(700);
+    expect(await vc.beneficiaryProportion(u1.address)).to.equal(3000);
+    expect(await vc.beneficiaryProportion(u2.address)).to.equal(7000);
 
     expect(await vc.startSecond()).to.equal(BigInt(1700000000));
 
     expect(await vc.stageSecond(0)).to.equal(0);
     expect(await vc.stageSecond(1)).to.equal(100000);
     expect(await vc.unlockProportion(0)).to.equal(0);
-    expect(await vc.unlockProportion(1)).to.equal(400);
+    expect(await vc.unlockProportion(1)).to.equal(4000);
   });
 
   describe("Dealing with FBTs.", function () {
@@ -62,10 +56,10 @@ describe("Test VestingContract", function () {
 
     it("Test vest proportion schedule.", async function () {
       expect(await vc.vestingProportionSchedule(startTime - 3)).to.equal(0);
-      expect(await vc.vestingProportionSchedule(startTime)).to.equal(400);
-      expect(await vc.vestingProportionSchedule(startTime + 1000)).to.equal(400);
-      expect(await vc.vestingProportionSchedule(startTime + stages[1])).to.equal(1000);
-      expect(await vc.vestingProportionSchedule(startTime + 10000000)).to.equal(1000);
+      expect(await vc.vestingProportionSchedule(startTime)).to.equal(4000);
+      expect(await vc.vestingProportionSchedule(startTime + 1000)).to.equal(4000);
+      expect(await vc.vestingProportionSchedule(startTime + stages[1])).to.equal(10000);
+      expect(await vc.vestingProportionSchedule(startTime + 10000000)).to.equal(10000);
     });
 
     it("Test vest amount schedule.", async function () {

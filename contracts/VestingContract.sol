@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract VestingContract {
     using SafeERC20 for IERC20;
 
+    uint256 public constant PROPORTION_BASE = 10_000;
+
     address public manager;
 
     address public tokenAddress;
@@ -22,7 +24,7 @@ contract VestingContract {
     /**
      * Unlock proportion in corresponding stage.
      */
-    uint256[] public unlockProportion /*= [0, 100, 300, 600]*/;
+    uint256[] public unlockProportion /*= [0, 1000, 3000, 6000]*/;
 
     /**
      * A beneficiary pulled from the token pool.
@@ -114,7 +116,7 @@ contract VestingContract {
         return
             ((IERC20(tokenAddress).balanceOf(address(this)) + totalReleased) *
                 vestingProportionSchedule(timestamp) *
-                beneficiaryProportion[beneficiary]) / 1_000_000;
+                beneficiaryProportion[beneficiary]) / PROPORTION_BASE / PROPORTION_BASE;
     }
 
     /**
@@ -131,7 +133,7 @@ contract VestingContract {
                 return unlockProportion[i];
             }
         }
-        return 1000;
+        return PROPORTION_BASE;
     }
 
     /**
