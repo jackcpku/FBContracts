@@ -27,9 +27,9 @@ contract PresaleContract {
     uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;                                          
     mapping(address => uint8) private tokenDecimals;                  // token decimals
 
-    event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
-    event WithdrawToken(address indexed token, address indexed toAddr, uint256 amount);
-    event Withdrawed(address indexed toAddr, uint256 totalSold);
+    event PresaleBought(address indexed buyer, address indexed coin, uint256 cost, uint256 amount);
+    event TokenWithdrawed(address indexed token, address indexed toAddr, uint256 amount);
+    event AllWithdrawed(address indexed toAddr, uint256 totalSold);
 
     modifier restricted() {
         require(msg.sender == manager, "Only manager has permission"); //only manager can modify this 
@@ -98,7 +98,7 @@ contract PresaleContract {
         uint256 allowance = IERC20(coin).allowance(msg.sender, address(this));
         require(allowance >= cost, "Insufficient Stable Coin allowance");
 
-        emit BuyPresale(msg.sender, coin, cost);
+        emit PresaleBought(msg.sender, coin, cost, amountToBuy);
 
         IERC20(coin).safeTransferFrom(
             msg.sender, address(this), cost
@@ -113,7 +113,7 @@ contract PresaleContract {
 
     // the manager withdraw specific token to toAddr
     function withdrawToken(address token, address toAddr, uint256 amount) public restricted {
-        emit WithdrawToken(token, toAddr, amount);
+        emit TokenWithdrawed(token, toAddr, amount);
         IERC20(token).safeTransfer(
             toAddr,
             amount
@@ -122,7 +122,7 @@ contract PresaleContract {
 
     // the manager withdraw rest of tokens including our platform token and stable coin to a new address
     function withdraw(address toAddr) public restricted {
-        emit Withdrawed(toAddr, totalSold);     
+        emit AllWithdrawed(toAddr, totalSold);     
 
         // send ERC20 token to `toAddr`.
         IERC20(tokenAddress).safeTransfer(
@@ -132,10 +132,10 @@ contract PresaleContract {
         // send All kinds of stable coin to toAddr
         for (uint256 i = 0; i < stableCoinSet.length(); i++) {
             address coin = stableCoinSet.at(i);
-            IERC20(coin).safeTransfer(
-                toAddr,
-                IERC20(coin).balanceOf(address(this))
-            );
+            uint256 balance = IERC20(coin).balanceOf(address(this));
+            if (balance > 0) {
+                IERC20(coin).safeTransfer(toAddr, balance);
+            }
         }
     }
 

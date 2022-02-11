@@ -135,7 +135,7 @@ describe("Test PresaleContract", function () {
             await sbc.connect(u1).approve(ps.address, cost);
             // await ps.connect(u1).buyPresale(sbc.address, 5);
 
-            expect(await ps.connect(u1).buyPresale(sbc.address, num)).to.emit(ps, "BuyPresale").withArgs(u1.address, sbc.address, cost);
+            expect(await ps.connect(u1).buyPresale(sbc.address, num)).to.emit(ps, "PresaleBought").withArgs(u1.address, sbc.address, cost, num);
 
 
             // console.log(await fbt.balanceOf(ps.address));
@@ -159,7 +159,7 @@ describe("Test PresaleContract", function () {
 
             await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
 
-            expect(await ps.withdrawToken(fbt.address, u3.address, amountToWithdraw)).to.emit(ps, "WithdrawToken").withArgs(fbt.address, u3.address, amountToWithdraw);
+            expect(await ps.withdrawToken(fbt.address, u3.address, amountToWithdraw)).to.emit(ps, "TokenWithdrawed").withArgs(fbt.address, u3.address, amountToWithdraw);
 
             expect(await fbt.balanceOf(ps.address)).to.equal(totalAmount - num - amountToWithdraw);
             expect(await fbt.balanceOf(u3.address)).to.equal(amountToWithdraw);
@@ -175,7 +175,7 @@ describe("Test PresaleContract", function () {
             await expect(ps.connect(u1).withdraw(u3.address)).to.be.revertedWith("Only manager has permission");
 
             // await ps.withdraw(u3.address);
-            expect(await ps.withdraw(u3.address)).to.emit(ps, "Withdrawed").withArgs(u3.address, (await ps.totalSold()));
+            expect(await ps.withdraw(u3.address)).to.emit(ps, "AllWithdrawed").withArgs(u3.address, (await ps.totalSold()));
 
             // console.log(await fbt.balanceOf(ps.address));
             // console.log(await sbc.balanceOf(ps.address));
