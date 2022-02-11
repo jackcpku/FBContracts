@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
 
-const { deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
+const { deployMajorToken, deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
 
 describe("Test Marketplace Contract", function () {
   // Contracts
@@ -38,9 +38,7 @@ describe("Test Marketplace Contract", function () {
     ] = await hre.ethers.getSigners();
 
     // Deploy FBT contract.
-    const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
-    fbt = await FunBoxToken.deploy();
-    await fbt.deployed();
+    fbt = await deployMajorToken(owner.address);
 
     // Deploy Gateway and Factory contract.
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
