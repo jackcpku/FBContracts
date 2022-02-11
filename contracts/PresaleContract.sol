@@ -5,12 +5,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 contract PresaleContract {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableMap for EnumerableMap.UintToAddressMap;
 
     address public manager;                                          //admin
     address public tokenAddress;                                     //platform token
@@ -21,12 +19,13 @@ contract PresaleContract {
 
     EnumerableSet.AddressSet private stableCoinSet;                  // allowed stable coins set
 
-    EnumerableSet.AddressSet private whiteListUserSet;  
-    mapping(address => uint256) private limitAmount;                 //map of (addr , max # of token can buy)
-    mapping(address => uint256) private boughtAmount;                // map of (addr , # of token has bought)
+    EnumerableSet.AddressSet private whitelistUserSet;  
+
+    mapping(address => uint256) public limitAmount;                 //map of (addr , max # of token can buy)
+    mapping(address => uint256) public boughtAmount;                // map of (addr , # of token has bought)
 
     uint8 public constant DEFAULT_TOKEN_DECIMAL = 18;                                          
-    mapping(address => uint8) private coinDecimals;                          // stable coins not with 18-decimal 
+    mapping(address => uint8) private tokenDecimals;                  // token decimals
 
     event BuyPresale(address indexed buyer, address indexed coin, uint256 amount);
     event WithdrawToken(address indexed token, address indexed toAddr, uint256 amount);
@@ -47,49 +46,42 @@ contract PresaleContract {
         tokenAddress = _tokenAddress;
     }
 
-    /**
-        add accepted stable coin 
-     */
-    function setStableCoinList(address[] calldata stableCoins) external restricted {
+    
+    // Add accepted stable coins
+    function addStableCoins(address[] calldata stableCoins) external restricted {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             address coin = stableCoins[i];
             stableCoinSet.add(coin);
         }
     }
 
-    /**
-        set decimals for our platform token and stable coins
-     */
-    function setCoinDecimals(address[] calldata coins, uint8[] calldata decimals) external restricted {
-        require(coins.length == decimals.length, "length of coins and decimals does not match");
-        for (uint256 i = 0; i < coins.length; i++) {
-            coinDecimals[coins[i]] = decimals[i];
-        }
+    // Remove accepted stable coin
+    function removeStableCoin(address stableCoin) external restricted {
+        stableCoinSet.remove(stableCoin);
     }
 
-    /**
-        set whitelists with limit amounts
-     */
-    function setWhiteLists(address[] calldata addrs, uint256[] calldata amounts) external restricted {
+    // Set token decimal
+    function setTokenDecimal(address token, uint8 decimal) external restricted {
+        tokenDecimals[token] = decimal;
+    }
+
+    // Set whitelists with limit amounts
+    function setWhitelists(address[] calldata addrs, uint256[] calldata amounts) external restricted {
+        require(addrs.length == amounts.length, "length of addrs and amounts does not match");
         for (uint256 i = 0; i < addrs.length; i++) {
-            setWhiteList(addrs[i], amounts[i]);
+            limitAmount[addrs[i]] = amounts[i];
+            whitelistUserSet.add(addrs[i]);
         }
     }
 
-    /**
-        set whitelist with limit amount
-     */
-    function setWhiteList(address addr, uint256 amount) internal {
+    // Set whitelist with limit amount
+    function setWhitelist(address addr, uint256 amount) external restricted {
         limitAmount[addr] = amount;
-        if (!whiteListUserSet.contains(addr)) {
-            whiteListUserSet.add(addr);
-            boughtAmount[addr] = 0;
-        }
+        whitelistUserSet.add(addr);
     }
 
-    /**
-        whitelist user buy presale with stablecoin address:coin & amount:amountToBuy
-     */
+    
+    // whitelist user buy presale with stablecoin address:coin & amount:amountToBuy
     function buyPresale(address coin, uint256 amountToBuy) public {
         require(boughtAmount[msg.sender] + amountToBuy <= limitAmount[msg.sender], "Exceed the purchase limit");
 
@@ -119,9 +111,7 @@ contract PresaleContract {
         );
     }
 
-    /**
-        the manager withdraw specific token to toAddr
-     */
+    // the manager withdraw specific token to toAddr
     function withdrawToken(address token, address toAddr, uint256 amount) public restricted {
         emit WithdrawToken(token, toAddr, amount);
         IERC20(token).safeTransfer(
@@ -130,9 +120,7 @@ contract PresaleContract {
         );
     }
 
-    /**
-        the manager withdraw rest of tokens including our platform token and stable coin to a new address
-     */
+    // the manager withdraw rest of tokens including our platform token and stable coin to a new address
     function withdraw(address toAddr) public restricted {
         emit Withdrawed(toAddr, totalSold);     
 
@@ -155,76 +143,47 @@ contract PresaleContract {
         return presalePrice;
     }
 
-    /**
-        stable coin allowed list
-     */
+    // stable coin allowed list
     function stableCoinLists() external view returns (address[] memory) {
         return stableCoinSet.values();
     }
 
-    /**
-        The # of platform token held by our contract now
-     */
+    // The # of platform token held by our contract now
     function totalToken() external view returns (uint256) {
         return IERC20(tokenAddress).balanceOf(address(this));
     }
 
-    /**
-        ceil # of token for addr
-     */
-    function limitAmountOfAddress(address addr) external view returns (uint256) {
-        return limitAmount[addr];
-    }
-
-    /**
-        has bought # of token for addr
-     */
-    function boughtAmountOfAddress(address addr) external view returns (uint256) {
-        return boughtAmount[addr];
-    }
-
-    /**
-        remain # of token for addr can buy
-     */
-    function remainAmountOfAddress(address addr) external view returns (uint256) {
+    // remain # of token for addr can buy
+    function remainingAmount(address addr) external view returns (uint256) {
         return limitAmount[addr] - boughtAmount[addr];
     }
 
-    /**
-       sum # of platform token has been sold
-     */
-    function soldAmount() external view returns (uint256) {
-        return totalSold;
-    }
-
-    /**
-        query white list of [from , to]  0-based 
-     */
-    function whiteList(uint256 from, uint256 to) external view returns (address[] memory) {
+    // query white list of [from , to]  0-based 
+    function whitelist(uint256 from, uint256 to) external view returns (address[] memory) {
         require(
-            (from >= 0) && (from <= to) && (to < whiteListUserSet.length()),
+            (from >= 0) && (from <= to) && (to < whitelistUserSet.length()),
+
             "Query Params Illegal"
         );
 
         address[] memory ret = new address[](to - from + 1);
         for (uint i = from; i <= to; i++) {
-            ret[i] = whiteListUserSet.at(i);
+            ret[i] = whitelistUserSet.at(i);
+
         }
         return ret;
     }
 
-    /**
-        total # of white list user
-     */
-    function numberOfWhiteList() external view returns (uint256) {
-        return whiteListUserSet.length();
+    // total # of white list user
+    function whitelistCnt() external view returns (uint256) {
+        return whitelistUserSet.length();
     }
 
-    function coinDecimal(address coin) internal view returns (uint8){
-         if (coinDecimals[coin] == 0) {
+    function tokenDecimal(address coin) public view returns (uint8) {
+         if (tokenDecimals[coin] == 0) {
             return DEFAULT_TOKEN_DECIMAL;
         }
-        return coinDecimals[coin];
+        return tokenDecimals[coin];
     }
 
     /**
@@ -232,8 +191,8 @@ contract PresaleContract {
      */
     function calculateCost(address coin, uint256 amountToBuy) public view returns (uint256) {
         uint256 cost;
-        uint8 coinDec = coinDecimal(coin);
-        uint8 tokenDec = coinDecimal(tokenAddress);
+        uint8 coinDec = tokenDecimal(coin);
+        uint8 tokenDec = tokenDecimal(tokenAddress);
 
         if (coinDec >= tokenDec) {
             cost = amountToBuy * presalePrice * (10 ** (coinDec - tokenDec)) / PRICE_DENOMINATOR;
@@ -241,7 +200,8 @@ contract PresaleContract {
             cost = amountToBuy * presalePrice / (10 ** (tokenDec - coinDec)) / PRICE_DENOMINATOR;
         }
         return cost;
-    }    
+    }
+    
 }
 
 
