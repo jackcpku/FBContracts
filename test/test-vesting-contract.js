@@ -1,12 +1,10 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-
+const { deployMajorToken, deployVesting } = require("../lib/deploy")
 
 describe("Test VestingContract", function () {
   let fbt, vc;                               // Contract objects
   let owner, owner2, u1, u2, u3, u4;         // Signers
-
-  let ownerContractAddress;      // TODO ownerContractAddress should be a multisig wallet
 
   const startTime = 1700000000;
   const stages = [0, 100000];
@@ -20,22 +18,18 @@ describe("Test VestingContract", function () {
     await hre.network.provider.send("hardhat_reset");
 
     [owner, owner2, u1, u2, u3, u4] = await hre.ethers.getSigners();
-    ownerContractAddress = owner.address;
-    const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
-    fbt = await FunBoxToken.deploy();
-    await fbt.deployed();
 
-    const VestingContract = await hre.ethers.getContractFactory("VestingContract");
-    vc = await VestingContract.deploy(
-      ownerContractAddress,  // address _owner,
-      fbt.address,  // address _tokenAddress,
-      [u1.address, u2.address],    // address[] memory _beneficiaries,
-      proportions,  // uint256[] memory _proportions,
-      startTime,  // uint256 _start,
-      stages, // uint256[] memory _stages,
-      unlockProportion     // uint256[] memory _unlockProportion
+    fbt = await deployMajorToken(owner);
+
+    vc = await deployVesting(
+      owner.address,
+      fbt.address,
+      [u1.address, u2.address],
+      proportions,
+      startTime,
+      stages,
+      unlockProportion
     )
-    await vc.deployed();
 
   });
 

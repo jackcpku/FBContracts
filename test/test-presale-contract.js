@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
+const { deployMajorToken, deployPresale } = require("../lib/deploy")
 
 describe("Test PresaleContract", function () {
     let fbt, sbc, usdt, ps;                               // Contract objects
@@ -17,9 +18,8 @@ describe("Test PresaleContract", function () {
 
         [owner, u1, u2, u3, u4] = await hre.ethers.getSigners();
 
-        const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
-        fbt = await FunBoxToken.deploy();
-        await fbt.deployed();
+        fbt = await deployMajorToken(owner);
+        ps = await deployPresale(preSalePrice, fbt.address);
 
         const StableCoin = await hre.ethers.getContractFactory("StableCoinContract");
         sbc = await StableCoin.deploy();
@@ -29,12 +29,6 @@ describe("Test PresaleContract", function () {
         usdt = await USDT.deploy();
         await usdt.deployed();
 
-        const PresaleContract = await hre.ethers.getContractFactory("PresaleContract");
-        ps = await PresaleContract.deploy(
-            preSalePrice,          // _presale price,
-            fbt.address  // address _tokenAddress,
-        )
-        await ps.deployed();
     });
 
 
