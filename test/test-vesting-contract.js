@@ -8,10 +8,10 @@ describe("Test VestingContract", function () {
 
   const startTime = 1700000000;
   const stages = [0, 100000];
-  const unlockProportion = [0, 400];
+  const unlockProportion = [0, 4000];
 
   const totalAmount = BigInt(1000000);
-  const proportions = [300, 700];
+  const proportions = [3000, 7000];
 
   beforeEach("Two contracts deployed.", async function () {
     // Reset test environment.
@@ -34,15 +34,15 @@ describe("Test VestingContract", function () {
   });
 
   it("VC Fields correctly initialized.", async function () {
-    expect(await vc.beneficiaryProportion(u1.address)).to.equal(300);
-    expect(await vc.beneficiaryProportion(u2.address)).to.equal(700);
+    expect(await vc.beneficiaryProportion(u1.address)).to.equal(3000);
+    expect(await vc.beneficiaryProportion(u2.address)).to.equal(7000);
 
     expect(await vc.startSecond()).to.equal(BigInt(1700000000));
 
     expect(await vc.stageSecond(0)).to.equal(0);
     expect(await vc.stageSecond(1)).to.equal(100000);
     expect(await vc.unlockProportion(0)).to.equal(0);
-    expect(await vc.unlockProportion(1)).to.equal(400);
+    expect(await vc.unlockProportion(1)).to.equal(4000);
   });
 
   describe("Dealing with FBTs.", function () {
@@ -56,10 +56,10 @@ describe("Test VestingContract", function () {
 
     it("Test vest proportion schedule.", async function () {
       expect(await vc.vestingProportionSchedule(startTime - 3)).to.equal(0);
-      expect(await vc.vestingProportionSchedule(startTime)).to.equal(400);
-      expect(await vc.vestingProportionSchedule(startTime + 1000)).to.equal(400);
-      expect(await vc.vestingProportionSchedule(startTime + stages[1])).to.equal(1000);
-      expect(await vc.vestingProportionSchedule(startTime + 10000000)).to.equal(1000);
+      expect(await vc.vestingProportionSchedule(startTime)).to.equal(4000);
+      expect(await vc.vestingProportionSchedule(startTime + 1000)).to.equal(4000);
+      expect(await vc.vestingProportionSchedule(startTime + stages[1])).to.equal(10000);
+      expect(await vc.vestingProportionSchedule(startTime + 10000000)).to.equal(10000);
     });
 
     it("Test vest amount schedule.", async function () {
