@@ -1,19 +1,11 @@
 const hre = require("hardhat");
 const prompt = require("prompt");
 
-const { deployMajorToken } = require('../lib/deploy.js');
+const { deployMajorToken } = require('../lib/deploy');
+const { multisigWalletAddr } = require('./params');
 
 const main = async () => {
-    let multisigWallet;
-    switch (hre.network.name) {
-        case "rinkeby":
-            multisigWallet = "0xf0F8c924480e514fAe98f1834B84CC5A363EFa10";
-            break;
-        case "mainnet":
-            // TODO: Mainnet Multisig Wallet
-            multisigWallet = "";
-            break;
-    }
+    const multisigWallet = multisigWalletAddr();
     console.info("Network: " + hre.network.name);
     console.info("Deploy token with init wallet: " + multisigWallet);
     const { confirm } = await prompt.get([{ name: "confirm", description: "Confirm? (y/N)" }]);

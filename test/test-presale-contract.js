@@ -4,7 +4,6 @@ const { deployMajorToken, deployPresale } = require("../lib/deploy")
 
 describe("Test PresaleContract", function () {
     let fbt, sbc, usdt, ps;                               // Contract objects
-    let ownerContractAddress;
 
     const totalAmount = BigInt(1000000) * BigInt(10) ** BigInt(18);
     const stableCoinAmount = BigInt(50000000) * BigInt(10) ** BigInt(18);
@@ -18,8 +17,8 @@ describe("Test PresaleContract", function () {
 
         [owner, u1, u2, u3, u4] = await hre.ethers.getSigners();
 
-        fbt = await deployMajorToken(owner);
-        ps = await deployPresale(preSalePrice, fbt.address);
+        fbt = await deployMajorToken(owner.address);
+        ps = await deployPresale(fbt.address, preSalePrice);
 
         const StableCoin = await hre.ethers.getContractFactory("StableCoinContract");
         sbc = await StableCoin.deploy();

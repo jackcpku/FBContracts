@@ -8,7 +8,8 @@ require('dotenv').config();
 require('solidity-coverage');
 
 const fs = require("fs")
-const { ethers } = require("ethers")
+const { ethers } = require("ethers");
+const { extendEnvironment } = require("hardhat/config");
 
 let privateKey = "";
 if (process.env.ACCOUNT_PRIVATE_KEY) {
@@ -28,6 +29,31 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     console.log(account.address);
   }
 });
+
+extendEnvironment((hre) => {
+  let token = "";
+  let vesting = "";
+  let presale = "";
+  switch (hre.network.name) {
+    case "rinkeby":
+      token = "0x91b296ff4aE2fD3dc0f56e3AB37A130974201e97";
+      presale = "0x15121FaE2D09a327351BfEDaf2A243F1b9196CfE";
+      break;
+    case "mainnet":
+      // TODO:
+      token = "";
+      presale = "";
+      break;
+  }
+  hre.addrs = {
+    token, vesting, presale
+  }
+  hre.contracts = {
+    token: token == "" ? null : hre.ethers.getContractAt("FunBoxToken", token),
+    vesting: vesting == "" ? null : hre.ethers.getContractAt("VestingContract", vesting),
+    presale: presale == "" ? null : hre.ethers.getContractAt("PresaleContract", presale),
+  }
+})
 
 //////////////////////////////////////////////////////
 

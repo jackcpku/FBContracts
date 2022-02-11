@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -15,8 +14,8 @@ contract PresaleContract is Ownable {
     uint256 public totalSold;                                        //The total amount of platform coin that has been sold
     
     uint256 public presalePrice;                                     
-    uint256 public constant PRICE_DENOMINATOR = 10000;                // tokenprice / USD = presalePrice / PRICE_DENOMINATOR
-
+    uint256 public constant PRICE_DENOMINATOR = 10000;                // 1 TOKEN = presalePrice / PRICE_DENOMINATOR USD
+    
     EnumerableSet.AddressSet private stableCoinSet;                  // allowed stable coins set
 
     EnumerableSet.AddressSet private whitelistUserSet;  
@@ -32,14 +31,13 @@ contract PresaleContract is Ownable {
     event AllWithdrawed(address indexed toAddr, uint256 totalSold);
 
     constructor (
-        uint256 _presalePrice,
-        address _tokenAddress
+        address _tokenAddress,
+        uint256 _presalePrice
     ) {
-        presalePrice = _presalePrice;
         tokenAddress = _tokenAddress;
+        presalePrice = _presalePrice;
     }
 
-    
     // Add accepted stable coins
     function addStableCoins(address[] calldata stableCoins) external onlyOwner {
         for (uint256 i = 0; i < stableCoins.length; i++) {
@@ -72,7 +70,6 @@ contract PresaleContract is Ownable {
         limitAmount[addr] = amount;
         whitelistUserSet.add(addr);
     }
-
     
     // whitelist user buy presale with stablecoin address:coin & amount:amountToBuy
     function buyPresale(address coin, uint256 amountToBuy) public {

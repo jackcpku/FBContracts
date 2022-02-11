@@ -19,7 +19,7 @@ describe("Test VestingContract", function () {
 
     [owner, owner2, u1, u2, u3, u4] = await hre.ethers.getSigners();
 
-    fbt = await deployMajorToken(owner);
+    fbt = await deployMajorToken(owner.address);
 
     vc = await deployVesting(
       owner.address,
