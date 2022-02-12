@@ -16,3 +16,7 @@ wallet.json
 
 # Generated ABI
 abi
+
+# Generated offers
+**/generated_offers.json
+**/generated_testcases.json
