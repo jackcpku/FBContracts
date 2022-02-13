@@ -298,8 +298,8 @@ async function run(tc) {
 function generateTestCases(N) {
   const tests = [];
   const basicTest = {
-    tokenId: 0,
-    price: 1000,
+    tokenId: ethers.utils.hexZeroPad(0, 32),
+    price: ethers.utils.hexZeroPad(1000, 16),
     serviceFee: 100,
     royaltyFee: 100,
     sellerSelector: "seller1",
@@ -324,8 +324,8 @@ function generateTestCases(N) {
   // Different price
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = i;
-    t.price = (i + 1) * 1000;
+    t.tokenId = ethers.utils.hexZeroPad(i, 32);
+    t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 20) +
       (i + 1) +
@@ -340,8 +340,8 @@ function generateTestCases(N) {
   // Different seller
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = N + i;
-    t.price = (i + 1) * 1000;
+    t.tokenId = ethers.utils.hexZeroPad(N + i, 32);
+    t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.sellerSelector = "seller2";
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 21) +
@@ -357,8 +357,8 @@ function generateTestCases(N) {
   // Different buyer
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = N * 2 + i;
-    t.price = (i + 1) * 1000;
+    t.tokenId = ethers.utils.hexZeroPad(N * 2 + i, 32);
+    t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 22) +
       (i + 1) +
@@ -374,8 +374,10 @@ function generateTestCases(N) {
   // Seller is manager
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = N * 3 + i;
-    t.price = (i + 1) * 1000;
+    t.tokenId = ethers.utils.hexZeroPad(N * 3 + i, 32);
+    t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
+    t.serviceFee = 5000;
+    t.royaltyFee = 0;
     t.sellerSelector = "manager1";
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 23) +
@@ -395,7 +397,7 @@ function generateTestCases(N) {
 }
 
 async function main() {
-  const testCases = generateTestCases(5);
+  const testCases = generateTestCases(3);
   const offers = [];
   for (let i = 0; i < testCases.length; i++) {
     console.log(`Processing ${i + 1} / ${testCases.length}`);
