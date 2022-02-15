@@ -296,7 +296,8 @@ async function run(tc) {
 }
 
 function generateTestCases(N) {
-  const tests = [];
+  const validBundle = [];
+  const priceBundle = [];
   const basicTest = {
     tokenId: ethers.utils.hexZeroPad(0, 32),
     price: ethers.utils.hexZeroPad(1000, 16),
@@ -319,7 +320,7 @@ function generateTestCases(N) {
   };
 
   // Basic offer
-  tests.push(basicTest);
+  validBundle.push(basicTest);
 
   // Different price
   for (let i = 0; i < N; i++) {
@@ -334,7 +335,7 @@ function generateTestCases(N) {
       basicTest.buyerSalt.substring(0, 20) +
       (i + 1) +
       basicTest.buyerSalt.substring(21);
-    tests.push(t);
+    validBundle.push(t);
   }
 
   // Different seller
@@ -351,7 +352,7 @@ function generateTestCases(N) {
       basicTest.buyerSalt.substring(0, 21) +
       (i + 1) +
       basicTest.buyerSalt.substring(22);
-    tests.push(t);
+    validBundle.push(t);
   }
 
   // Different buyer
@@ -368,7 +369,7 @@ function generateTestCases(N) {
       basicTest.buyerSalt.substring(0, 22) +
       (i + 1) +
       basicTest.buyerSalt.substring(23);
-    tests.push(t);
+    validBundle.push(t);
   }
 
   // Seller is manager
@@ -387,27 +388,42 @@ function generateTestCases(N) {
       basicTest.buyerSalt.substring(0, 23) +
       (i + 1) +
       basicTest.buyerSalt.substring(24);
-    tests.push(t);
+    validBundle.push(t);
   }
 
-  fs.writeFileSync("generated_testcases.json", JSON.stringify(tests, null, 4));
-  console.log("Test cases generated in generated_testcases.json");
+  // Same offer, ONLY different price
+  for (let i = 0; i < N; i++) {
+    const t = JSON.parse(JSON.stringify(basicTest));
+    t.price = ethers.utils.hexZeroPad((i + 1) * 10000, 16);
+    priceBundle.push(t);
+  }
 
-  return tests;
+  fs.writeFileSync("generated-valid-bundle.json", JSON.stringify(validBundle, null, 4));
+  fs.writeFileSync("generated-price-bundle.json", JSON.stringify(priceBundle, null, 4));
+  console.log("Test cases generated");
+
+  return {validBundle, priceBundle};
 }
 
 async function main() {
-  const testCases = generateTestCases(3);
-  const offers = [];
-  for (let i = 0; i < testCases.length; i++) {
-    console.log(`Processing ${i + 1} / ${testCases.length}`);
-    const tc = testCases[i];
+  const {validBundle, priceBundle} = generateTestCases(3);
+  const validOffers = [], priceOffers = [];
+  for (let i = 0; i < validBundle.length; i++) {
+    console.log(`Processing ${i + 1} / ${validBundle.length}`);
+    const tc = validBundle[i];
     const offerPair = await run(tc);
-    offers.push(offerPair.sellerOffer);
-    offers.push(offerPair.buyerOffer);
+    validOffers.push(offerPair.sellerOffer);
+    validOffers.push(offerPair.buyerOffer);
   }
-  console.log(offers);
-  fs.writeFileSync("generated_offers.json", JSON.stringify(offers, null, 4));
+  for (let i = 0; i < priceBundle.length; i++) {
+    console.log(`Processing ${i + 1} / ${priceBundle.length}`);
+    const tc = priceBundle[i];
+    const offerPair = await run(tc);
+    priceOffers.push(offerPair.sellerOffer);
+    priceOffers.push(offerPair.buyerOffer);
+  }
+  fs.writeFileSync("generated-valid-offers.json", JSON.stringify(validOffers, null, 4));
+  fs.writeFileSync("generated-price-offers.json", JSON.stringify(priceOffers, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere
