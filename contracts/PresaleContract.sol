@@ -7,31 +7,41 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * This Contract is designed for the presale of our Governance Token based on whitelist policy.
+ * This Contract is designed for the presale of our governance token based on whitelist policy.
  * 1. The list of whitelist addresses that can participate in the presale will be collected, and their corresponding presale quota will be determined according to contributions.
  * 2. The `setWhitelists` method will be called to set presale quota for the whitelist addresses.
- * 3. The Governance Token corresponding to the total amount of presale will be transferred to the contract address, and the presale will start
+ * 3. The governance token corresponding to the total amount of presale will be transferred to the contract address, and the presale will start
  * 4. Users with presale quotas can then use our front-end application, which interacts with the contract, to buy governance tokens using an allowed stablecoin token at a given price.
  */
 contract PresaleContract is Ownable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    address public tokenAddress; // The Governance Token for presale
-    uint256 public totalSold; // The total amount of tokens currently sold
+    // The Governance Token for presale
+    address public tokenAddress; 
+    // The total amount of tokens currently sold
+    uint256 public totalSold; 
 
-    uint256 public presalePrice; // The given presale price, should be used together with `PRICE_DENOMINATOR`
-    uint256 public constant PRICE_DENOMINATOR = 10000; // 1 TOKEN = presalePrice / PRICE_DENOMINATOR USD
+    // The given presale price, should be used together with `PRICE_DENOMINATOR`
+    // 1 TOKEN = presalePrice / PRICE_DENOMINATOR USD
+    uint256 public presalePrice; 
+    uint256 public constant PRICE_DENOMINATOR = 10000; 
 
-    EnumerableSet.AddressSet private stableCoinSet; // Allowed stablecoin tokens set
+    // Allowed stablecoin tokens set
+    EnumerableSet.AddressSet private stableCoinSet; 
 
-    EnumerableSet.AddressSet private whitelistUserSet;  // All whitelisted users, recorded for later audit
+    // All whitelisted users, recorded for later audit
+    EnumerableSet.AddressSet private whitelistUserSet;  
 
-    mapping(address => uint256) public limitAmount; // Presale quota, map of (addr => max # of token can buy), 
-    mapping(address => uint256) public boughtAmount; // Presale quota consumed, map of (addr => # of token has bought)
+    // Presale quota, map of (addr => max # of token can buy), 
+    mapping(address => uint256) public limitAmount; 
+    // Presale quota consumed, map of (addr => # of token has bought)
+    mapping(address => uint256) public boughtAmount; 
 
-    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18; // Default token decimal
-    mapping(address => uint8) private tokenDecimals; // Token decimals for those not with default decimal
+    // Default token decimal
+    uint8 public constant DEFAULT_TOKEN_DECIMAL = 18; 
+    // Token decimals of those with non-default decimals
+    mapping(address => uint8) private tokenDecimals; 
 
     event PresaleBought(
         address indexed buyer,
@@ -198,9 +208,7 @@ contract PresaleContract is Ownable {
         return tokenDecimals[coin];
     }
 
-    /**
-        calculate cost of stable coins with diff decimals
-     */
+    // calculate cost of stable coins with diff decimals
     function calculateCost(address coin, uint256 amountToBuy)
         public
         view
@@ -222,4 +230,5 @@ contract PresaleContract is Ownable {
         }
         return cost;
     }
+    
 }
