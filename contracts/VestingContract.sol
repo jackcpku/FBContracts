@@ -5,18 +5,18 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
- * This contract handles the vesting of our governance token. It is similar with OpenZeppelin's VestingWallet contract, but handle vesting of specific ERC20 token to multiple beneficiaries.
- * Beneficiary can be added through `addBeneficiary` method, the corresponding amount of token will be transffered from the caller to this contract, which will be released to the beneficiary following a given vesting schedule.
- * No matter when, the token transferred to this contract through `addBeneficiary` method will follow the vesting schedule as if they were locked from the beginning.
+ * This contract handles the vesting of our governance token. It is similar to OpenZeppelin's VestingWallet contract, but handles the vesting of specific ERC20 tokens to multiple beneficiaries.
+ * A beneficiary can be added through `addBeneficiary` method, the corresponding amount of token will be transferred from the caller to this contract, which will be released to the beneficiary following a given vesting schedule.
+ * No matter when the tokens are transferred to this contract via the `addBeneficiary` method, they will follow the vesting schedule as if they were locked from the beginning.
  * Consequently, if the vesting has already started, new tokens sent to this contract for the newly added beneficiary may partly be immediately releasable.
- * There is a multisig manager address, who can change beneficiary addresses in emergency cases (e.g. the beneficiary lost his private key).
+ * There is a multi-sig manager address, who can change beneficiary addresses in emergency cases (e.g. the beneficiary lost his private key).
  */
 contract VestingContract {
     using SafeERC20 for IERC20;
 
     uint256 public constant PROPORTION_BASE = 10_000;
 
-    // multisig manager address
+    // multi-sig manager address
     address public manager;
 
     // the target ERC20 token for vesting
@@ -84,8 +84,8 @@ contract VestingContract {
     }
 
     /**
-     * Add a new beneficiary with given vesting amount.
-     * The given amount of token will be transferred from msg.sender to this contract.
+     * Add a new beneficiary with the given vesting amount.
+     * The given amount of token will be transferred from `msg.sender` to this contract.
      * The caller should have approved this contract to spend his token before calling this function.
      *
      * NOTE:
@@ -150,8 +150,8 @@ contract VestingContract {
     }
 
     /**
-     * Returns scheduled vest proportion of all beneficiaries.
-     * Return between [0, PROPORTION_BASE] since floating numbers are not supported.
+     * Returns scheduled vesting proportion.
+     * Returns between [0, PROPORTION_BASE] since floating numbers are not supported.
      */
     function vestingProportionSchedule(uint256 timestamp)
         public
