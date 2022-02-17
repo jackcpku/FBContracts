@@ -2,7 +2,10 @@ const fs = require("fs");
 
 const hre = require("hardhat");
 const { ethers } = require("hardhat");
-const { deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
+const {
+  deployNFTGatewayAndNFTFactory,
+  deployMajorToken,
+} = require("../lib/deploy.js");
 
 async function run(tc) {
   // Contracts
@@ -45,7 +48,7 @@ async function run(tc) {
 
     // Deploy FBT contract.
     const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
-    fbt = await FunBoxToken.deploy();
+    fbt = await deployMajorToken(platform.address);
     await fbt.deployed();
 
     // Deploy Gateway and Factory contract.
@@ -398,16 +401,28 @@ function generateTestCases(N) {
     priceBundle.push(t);
   }
 
-  fs.writeFileSync("generated-valid-bundle.json", JSON.stringify(validBundle, null, 4));
-  fs.writeFileSync("generated-price-bundle.json", JSON.stringify(priceBundle, null, 4));
+  if (!fs.existsSync(testDir)) {
+    fs.mkdirSync(testDir);
+  }
+  fs.writeFileSync(
+    `${testDir}/generated-valid-bundle.json`,
+    JSON.stringify(validBundle, null, 4)
+  );
+  fs.writeFileSync(
+    `${testDir}/generated-price-bundle.json`,
+    JSON.stringify(priceBundle, null, 4)
+  );
   console.log("Test cases generated");
 
-  return {validBundle, priceBundle};
+  return { validBundle, priceBundle };
 }
 
+const testDir = "./test-cases";
+
 async function main() {
-  const {validBundle, priceBundle} = generateTestCases(3);
-  const validOffers = [], priceOffers = [];
+  const { validBundle, priceBundle } = generateTestCases(3);
+  const validOffers = [],
+    priceOffers = [];
   for (let i = 0; i < validBundle.length; i++) {
     console.log(`Processing ${i + 1} / ${validBundle.length}`);
     const tc = validBundle[i];
@@ -422,8 +437,14 @@ async function main() {
     priceOffers.push(offerPair.sellerOffer);
     priceOffers.push(offerPair.buyerOffer);
   }
-  fs.writeFileSync("generated-valid-offers.json", JSON.stringify(validOffers, null, 4));
-  fs.writeFileSync("generated-price-offers.json", JSON.stringify(priceOffers, null, 4));
+  fs.writeFileSync(
+    `${testDir}/generated-valid-offers.json`,
+    JSON.stringify(validOffers, null, 4)
+  );
+  fs.writeFileSync(
+    `${testDir}/generated-price-offers.json`,
+    JSON.stringify(priceOffers, null, 4)
+  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere
