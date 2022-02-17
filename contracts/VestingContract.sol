@@ -4,11 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// TODO
-// 1. proportion -> amount
-// 2. function add(beneficiary, amount)
-// 3. 
-
 contract VestingContract {
     using SafeERC20 for IERC20;
 
