@@ -7,7 +7,7 @@ const main = async () => {
         constructorArguments: [
             multisigWalletAddr()
         ],
-        contract: "contracts/FunBoxToken.sol:FunBoxToken"
+        contract: "contracts/PlayverseToken.sol:PlayverseToken"
     });
 }
 
