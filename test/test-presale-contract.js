@@ -39,7 +39,7 @@ describe("Test PresaleContract", function () {
 
         it("Test init", async function () {
 
-            expect(await ps.price()).to.equal(preSalePrice);
+            expect(await ps.presalePrice()).to.equal(preSalePrice);
             await fbt.transfer(ps.address, totalAmount)
             expect(await ps.totalToken()).to.equal(totalAmount);
             // const coins = await ps.stableCoinLists();
