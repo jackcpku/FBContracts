@@ -9,9 +9,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * This Contract is designed for the presale of our governance token based on whitelist policy.
  * 1. The list of whitelist addresses that can participate in the presale will be collected, and their corresponding presale quota will be determined according to contributions.
- * 2. The `setWhitelists` method will be called to set presale quota for the whitelist addresses.
+ * 2. The `setWhitelists` function will be called to set the pre-sale quota for whitelisted addresses.
  * 3. The governance token corresponding to the total amount of presale will be transferred to the contract address, and the presale will start
- * 4. Users with presale quotas can then use our front-end application, which interacts with the contract, to buy governance tokens using an allowed stablecoin token at a given price.
+ * 4. Users with presale quotas can then use our front-end application, which interacts with the contract, to buy governance tokens using an allowed stable coin token at a given price.
  */
 contract PresaleContract is Ownable {
     using SafeERC20 for IERC20;
@@ -61,7 +61,7 @@ contract PresaleContract is Ownable {
         presalePrice = _presalePrice;
     }
 
-    // Add accepted stable coins
+    // Add allowed stable coins
     function addStableCoins(address[] calldata stableCoins) external onlyOwner {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             address coin = stableCoins[i];
@@ -69,7 +69,7 @@ contract PresaleContract is Ownable {
         }
     }
 
-    // Remove accepted stable coin
+    // Remove allowed stable coin
     function removeStableCoin(address stableCoin) external onlyOwner {
         stableCoinSet.remove(stableCoin);
     }
@@ -100,7 +100,11 @@ contract PresaleContract is Ownable {
         whitelistUserSet.add(addr);
     }
 
-    // Whitelist user buy presale with stablecoin address:coin & amount:amountToBuy
+    /**
+     * Whitelist user calls this function to buy presale
+     * coin: stable coin address used to buy
+     * amountToBuy: buying amount of the target token
+     */
     function buyPresale(address coin, uint256 amountToBuy) public {
         require(
             boughtAmount[msg.sender] + amountToBuy <= limitAmount[msg.sender],
@@ -134,7 +138,7 @@ contract PresaleContract is Ownable {
         IERC20(tokenAddress).safeTransfer(msg.sender, amountToBuy);
     }
 
-    // The manager withdraw specific token to toAddr
+    // The manager withdraw specific token to `toAddr`
     function withdrawToken(
         address token,
         address toAddr,
@@ -144,7 +148,7 @@ contract PresaleContract is Ownable {
         IERC20(token).safeTransfer(toAddr, amount);
     }
 
-    // The manager withdraw rest of tokens including our platform token and stable coin to a new address
+    // The manager withdraw rest of tokens including our governance token and stablecoin to a new address
     function withdraw(address toAddr) public onlyOwner {
         emit AllWithdrawed(toAddr, totalSold);
 
@@ -178,7 +182,7 @@ contract PresaleContract is Ownable {
         return limitAmount[addr] - boughtAmount[addr];
     }
 
-    // query white list of [from , to]  0-based
+    // Query whitelists of [from , to]  0-based
     function whitelist(uint256 from, uint256 to)
         external
         view
@@ -196,11 +200,12 @@ contract PresaleContract is Ownable {
         return ret;
     }
 
-    // total # of white list user
+    // Total # of white list user
     function whitelistCnt() external view returns (uint256) {
         return whitelistUserSet.length();
     }
 
+    // Token decimal for a given token
     function tokenDecimal(address coin) public view returns (uint8) {
         if (tokenDecimals[coin] == 0) {
             return DEFAULT_TOKEN_DECIMAL;
@@ -208,7 +213,7 @@ contract PresaleContract is Ownable {
         return tokenDecimals[coin];
     }
 
-    // calculate cost of stable coins with diff decimals
+    // Calculate cost of stable coins with diff decimals
     function calculateCost(address coin, uint256 amountToBuy)
         public
         view
