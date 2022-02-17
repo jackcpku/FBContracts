@@ -69,6 +69,7 @@ contract VestingContract {
     }
 
     function addBeneficiary(address _beneficiary, uint256 _amount) public {
+        require(beneficiaryAmount[_beneficiary] == 0, "Beneficiary already exists");
         beneficiaryAmount[_beneficiary] = _amount;
 
         IERC20(tokenAddress).safeTransferFrom(
