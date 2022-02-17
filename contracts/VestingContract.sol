@@ -4,6 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// TODO
+// 1. proportion -> amount
+// 2. function add(beneficiary, amount)
+// 3. 
+
 contract VestingContract {
     using SafeERC20 for IERC20;
 
@@ -13,7 +18,7 @@ contract VestingContract {
 
     address public tokenAddress;
 
-    mapping(address => uint256) public beneficiaryProportion;
+    mapping(address => uint256) public beneficiaryAmount;
     mapping(address => uint256) public released;
     uint256 totalReleased;
 
@@ -45,19 +50,12 @@ contract VestingContract {
     constructor(
         address _manager,
         address _tokenAddress,
-        address[] memory _beneficiaries,
-        uint256[] memory _proportions,
         uint256 _start,
         uint256[] memory _stages,
         uint256[] memory _unlockProportion
     ) {
         manager = _manager;
         tokenAddress = _tokenAddress;
-
-        require(_beneficiaries.length == _proportions.length);
-        for (uint256 i = 0; i < _beneficiaries.length; i++) {
-            beneficiaryProportion[_beneficiaries[i]] = _proportions[i];
-        }
 
         startSecond = _start;
         require(_stages.length == _unlockProportion.length);
@@ -75,9 +73,19 @@ contract VestingContract {
         manager = _newManager;
     }
 
+    function addBeneficiary(address _beneficiary, uint256 _amount) public {
+        beneficiaryAmount[_beneficiary] = _amount;
+
+        IERC20(tokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
+    }
+
     function release() public {
         require(
-            beneficiaryProportion[msg.sender] != 0,
+            beneficiaryAmount[msg.sender] != 0,
             "Only beneficiaries receive."
         );
 
@@ -114,14 +122,13 @@ contract VestingContract {
         returns (uint256 amount)
     {
         return
-            ((IERC20(tokenAddress).balanceOf(address(this)) + totalReleased) *
-                vestingProportionSchedule(timestamp) *
-                beneficiaryProportion[beneficiary]) / PROPORTION_BASE / PROPORTION_BASE;
+            (vestingProportionSchedule(timestamp) *
+             beneficiaryAmount[beneficiary]) / PROPORTION_BASE;
     }
 
     /**
      * Returns scheduled vest proportion of all beneficiaries.
-     * Return between [0, 1000] since floating numbers are not supported.
+     * Return between [0, PROPORTION_BASE] since floating numbers are not supported.
      */
     function vestingProportionSchedule(uint256 timestamp)
         public
@@ -147,15 +154,15 @@ contract VestingContract {
     ) 
         public 
     {
-        require(beneficiaryProportion[_originalBeneficiary] != 0, "Not a beneficiary.");
-        require(beneficiaryProportion[_newBeneficiary] == 0, "The new beneficiary already exists.");
+        require(beneficiaryAmount[_originalBeneficiary] != 0, "Not a beneficiary");
+        require(beneficiaryAmount[_newBeneficiary] == 0, "The new beneficiary already exists");
 
-        require(msg.sender == _originalBeneficiary || msg.sender == manager, "Unauthorized request.");
+        require(msg.sender == _originalBeneficiary || msg.sender == manager, "Unauthorized request");
 
         emit BeneficiaryChanged(_originalBeneficiary, _newBeneficiary, msg.sender);
 
-        beneficiaryProportion[_newBeneficiary] = beneficiaryProportion[_originalBeneficiary];
-        beneficiaryProportion[_originalBeneficiary] = 0;
+        beneficiaryAmount[_newBeneficiary] = beneficiaryAmount[_originalBeneficiary];
+        beneficiaryAmount[_originalBeneficiary] = 0;
         
         released[_newBeneficiary] = released[_originalBeneficiary];
         released[_originalBeneficiary] = 0;
