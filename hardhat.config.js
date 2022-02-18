@@ -39,7 +39,7 @@ extendEnvironment((hre) => {
     case "rinkeby":
       token = "0x91b296ff4aE2fD3dc0f56e3AB37A130974201e97";
       presale = "0x15121FaE2D09a327351BfEDaf2A243F1b9196CfE";
-      vesting = "0x5e2625548a09C165174CE41C1050FC3Be4cc7167";
+      vesting = "0x617c40A483409ccA8e30a8F6eA14FBd17e337561";
       break;
     case "mainnet":
       // TODO:
