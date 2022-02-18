@@ -69,6 +69,7 @@ contract VestingContract {
 
         startSecond = _start;
         require(_stages.length == _unlockProportion.length);
+        require(_unlockProportion[0] == 0);
         for (uint256 i = 0; i < _stages.length; i++) {
             stageSecond.push(_stages[i]);
             unlockProportion.push(_unlockProportion[i]);

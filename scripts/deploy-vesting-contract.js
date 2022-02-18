@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const prompt = require("prompt");
 
 const { deployVesting } = require('../lib/deploy');
-const { vestingManagerAddr, vestingBeneficiaries, vestingProportions, vestingStart, vestingStages, vestingStageProportions } = require('./params');
+const { vestingManagerAddr, vestingStart, vestingStages, vestingStageProportions } = require('./params');
 
 function convertTimestamp(timestamp) {
     var d = new Date(timestamp * 1000),	// Convert the passed timestamp to milliseconds
@@ -23,27 +23,21 @@ function proportionToPercent(proportion) {
 
 const main = async () => {
     const manager = vestingManagerAddr();
-    const beneficiaries = vestingBeneficiaries();
-    const proportions = vestingProportions();
     const start = vestingStart();
     const stages = vestingStages();
     const stageProportions = vestingStageProportions();
     console.info("Network: " + hre.network.name);
     console.info("Deploy vesting with token: " + hre.addrs.token);
     console.info("Manager addr: " + manager);
-    console.info("Beneficieries and proportions: ");
-    for (let i = 0; i < beneficiaries.length; i++) {
-        console.info("\t", beneficiaries[i], "\t", proportionToPercent(proportions[i]));
-    }
     console.info("Vesting start: ", convertTimestamp(start));
     console.info("Vesting Stages: ");
     for (let i = 0; i < stages.length; i++) {
-        console.info("\t", convertTimestamp(start + stages[i]), proportionToPercent(stageProportions[i]));
+        console.info("\t", convertTimestamp(start + stages[i]), i < stages.length-1 ? proportionToPercent(stageProportions[i+1]) : "100%");
     }
     const { confirm } = await prompt.get([{ name: "confirm", description: "Confirm? (y/N)" }]);
     if (confirm === 'y' || confirm === 'Y') {
         vesting = await deployVesting(
-            manager, hre.addrs.token, beneficiaries, proportions, start, stages, stageProportions
+            manager, hre.addrs.token, start, stages, stageProportions
         );
         console.info("Vesting Contract Deployed: " + vesting.address);
     } else {

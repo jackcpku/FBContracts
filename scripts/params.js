@@ -35,26 +35,6 @@ const vestingManagerAddr = () => {
     return multisigWalletAddr();
 }
 
-const vestingBeneficiaries = () => {
-    switch (hre.network.name) {
-        case "rinkeby":
-            return ["0x9E54Ac6Ce725223271136479F6eb42873BA63E55", "0x7E7461889B1cdd10f6929B4a3feA611Df8b45B04"];
-        case "mainnet":
-            // TODO
-            return [];
-    }
-}
-
-const vestingProportions = () => {
-    switch (hre.network.name) {
-        case "rinkeby":
-            return [5000, 5000];
-        case "mainnet":
-            // TODO
-            return [];
-    }
-}
-
 const vestingStart = () => {
     switch (hre.network.name) {
         case "rinkeby":
@@ -79,7 +59,7 @@ const vestingStages = () => {
 const vestingStageProportions = () => {
     switch (hre.network.name) {
         case "rinkeby":
-            return [1000, 2000, 5000, 10000];
+            return [0, 1000, 2000, 5000];
         case "mainnet":
             // TODO
             return [];
@@ -93,8 +73,6 @@ module.exports = {
     presalePrice,
     presaleAllowedStableCoins,
     vestingManagerAddr,
-    vestingBeneficiaries,
-    vestingProportions,
     vestingStart,
     vestingStages,
     vestingStageProportions
