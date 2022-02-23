@@ -56,7 +56,7 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
             whitelistReceiver.add(addrs[i]);
         }
     }
-    
+
     // remove whitelist
     function removeWhitelists(address[] calldata addrs)
         external
@@ -72,18 +72,18 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
      ********************************************************************/
 
     constructor(address _admin, address _pvsAddress) ERC20("TicketForVoting", "TKT") {
-        uint256 total = 1_000_000_000 * 10**18;
-        _mint(_admin, total);
-        tktBalance[_admin] = total;
+        _mint(_admin, 0);
+        tktBalance[_admin] = 0;
         pvsAddress = _pvsAddress;
     }
 
-    //
+    //balance of tkt at last checkpoint, not including 
     function balanceOf(address account) public view override returns (uint256) {
         return tktBalance[account];
     }
 
-    function transfer(address _to, uint256 _value) public override returns (bool) {    
+    function transfer(address _to, uint256 _value) public override returns (bool) {  
+        updateTicketCount(msg.sender);
         require(verifyTransfer(_to), "Transfer is not valid");   
         require(_to != address(0));
         require(_value <= tktBalance[msg.sender]);   
@@ -107,6 +107,7 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
     // }transferFrom
 
     function transferFrom(address _from, address _to, uint256 _value) public override returns (bool success) {
+        updateTicketCount(msg.sender);
         require(verifyTransfer(_to), "Transfer is not valid");   
         require(allowed[_from][_to] >= _value);
         require(tktBalance[_from] >= _value);
@@ -145,11 +146,11 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
      ********************************************************************/
 
     // now v(t) = v(cp) + C * s(cp) * (t - t(cp))
-    function ticketCount(address _staker) public returns (uint256) {
+    //check & update # of TKT at current timestamp
+    function updateTicketCount(address _staker) public returns (uint256) {
         uint256 _last = previousCheckpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
         tktBalance[_staker] += PRODUCT_FACTOR * pvsBalance[_staker] * timeInterval;
-        //todo
         previousCheckpointTime[_staker] = block.timestamp;
         return tktBalance[_staker];
     }
