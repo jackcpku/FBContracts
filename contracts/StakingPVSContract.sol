@@ -47,7 +47,7 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
      *                           Management                                 *
      ********************************************************************/
 
-    // Set whitelists with limit amounts
+    // add whitelist
     function addWhitelists(address[] calldata addrs)
         external
         onlyOwner
@@ -56,11 +56,8 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
             whitelistReceiver.add(addrs[i]);
         }
     }
-
-    function addWhitelist(address addr) external onlyOwner {
-        whitelistReceiver.add(addr);
-    }
-
+    
+    // remove whitelist
     function removeWhitelists(address[] calldata addrs)
         external
         onlyOwner
@@ -68,10 +65,6 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
         for (uint256 i = 0; i < addrs.length; i++) {
             whitelistReceiver.remove(addrs[i]);
         }
-    }
-
-    function removeWhitelist(address addr) external onlyOwner {
-        whitelistReceiver.remove(addr);
     }
 
      /********************************************************************
@@ -128,7 +121,11 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
         return whitelistReceiver.contains(_to);
     }
 
-    function onApprovalReceived(address owner, uint256 value, bytes memory data) external override returns (bytes4) {
+    function onApprovalReceived(
+        address owner, 
+        uint256 value, 
+        bytes memory data
+    ) external override returns (bytes4) {
         
     }
 
@@ -152,6 +149,7 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
         uint256 _last = previousCheckpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
         tktBalance[_staker] += PRODUCT_FACTOR * pvsBalance[_staker] * timeInterval;
+        //todo
         previousCheckpointTime[_staker] = block.timestamp;
         return tktBalance[_staker];
     }
@@ -176,7 +174,4 @@ contract StakingPVSContract is ERC20, OwnableUpgradeable, ERC1363Spender, ERC136
 
         IERC20(pvsAddress).safeTransfer(msg.sender, amount);
     }
-
-
- 
 }
