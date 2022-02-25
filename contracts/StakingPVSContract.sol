@@ -1,16 +1,20 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-// import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import "./IERC1363.sol";
+// import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+// import "@openzeppelin/contracts/access/Ownable.sol";
+// import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+// import "./IERC1363.sol";
+
+// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 /**
  * This Contract is designed for staking our platform token:PVS to generate & manage our voting ticket:TKT
@@ -19,18 +23,34 @@ import "./IERC1363.sol";
  * 3. 
  * 4. 
  */
-contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ERC20Upgradeable {
+
+interface SimpleIERC20 {
+
+    function name() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
+
+    function totalSupply() external view returns (uint256);
+
+    function balanceOf(address account) external view returns (uint256);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+}
+
+contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using Address for address;
 
     bytes4 internal constant _INTERFACE_ID_ERC1363_SPENDER = 0x7b04a2d0;
+
+    string private _name;
+    string private _symbol;
 
     // the target ERC20 token for staking
     address public pvsAddress;
 
-    // All whitelisted TKT receiver  
-    EnumerableSet.AddressSet private whitelistReceiver; 
+    uint256 public totalSupplyAtCheckpoint;
+
+    mapping(address => bool) whitelistConsumer;
 
     //factor
     uint256 public constant PRODUCT_FACTOR = 10_000; 
@@ -45,8 +65,8 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
     // # of tkt at last checkpoint
     mapping (address => uint256) public tktBalanceAtCheckpoint; 
 
-    //[owner][spender] = allowed amount
-    mapping(address => mapping(address => uint)) allowed;
+    //
+    event TicketConsume(address indexed from, address indexed to, uint256 value);
 
      /********************************************************************
      *                           Management                                 *
@@ -58,7 +78,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
         onlyOwner
     {
         for (uint256 i = 0; i < addrs.length; i++) {
-            whitelistReceiver.add(addrs[i]);
+            whitelistConsumer[addrs[i]] = true;
         }
     }
 
@@ -68,7 +88,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
         onlyOwner
     {
         for (uint256 i = 0; i < addrs.length; i++) {
-            whitelistReceiver.remove(addrs[i]);
+            whitelistConsumer[addrs[i]] = false;
         }
     }
 
@@ -76,170 +96,42 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
      *                          Override ERC20                           *
      ********************************************************************/
 
-    // constructor(address _admin, address _pvsAddress) ERC20("TicketForVoting", "TKT") {
-    //     // _mint(_admin, 0);
-    //     pvsAddress = _pvsAddress;
-
-    function initialize(string memory name, string memory symbol, address _pvsAddress) public initializer {
+    function initialize(string memory name_, string memory symbol_, address _pvsAddress) public initializer {
         __Ownable_init();
-        __ERC20_init(name, symbol);
+        _name = name_;
+        _symbol = symbol_;
         pvsAddress = _pvsAddress;
     }
 
-    function totalSupply() public pure override returns (uint256) {
-        return type(uint256).max;
+    function name() public view override returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view override returns (string memory) {
+        return _symbol;
+    }
+
+    function totalSupply() public view override returns (uint256) {
+        return totalSupplyAtCheckpoint;
     }
 
     //balance of tkt at last checkpoint, not including 
     function balanceOf(address _staker) public view override returns (uint256) {
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
+
+    function consume(address _consumer, uint256 amount) public {
+        updateCheckpoint(_consumer);
+        require(tktBalanceAtCheckpoint[_consumer] >= amount, "Your ticket balance is insufficient");
+        tktBalanceAtCheckpoint[_consumer] -= amount;
+
+        emit Transfer(address(this), address(0), amount);
+        emit TicketConsume(address(this), _consumer, amount);
+    }
     
-    function transfer(address _to, uint256 _value) public override returns (bool) {  
-        updateCheckpoint(msg.sender);
-        require(verifyTransfer(_to), "Transfer is not valid");   
-        require(_to != address(0));
-        require(_value <= tktBalanceAtCheckpoint[msg.sender]);   
-        tktBalanceAtCheckpoint[msg.sender] -= _value;
-        tktBalanceAtCheckpoint[_to] += _value;
-        // emit Transfer(msg.sender, _to, _value);
-        return true;  
-    }
-
-    function approve(address _spender, uint256 _value) public override returns (bool success) {
-        updateCheckpoint(msg.sender);
-        require(tktBalanceAtCheckpoint[msg.sender] >= _value);
-        require(_value > 0);
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
-    }
-
-    function allowance(address _tokenOwner, address _spender) public view override returns (uint256 remaining) {
-        return allowed[_tokenOwner][_spender];
-    }
-
-    function transferFrom(address _from, address _to, uint256 _value) public override returns (bool success) {
-        updateCheckpoint(msg.sender);
-        require(verifyTransfer(_to), "Transfer is not valid");   
-        require(allowed[_from][_to] >= _value);
-        require(tktBalanceAtCheckpoint[_from] >= _value);
-
-        tktBalanceAtCheckpoint[_to] += _value;
-        tktBalanceAtCheckpoint[_from] -= _value;
-        allowed[_from][_to] -= _value;
-        return true;
-    }
-
     function verifyTransfer(address _to) public view returns(bool) {
-        return whitelistReceiver.contains(_to);
+        return whitelistConsumer[_to];
     }
-
-    /********************************************************************
-     *                          Override ERC1363                           *
-     ********************************************************************/
-
-    /**
-    * @notice Transfer tokens from `msg.sender` to another address and then call `onTransferReceived` on receiver
-    * @param to address The address which you want to transfer to
-    * @param value uint256 The amount of tokens to be transferred
-    * @return true unless throwing
-    */
-    function transferAndCall(address to, uint256 value) external override returns (bool) {
-        return true;
-    }
-
-    /**
-    * @notice Transfer tokens from `msg.sender` to another address and then call `onTransferReceived` on receiver
-    * @param to address The address which you want to transfer to
-    * @param value uint256 The amount of tokens to be transferred
-    * @param data bytes Additional data with no specified format, sent in call to `to`
-    * @return true unless throwing
-    */
-    function transferAndCall(address to, uint256 value, bytes memory data) external override returns (bool) {
-        return true;
-    }
-
-    /**
-    * @notice Transfer tokens from one address to another and then call `onTransferReceived` on receiver
-    * @param from address The address which you want to send tokens from
-    * @param to address The address which you want to transfer to
-    * @param value uint256 The amount of tokens to be transferred
-    * @return true unless throwing
-    */
-    function transferFromAndCall(address from, address to, uint256 value) external override returns (bool) {
-        return true;
-    }
-
-
-    /**
-    * @notice Transfer tokens from one address to another and then call `onTransferReceived` on receiver
-    * @param from address The address which you want to send tokens from
-    * @param to address The address which you want to transfer to
-    * @param value uint256 The amount of tokens to be transferred
-    * @param data bytes Additional data with no specified format, sent in call to `to`
-    * @return true unless throwing
-    */
-    function transferFromAndCall(address from, address to, uint256 value, bytes memory data) external override returns (bool) {
-        return true;
-    }
-
-    /**
-    * @notice Approve the passed address to spend the specified amount of tokens on behalf of msg.sender
-    * and then call `onApprovalReceived` on spender.
-    * @param spender address The address which will spend the funds
-    * @param value uint256 The amount of tokens to be spent
-    */
-    function approveAndCall(address spender, uint256 value) public override returns (bool) {
-        return approveAndCall(spender, value, "");
-    }
-
-    /**
-    * @notice Approve the passed address to spend the specified amount of tokens on behalf of msg.sender
-    * and then call `onApprovalReceived` on spender.
-    * @param spender address The address which will spend the funds
-    * @param value uint256 The amount of tokens to be spent
-    * @param data bytes Additional data with no specified format, sent in call to `spender`
-    */
-    function approveAndCall(address spender, uint256 value, bytes memory data) public override returns (bool) {
-        approve(spender, value);
-        require(_checkAndCallApprove(spender, value, data), "ERC1363: _checkAndCallApprove reverts");
-        return true;
-    }
-
-     /**
-     * @dev Internal function to invoke `onApprovalReceived` on a target address
-     *  The call is not executed if the target address is not a contract
-     * @param spender address The address which will spend the funds
-     * @param value uint256 The amount of tokens to be spent
-     * @param data bytes Optional data to send along with the call
-     * @return whether the call correctly returned the expected magic value
-     */
-    function _checkAndCallApprove(
-        address spender,
-        uint256 value,
-        bytes memory data
-    ) internal virtual returns (bool) {
-        if (!spender.isContract()) {
-            return false;
-        }
-        //todo
-        bytes4 retval = IERC1363Spender(spender).onApprovalReceived(_msgSender(), value, data);
-        return (retval == IERC1363Spender(spender).onApprovalReceived.selector);
-    }    
-
-    //IERC1363Spender
-    function onApprovalReceived(
-        address owner, 
-        uint256 value, 
-        bytes memory data
-    ) external override returns (bytes4) {
-        
-        //todo
-        return _INTERFACE_ID_ERC1363_SPENDER;
-    }
-
-
 
     /********************************************************************
      *                          Stake Functions                         *
@@ -255,8 +147,14 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
     //check & update # of TKT at current timestamp
     //now v(t) = v(cp) + C * s(cp) * (t - t(cp))
     function updateCheckpoint(address _staker) public returns (uint256) {
-        tktBalanceAtCheckpoint[_staker] += calculateIncrement(_staker);
+        uint256 increment = calculateIncrement(_staker);
+
+        tktBalanceAtCheckpoint[_staker] += increment;
         checkpointTime[_staker] = block.timestamp;
+
+        emit Transfer(address(0), address(this), increment);
+
+        totalSupplyAtCheckpoint += increment;
         return tktBalanceAtCheckpoint[_staker];
     }
 
