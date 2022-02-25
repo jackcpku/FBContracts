@@ -6,16 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-// import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-// import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-// import "./IERC1363.sol";
-
-// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-
 /**
  * This Contract is designed for staking our platform token:PVS to generate & manage our voting ticket:TKT
  * 1. generate TKT accroding to the amount of PVS
@@ -138,7 +128,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
      ********************************************************************/
 
     // C * s(cp) * (t - t(cp))
-    function calculateIncrement(address _staker) private view returns (uint256) {
+    function calculateIncrement(address _staker) public view returns (uint256) {
         uint256 _last = checkpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
         return PRODUCT_FACTOR * pvsBalance[_staker] * timeInterval;
