@@ -96,7 +96,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
     }
     
     function transfer(address _to, uint256 _value) public override returns (bool) {  
-        updateTicketCount(msg.sender);
+        updateCheckpoint(msg.sender);
         require(verifyTransfer(_to), "Transfer is not valid");   
         require(_to != address(0));
         require(_value <= tktBalanceAtCheckpoint[msg.sender]);   
@@ -107,7 +107,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
     }
 
     function approve(address _spender, uint256 _value) public override returns (bool success) {
-        updateTicketCount(msg.sender);
+        updateCheckpoint(msg.sender);
         require(tktBalanceAtCheckpoint[msg.sender] >= _value);
         require(_value > 0);
         allowed[msg.sender][_spender] = _value;
@@ -120,7 +120,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public override returns (bool success) {
-        updateTicketCount(msg.sender);
+        updateCheckpoint(msg.sender);
         require(verifyTransfer(_to), "Transfer is not valid");   
         require(allowed[_from][_to] >= _value);
         require(tktBalanceAtCheckpoint[_from] >= _value);
@@ -254,7 +254,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
 
     //check & update # of TKT at current timestamp
     //now v(t) = v(cp) + C * s(cp) * (t - t(cp))
-    function updateTicketCount(address _staker) public returns (uint256) {
+    function updateCheckpoint(address _staker) public returns (uint256) {
         tktBalanceAtCheckpoint[_staker] += calculateIncrement(_staker);
         checkpointTime[_staker] = block.timestamp;
         return tktBalanceAtCheckpoint[_staker];
@@ -265,7 +265,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
         uint256 allowAmt = IERC20(pvsAddress).allowance(msg.sender, address(this));
         require(allowAmt >= amount, "Insufficient PVS allowance to stake");
 
-        checkpointTime[msg.sender] = block.timestamp;
+        updateCheckpoint(msg.sender);
         pvsBalance[msg.sender] += amount;
 
         IERC20(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
@@ -275,7 +275,7 @@ contract StakingPVSContract is OwnableUpgradeable, IERC1363Spender, IERC1363, ER
     function withdraw(uint256 amount) external {
         require(pvsBalance[msg.sender] >= amount, "Your PVS alance is insufficient");
 
-        checkpointTime[msg.sender] = block.timestamp;
+        updateCheckpoint(msg.sender);
         pvsBalance[msg.sender] -= amount;
 
         IERC20(pvsAddress).safeTransfer(msg.sender, amount);
