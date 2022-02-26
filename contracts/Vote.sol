@@ -11,30 +11,11 @@ import "@openzeppelin/contracts/interfaces/IERC721.sol";
 
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 
-/**
- * Copied from https://eips.ethereum.org/EIPS/eip-1363
- */
-interface IERC1363 is IERC20 {
-    function transferAndCall(
-        address to,
-        uint256 value,
-        bytes memory data
-    ) external returns (bool);
+interface Ticket {
+    function burn(address owner, uint256 amount) external;
 }
 
-/**
- * Copied from https://eips.ethereum.org/EIPS/eip-1363
- */
-interface IERC1363Receiver {
-    function onTransferReceived(
-        address operator,
-        address sender,
-        uint256 amount,
-        bytes calldata data
-    ) external returns (bytes4);
-}
-
-contract Vote is Initializable, OwnableUpgradeable, IERC1363Receiver {
+contract Vote is Initializable, OwnableUpgradeable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using BytesLib for bytes;
@@ -57,14 +38,26 @@ contract Vote is Initializable, OwnableUpgradeable, IERC1363Receiver {
     // cp of the nft
     mapping(address => address) manager;
 
-    // tokenAddress => payment token address
-    mapping(address => address) paymentTokenAddress;
+    // PVS address
+    address paymentTokenAddress;
 
     // tokenAddress => price
     mapping(address => uint256) fallbackPrice;
 
     // tokenAddress => (tokenId => price)
     mapping(address => mapping(uint256 => uint256)) price;
+
+    // Total margin of a voter, voter => amount
+    mapping(address => uint256) margin;
+
+    // Minimum PVS margin amount
+    mapping(address => uint256) marginNeeded;
+
+    // Winner of a certain NFT
+    mapping(address => mapping(uint256 => address)) winner;
+
+    // Previous winner of a certain NFT
+    mapping(address => mapping(uint256 => address)) prevWinner;
 
     modifier onlyManager(address _tokenAddress) {
         require(msg.sender == manager[_tokenAddress]);
@@ -108,7 +101,9 @@ contract Vote is Initializable, OwnableUpgradeable, IERC1363Receiver {
         price[_tokenAddress][_tokenId] = _price;
     }
 
-    // Called by managers.
+    /**
+     * @dev Called by managers.
+     */
     function initializeVote(address _tokenAddress, uint256 _deadline)
         public
         onlyManager(_tokenAddress)
@@ -120,34 +115,58 @@ contract Vote is Initializable, OwnableUpgradeable, IERC1363Receiver {
         deadline[_tokenAddress] = _deadline;
     }
 
-    function onTransferReceived(
-        address, /*operator*/
-        address sender,
-        uint256 amount,
-        bytes calldata data
-    ) external override returns (bytes4) {
-        require(msg.sender == ticketAddress, "Only ticket should call");
-
-        // decode tokenAddress and tokenId from data
-        address tokenAddress = data.toAddress(0);
-        uint256 tokenId = data.toUint256(20);
-
-        vote(tokenAddress, tokenId, amount, sender);
-        return bytes4(0x88a7ca5c);
+    /**
+     * Get the price of a single NFT.
+     * @dev If the NFT has a specified price in `price`, return that price,
+     * else return the whole collection's fallback price.
+     */
+    function getPrice(address _tokenAddress, uint256 _tokenId)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 singleItemPrice = price[_tokenAddress][_tokenId];
+        if (singleItemPrice > 0) {
+            return singleItemPrice;
+        } else {
+            return fallbackPrice[_tokenAddress];
+        }
     }
 
+    /**
+     * When ex-voters didn't want their PVS locked in the margin account,
+     * they call this function to withdraw their margin balance.
+     *
+     * @dev Called by voters.
+     */
+    function withdrawMargin(uint256 _amount) external {
+        require(_amount < margin[msg.sender], "Vote: low margin balance");
+        margin[msg.sender] -= _amount;
+
+        IERC20(paymentTokenAddress).safeTransferFrom(
+            address(this),
+            msg.sender,
+            _amount
+        );
+    }
+
+    /**
+     * Vote for a certain NFT specified by (_tokenAddress, _tokenId).
+     * @dev Called by voters.
+     */
     function vote(
         address _tokenAddress,
         uint256 _tokenId,
-        uint256 _amount,
-        address _voter
-    ) internal {
+        uint256 _amount
+    ) external {
+        // Check if vote has expired
         require(
             block.timestamp <= deadline[_tokenAddress],
             "The voting process is finished"
         );
 
-        uint256 totalVoted = hasVoted[_tokenAddress][_tokenId][_voter] +
+        // Check if vote amount is enough
+        uint256 totalVoted = hasVoted[_tokenAddress][_tokenId][msg.sender] +
             _amount;
 
         require(
@@ -155,47 +174,70 @@ contract Vote is Initializable, OwnableUpgradeable, IERC1363Receiver {
             "Please vote more"
         );
 
-        IERC20(ticketAddress).safeTransferFrom(_voter, address(this), _amount);
+        // Burn the tickets
+        Ticket(ticketAddress).burn(msg.sender, _amount);
 
-        hasVoted[_tokenAddress][_tokenId][_voter] += _amount;
+        // Special case: if voter was already the winner
+        if (msg.sender == prevWinner[_tokenAddress][_tokenId]) {
+            hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
+            maxVoted[_tokenAddress][_tokenId] = totalVoted;
+            return;
+        }
+
+        // Update marginNeeded
+        marginNeeded[msg.sender] += getPrice(_tokenAddress, _tokenId);
+
+        // If margin is not enough
+        if (margin[msg.sender] < marginNeeded[msg.sender]) {
+            IERC20(paymentTokenAddress).safeTransferFrom(
+                msg.sender,
+                address(this),
+                marginNeeded[msg.sender] - margin[msg.sender]
+            );
+            margin[msg.sender] = marginNeeded[msg.sender];
+        }
+
+        // Voted successfully, update states
+        prevWinner[_tokenAddress][_tokenId] = winner[_tokenAddress][_tokenId];
+        winner[_tokenAddress][_tokenId] = msg.sender;
+        hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
         maxVoted[_tokenAddress][_tokenId] = totalVoted;
+
+        marginNeeded[prevWinner[_tokenAddress][_tokenId]] -= getPrice(
+            _tokenAddress,
+            _tokenId
+        );
     }
 
-    // Called by winner.
+    /**
+     * Execute the transaction and send NFT to the winner.
+     *
+     * @dev Can be called by anyone.
+     */
     function claim(address _tokenAddress, uint256 _tokenId) external {
         require(
             block.timestamp > deadline[_tokenAddress],
             "The voting process has not finished"
         );
 
-        require(
-            hasVoted[_tokenAddress][_tokenId][msg.sender] ==
-                maxVoted[_tokenAddress][_tokenId],
-            "Not the winner"
-        );
+        address w = winner[_tokenAddress][_tokenId];
 
-        uint256 singleItemPrice = price[_tokenAddress][_tokenId];
-        uint256 total = singleItemPrice;
-        if (total == 0) {
-            total = fallbackPrice[_tokenAddress];
-        }
+        uint256 total = getPrice(_tokenAddress, _tokenId);
         uint256 fee = total / 2;
 
-        IERC20(paymentTokenAddress[_tokenAddress]).safeTransferFrom(
-            msg.sender,
+        marginNeeded[w] -= total;
+
+        IERC20(paymentTokenAddress).safeTransferFrom(
+            w,
             serviceFeeRecipient,
             fee
         );
-        IERC20(paymentTokenAddress[_tokenAddress]).safeTransferFrom(
-            msg.sender,
+        IERC20(paymentTokenAddress).safeTransferFrom(
+            w,
             manager[_tokenAddress],
             total - fee
         );
 
-        IERC721(_tokenAddress).safeTransferFrom(
-            address(this),
-            msg.sender,
-            _tokenId
-        );
+        IERC721(_tokenAddress).safeTransferFrom(address(this), w, _tokenId);
     }
 }
