@@ -4,41 +4,56 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/**
+ * This contract handles the vesting of our governance token. It is similar to OpenZeppelin's VestingWallet contract, but handles the vesting of specific ERC20 tokens to multiple beneficiaries.
+ * A beneficiary can be added through `addBeneficiary` method, the corresponding amount of token will be transferred from the caller to this contract, which will be released to the beneficiary following a given vesting schedule.
+ * No matter when the tokens are transferred to this contract via the `addBeneficiary` method, they will follow the vesting schedule as if they were locked from the beginning.
+ * Consequently, if the vesting has already started, new tokens sent to this contract for the newly added beneficiary may partly be immediately releasable.
+ * There is a multi-sig manager address, who can change beneficiary addresses in emergency cases (e.g. the beneficiary lost his private key).
+ */
 contract VestingContract {
     using SafeERC20 for IERC20;
 
     uint256 public constant PROPORTION_BASE = 10_000;
 
+    // multi-sig manager address
     address public manager;
 
+    // the target ERC20 token for vesting
     address public tokenAddress;
 
+    // mapping (beneficiaryAddress => total amount vesting to the beneficiary)
     mapping(address => uint256) public beneficiaryAmount;
+    // mapping (beneficiaryAddress => # of released token)
     mapping(address => uint256) public released;
+    // total released token amount
     uint256 totalReleased;
 
-    // Timing related constants (unix time).
-    uint256 public startSecond /*= 1000000000*/;
-    uint256[] public stageSecond /*= [0, 20000, 40000, 60000]*/;
-
     /**
-     * Unlock proportion in corresponding stage.
+     * Vesting schedule parameters
+     *
+     * startSecond: vesting start time (in Unix timestamp)
+     * stageSecond: Each vesting stage (in second after `startSecond`)
+     * unlockProportion: Unlocked proportion of tokens, between[0, `PROPORTION_BASE`]
+     *
+     * The lengths of `stageSecond` and `unlockProportion` are the same and unlockProportion[0] should always be 0.
+     * For example, in the case of stageSecond = [0, 1000, 2000] and unlockProportion = [0, 3000, 7000],
+     * - timestamp < `startSecond + 0`, 0% of tokens are unlocked
+     * - `startSecond + 0` <= timestamp < `startSecond + 1000`, 30% tokens are unlocked
+     * - `startSecond + 1000` <= timestamp < `startSecond + 2000`, 70% tokens are unlocked
+     * - `startSecond + 2000` <= timestamp, 100% tokens are unlocked
      */
-    uint256[] public unlockProportion /*= [0, 1000, 3000, 6000]*/;
+    uint256 public startSecond;
+    uint256[] public stageSecond;
+    uint256[] public unlockProportion;
 
-    /**
-     * A beneficiary pulled from the token pool.
-     */
+    // Token released to the corresponding beneficiary
     event TokenReleased(address indexed beneficiary, uint256 amount);
 
-    /**
-     * Manager changed from currentManager to newManager.
-     */
+    // Manager changed from currentManager to newManager.
     event ManagementTransferred(address indexed currentManager, address indexed newManager);
 
-    /**
-     * Beneficiary changed from originalBeneficiary to newBeneficiary.
-     */
+    // Beneficiary changed from originalBeneficiary to newBeneficiary.
     event BeneficiaryChanged(address indexed originalBeneficiary, address indexed newBeneficiary, address indexed executor);
  
 
@@ -54,6 +69,7 @@ contract VestingContract {
 
         startSecond = _start;
         require(_stages.length == _unlockProportion.length);
+        require(_unlockProportion[0] == 0);
         for (uint256 i = 0; i < _stages.length; i++) {
             stageSecond.push(_stages[i]);
             unlockProportion.push(_unlockProportion[i]);
@@ -68,7 +84,17 @@ contract VestingContract {
         manager = _newManager;
     }
 
+    /**
+     * Add a new beneficiary with the given vesting amount.
+     * The given amount of token will be transferred from `msg.sender` to this contract.
+     * The caller should have approved this contract to spend his token before calling this function.
+     *
+     * NOTE:
+     * No matter when, the token for vesting will follow the vesting schedule as if they were locked from the beginning.
+     * Consequently, if the vesting has already started, new tokens sent to this contract for the newly added beneficiary may partly be immediately releasable.
+     */
     function addBeneficiary(address _beneficiary, uint256 _amount) public {
+        require(beneficiaryAmount[_beneficiary] == 0, "Beneficiary already exists");
         beneficiaryAmount[_beneficiary] = _amount;
 
         IERC20(tokenAddress).safeTransferFrom(
@@ -78,6 +104,9 @@ contract VestingContract {
         );
     }
 
+    /**
+     * Beneficiary calls this function to request releasing vested tokens which have been unlocked according to the vesting schedule.
+     */
     function release() public {
         require(
             beneficiaryAmount[msg.sender] != 0,
@@ -122,8 +151,8 @@ contract VestingContract {
     }
 
     /**
-     * Returns scheduled vest proportion of all beneficiaries.
-     * Return between [0, PROPORTION_BASE] since floating numbers are not supported.
+     * Returns scheduled vesting proportion.
+     * Returns between [0, PROPORTION_BASE] since floating numbers are not supported.
      */
     function vestingProportionSchedule(uint256 timestamp)
         public
@@ -139,9 +168,8 @@ contract VestingContract {
     }
 
     /**
-     * Change beneficiary
-     * @dev Only beneficiaries are supposed to call.
-     * @notice The original beneficiary will not be able to pull after.
+     * Change beneficiary address
+     * Only beneficiaries or manager are supposed to call.
      */
     function changeBeneficiary(
         address _originalBeneficiary, 
