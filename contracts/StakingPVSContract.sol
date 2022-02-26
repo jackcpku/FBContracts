@@ -40,7 +40,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
 
     uint256 public totalSupplyAtCheckpoint;
 
-    mapping(address => bool) whitelistConsumer;
+    mapping(address => bool) whitelist;
 
     //factor
     uint256 public constant PRODUCT_FACTOR = 10_000; 
@@ -55,8 +55,14 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
     // # of tkt at last checkpoint
     mapping (address => uint256) public tktBalanceAtCheckpoint; 
 
-    //
-    event TicketConsume(address indexed from, address indexed to, uint256 value);
+    event TicketBurned(address indexed from, address indexed to, uint256 value);
+
+    event TicketMinted(address indexed from, address indexed to, uint256 value);
+
+    modifier onlyWhiteList() {
+        require(whitelist[msg.sender], "No permission to burn or mint");
+        _;
+    }
 
      /********************************************************************
      *                           Management                                 *
@@ -68,7 +74,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         onlyOwner
     {
         for (uint256 i = 0; i < addrs.length; i++) {
-            whitelistConsumer[addrs[i]] = true;
+            whitelist[addrs[i]] = true;
         }
     }
 
@@ -78,7 +84,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         onlyOwner
     {
         for (uint256 i = 0; i < addrs.length; i++) {
-            whitelistConsumer[addrs[i]] = false;
+            whitelist[addrs[i]] = false;
         }
     }
 
@@ -110,17 +116,23 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
 
-    function consume(address _consumer, uint256 amount) public {
-        updateCheckpoint(_consumer);
-        require(tktBalanceAtCheckpoint[_consumer] >= amount, "Your ticket balance is insufficient");
-        tktBalanceAtCheckpoint[_consumer] -= amount;
+    function burn(address _ticketOwner, uint256 amount) public onlyWhiteList {
+        updateCheckpoint(_ticketOwner);
+        require(tktBalanceAtCheckpoint[_ticketOwner] >= amount, "Your ticket balance is insufficient");
+        tktBalanceAtCheckpoint[_ticketOwner] -= amount;
 
-        emit Transfer(address(this), address(0), amount);
-        emit TicketConsume(address(this), _consumer, amount);
+        totalSupplyAtCheckpoint -= amount;
+
+        emit Transfer(_ticketOwner, address(0), amount);
+        emit TicketBurned(msg.sender, _ticketOwner, amount);
     }
-    
-    function verifyTransfer(address _to) public view returns(bool) {
-        return whitelistConsumer[_to];
+
+    function mint(address _ticketOwner, uint256 amount) public onlyWhiteList {
+        tktBalanceAtCheckpoint[_ticketOwner] += amount;
+        totalSupplyAtCheckpoint += amount;
+
+        emit Transfer(address(0), _ticketOwner, amount);
+        emit TicketMinted(_ticketOwner, msg.sender , amount);
     }
 
     /********************************************************************
@@ -142,7 +154,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         tktBalanceAtCheckpoint[_staker] += increment;
         checkpointTime[_staker] = block.timestamp;
 
-        emit Transfer(address(0), address(this), increment);
+        emit Transfer(address(0), _staker, increment);
 
         totalSupplyAtCheckpoint += increment;
         return tktBalanceAtCheckpoint[_staker];
