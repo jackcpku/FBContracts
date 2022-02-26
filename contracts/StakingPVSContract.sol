@@ -120,7 +120,6 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         updateCheckpoint(_ticketOwner);
         require(tktBalanceAtCheckpoint[_ticketOwner] >= amount, "Your ticket balance is insufficient");
         tktBalanceAtCheckpoint[_ticketOwner] -= amount;
-
         totalSupplyAtCheckpoint -= amount;
 
         emit Transfer(_ticketOwner, address(0), amount);
@@ -132,7 +131,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         totalSupplyAtCheckpoint += amount;
 
         emit Transfer(address(0), _ticketOwner, amount);
-        emit TicketMinted(_ticketOwner, msg.sender , amount);
+        emit TicketMinted(msg.sender, _ticketOwner, amount);
     }
 
     /********************************************************************
