@@ -8,10 +8,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /**
  * This Contract is designed for staking our platform token:PVS to generate & manage our voting ticket:TKT
- * 1. generate TKT accroding to the amount of PVS
- * 2. TKT implemented ERC20 and ERC1363 standards, but transfers are restricted, and only whitelisted addresses can transfer
- * 3. 
- * 4. 
+ * 1. Generate TKT accroding to the amount of PVS
+ * 2. TKT implemented SimpleIERC20 standards, but transfers were restricted, and only whitelisted addresses can mint or burn
  */
 
 interface SimpleIERC20 {
@@ -23,6 +21,10 @@ interface SimpleIERC20 {
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address account) external view returns (uint256);
+
+    function burn(address _ticketOwner, uint256 _amount) external;
+
+    function mint(address _ticketOwner, uint256 _amount) external;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 }
@@ -63,7 +65,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
     }
 
      /********************************************************************
-     *                           Management                                 *
+     *                           Management                              *
      ********************************************************************/
 
     // add whitelist
@@ -114,22 +116,22 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
 
-    function burn(address _ticketOwner, uint256 amount) external onlyWhiteList {
+    function burn(address _ticketOwner, uint256 _amount) external override onlyWhiteList {
         updateCheckpoint(_ticketOwner);
-        require(tktBalanceAtCheckpoint[_ticketOwner] >= amount, "Your ticket balance is insufficient");
-        tktBalanceAtCheckpoint[_ticketOwner] -= amount;
-        totalSupplyAtCheckpoint -= amount;
+        require(tktBalanceAtCheckpoint[_ticketOwner] >= _amount, "Your ticket balance is insufficient");
+        tktBalanceAtCheckpoint[_ticketOwner] -= _amount;
+        totalSupplyAtCheckpoint -= _amount;
 
-        emit Transfer(_ticketOwner, address(0), amount);
-        emit TicketBurned(_ticketOwner, msg.sender, amount);
+        emit Transfer(_ticketOwner, address(0), _amount);
+        emit TicketBurned(_ticketOwner, msg.sender, _amount);
     }
 
-    function mint(address _ticketOwner, uint256 amount) external onlyWhiteList {
-        tktBalanceAtCheckpoint[_ticketOwner] += amount;
-        totalSupplyAtCheckpoint += amount;
+    function mint(address _ticketOwner, uint256 _amount) external override onlyWhiteList {
+        tktBalanceAtCheckpoint[_ticketOwner] += _amount;
+        totalSupplyAtCheckpoint += _amount;
 
-        emit Transfer(address(0), _ticketOwner, amount);
-        emit TicketMinted(msg.sender, _ticketOwner, amount);
+        emit Transfer(address(0), _ticketOwner, _amount);
+        emit TicketMinted(msg.sender, _ticketOwner, _amount);
     }
 
     /********************************************************************
@@ -137,7 +139,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
      ********************************************************************/
 
     // C * s(cp) * (t - t(cp))
-    function calculateIncrement(address _staker) public view returns (uint256) {
+    function calculateIncrement(address _staker) internal view returns (uint256) {
         uint256 _last = checkpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
         return PRODUCT_FACTOR * pvsBalance[_staker] * timeInterval;
@@ -145,7 +147,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
 
     //check & update # of TKT at current timestamp
     //now v(t) = v(cp) + C * s(cp) * (t - t(cp))
-    function updateCheckpoint(address _staker) public returns (uint256) {
+    function updateCheckpoint(address _staker) internal returns (uint256) {
         uint256 increment = calculateIncrement(_staker);
 
         tktBalanceAtCheckpoint[_staker] += increment;
@@ -157,7 +159,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         return tktBalanceAtCheckpoint[_staker];
     }
 
-    //stake more PVS on our Addr
+    //stake more PVS 
     function stake(uint256 amount) external {
         uint256 allowAmt = IERC20(pvsAddress).allowance(msg.sender, address(this));
         require(allowAmt >= amount, "Insufficient PVS allowance to stake");
@@ -168,9 +170,9 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         IERC20(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    //withdraw PVS from our Addr
+    //withdraw PVS 
     function withdraw(uint256 amount) external {
-        require(pvsBalance[msg.sender] >= amount, "Your PVS alance is insufficient");
+        require(pvsBalance[msg.sender] >= amount, "Your PVS balance is insufficient");
 
         updateCheckpoint(msg.sender);
         pvsBalance[msg.sender] -= amount;

@@ -31,7 +31,7 @@ describe("Test Staking PVS..........", function () {
             await pvs.connect(u1).approve(sk.address, BigInt(10000));
 
             await sk.connect(u1).stake(BigInt(100));
-            console.log(await sk.calculateIncrement(u1.address));
+            // console.log(await sk.calculateIncrement(u1.address));
 
             const block = await hre.ethers.provider.getBlock("latest");
 
@@ -41,7 +41,7 @@ describe("Test Staking PVS..........", function () {
             // const tktbalabce = await sk.connect(u1).updateCheckpoint(u1.address);
             // console.log(tktbalabce);
         });
-        
+
         // it("Test", async function () {
             
         // });
