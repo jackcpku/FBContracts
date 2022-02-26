@@ -140,14 +140,13 @@ contract Vote is Initializable, OwnableUpgradeable {
      * @dev Called by voters.
      */
     function withdrawMargin(uint256 _amount) external {
-        require(_amount < margin[msg.sender], "Vote: low margin balance");
+        require(
+            marginNeeded[msg.sender] + _amount <= margin[msg.sender],
+            "Vote: low margin balance"
+        );
         margin[msg.sender] -= _amount;
 
-        IERC20(paymentTokenAddress).safeTransferFrom(
-            address(this),
-            msg.sender,
-            _amount
-        );
+        IERC20(paymentTokenAddress).safeTransfer(msg.sender, _amount);
     }
 
     /**
@@ -184,8 +183,10 @@ contract Vote is Initializable, OwnableUpgradeable {
             return;
         }
 
+        uint256 tokenPrice = getPrice(_tokenAddress, _tokenId);
+
         // Update marginNeeded
-        marginNeeded[msg.sender] += getPrice(_tokenAddress, _tokenId);
+        marginNeeded[msg.sender] += tokenPrice;
 
         // If margin is not enough
         if (margin[msg.sender] < marginNeeded[msg.sender]) {
@@ -203,10 +204,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
         maxVoted[_tokenAddress][_tokenId] = totalVoted;
 
-        marginNeeded[prevWinner[_tokenAddress][_tokenId]] -= getPrice(
-            _tokenAddress,
-            _tokenId
-        );
+        marginNeeded[prevWinner[_tokenAddress][_tokenId]] -= tokenPrice;
     }
 
     /**
@@ -220,24 +218,21 @@ contract Vote is Initializable, OwnableUpgradeable {
             "The voting process has not finished"
         );
 
-        address w = winner[_tokenAddress][_tokenId];
-
         uint256 total = getPrice(_tokenAddress, _tokenId);
         uint256 fee = total / 2;
 
-        marginNeeded[w] -= total;
+        marginNeeded[winner[_tokenAddress][_tokenId]] -= total;
 
-        IERC20(paymentTokenAddress).safeTransferFrom(
-            w,
-            serviceFeeRecipient,
-            fee
-        );
-        IERC20(paymentTokenAddress).safeTransferFrom(
-            w,
+        IERC20(paymentTokenAddress).safeTransfer(serviceFeeRecipient, fee);
+        IERC20(paymentTokenAddress).safeTransfer(
             manager[_tokenAddress],
             total - fee
         );
 
-        IERC721(_tokenAddress).safeTransferFrom(address(this), w, _tokenId);
+        IERC721(_tokenAddress).safeTransferFrom(
+            manager[_tokenAddress],
+            winner[_tokenAddress][_tokenId],
+            _tokenId
+        );
     }
 }
