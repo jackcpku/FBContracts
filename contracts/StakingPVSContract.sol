@@ -30,8 +30,6 @@ interface SimpleIERC20 {
 contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
     using SafeERC20 for IERC20;
 
-    bytes4 internal constant _INTERFACE_ID_ERC1363_SPENDER = 0x7b04a2d0;
-
     string private _name;
     string private _symbol;
 
@@ -99,24 +97,24 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         pvsAddress = _pvsAddress;
     }
 
-    function name() public view override returns (string memory) {
+    function name() external view override returns (string memory) {
         return _name;
     }
 
-    function symbol() public view override returns (string memory) {
+    function symbol() external view override returns (string memory) {
         return _symbol;
     }
 
-    function totalSupply() public view override returns (uint256) {
+    function totalSupply() external view override returns (uint256) {
         return totalSupplyAtCheckpoint;
     }
 
     //balance of tkt at last checkpoint, not including 
-    function balanceOf(address _staker) public view override returns (uint256) {
+    function balanceOf(address _staker) external view override returns (uint256) {
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
 
-    function burn(address _ticketOwner, uint256 amount) public onlyWhiteList {
+    function burn(address _ticketOwner, uint256 amount) external onlyWhiteList {
         updateCheckpoint(_ticketOwner);
         require(tktBalanceAtCheckpoint[_ticketOwner] >= amount, "Your ticket balance is insufficient");
         tktBalanceAtCheckpoint[_ticketOwner] -= amount;
@@ -126,7 +124,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         emit TicketBurned(_ticketOwner, msg.sender, amount);
     }
 
-    function mint(address _ticketOwner, uint256 amount) public onlyWhiteList {
+    function mint(address _ticketOwner, uint256 amount) external onlyWhiteList {
         tktBalanceAtCheckpoint[_ticketOwner] += amount;
         totalSupplyAtCheckpoint += amount;
 
