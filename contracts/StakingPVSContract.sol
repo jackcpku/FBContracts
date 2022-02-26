@@ -123,7 +123,7 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         totalSupplyAtCheckpoint -= amount;
 
         emit Transfer(_ticketOwner, address(0), amount);
-        emit TicketBurned(msg.sender, _ticketOwner, amount);
+        emit TicketBurned(_ticketOwner, msg.sender, amount);
     }
 
     function mint(address _ticketOwner, uint256 amount) public onlyWhiteList {
