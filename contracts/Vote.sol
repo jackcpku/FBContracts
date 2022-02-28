@@ -18,7 +18,6 @@ interface Ticket {
 contract Vote is Initializable, OwnableUpgradeable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-    using BytesLib for bytes;
 
     // The ticket token used for voting
     address public ticketAddress;
