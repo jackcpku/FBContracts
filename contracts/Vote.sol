@@ -5,17 +5,16 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
+import "./interfaces/IPVSTicket.sol";
 
-interface Ticket {
-    function burn(address owner, uint256 amount) external;
-}
+import "hardhat/console.sol";
 
 contract Vote is Initializable, OwnableUpgradeable {
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // The ticket token used for voting
     address public ticketAddress;
@@ -57,7 +56,7 @@ contract Vote is Initializable, OwnableUpgradeable {
     mapping(address => mapping(uint256 => address)) prevWinner;
 
     modifier onlyManager(address _tokenAddress) {
-        require(msg.sender == manager[_tokenAddress]);
+        require(msg.sender == manager[_tokenAddress], "Vote: not manager");
         _;
     }
 
@@ -80,7 +79,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         public
         onlyOwner
     {
-        manager[_manager] = _tokenAddress;
+        manager[_tokenAddress] = _manager;
     }
 
     // Called by managers.
@@ -111,7 +110,7 @@ contract Vote is Initializable, OwnableUpgradeable {
     {
         require(
             deadline[_tokenAddress] == 0,
-            "Vote can be initialized only once"
+            "Vote: vote can be initialized only once"
         );
         deadline[_tokenAddress] = _deadline;
     }
@@ -147,7 +146,10 @@ contract Vote is Initializable, OwnableUpgradeable {
         );
         margin[msg.sender] -= _amount;
 
-        IERC20(paymentTokenAddress).safeTransfer(msg.sender, _amount);
+        IERC20Upgradeable(paymentTokenAddress).safeTransfer(
+            msg.sender,
+            _amount
+        );
     }
 
     /**
@@ -161,8 +163,8 @@ contract Vote is Initializable, OwnableUpgradeable {
     ) external {
         // Check if vote has expired
         require(
-            block.timestamp <= deadline[_tokenAddress],
-            "The voting process is finished"
+            block.timestamp < deadline[_tokenAddress],
+            "Vote: the voting process has been finished"
         );
 
         // Check if vote amount is enough
@@ -171,14 +173,13 @@ contract Vote is Initializable, OwnableUpgradeable {
 
         require(
             totalVoted > maxVoted[_tokenAddress][_tokenId],
-            "Please vote more"
+            "Vote: Please vote more"
         );
-
         // Burn the tickets
-        Ticket(ticketAddress).burn(msg.sender, _amount);
+        IPVSTicket(ticketAddress).burn(msg.sender, _amount);
 
         // Special case: if voter was already the winner
-        if (msg.sender == prevWinner[_tokenAddress][_tokenId]) {
+        if (msg.sender == winner[_tokenAddress][_tokenId]) {
             hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
             maxVoted[_tokenAddress][_tokenId] = totalVoted;
             return;
@@ -191,7 +192,7 @@ contract Vote is Initializable, OwnableUpgradeable {
 
         // If margin is not enough
         if (margin[msg.sender] < marginNeeded[msg.sender]) {
-            IERC20(paymentTokenAddress).safeTransferFrom(
+            IERC20Upgradeable(paymentTokenAddress).safeTransferFrom(
                 msg.sender,
                 address(this),
                 marginNeeded[msg.sender] - margin[msg.sender]
@@ -205,7 +206,9 @@ contract Vote is Initializable, OwnableUpgradeable {
         hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
         maxVoted[_tokenAddress][_tokenId] = totalVoted;
 
-        marginNeeded[prevWinner[_tokenAddress][_tokenId]] -= tokenPrice;
+        if (prevWinner[_tokenAddress][_tokenId] != address(0)) {
+            marginNeeded[prevWinner[_tokenAddress][_tokenId]] -= tokenPrice;
+        }
     }
 
     /**
@@ -215,24 +218,29 @@ contract Vote is Initializable, OwnableUpgradeable {
      */
     function claim(address _tokenAddress, uint256 _tokenId) external {
         require(
-            block.timestamp > deadline[_tokenAddress],
-            "The voting process has not finished"
+            block.timestamp >= deadline[_tokenAddress],
+            "Vote: The voting process has not finished"
         );
 
         uint256 total = getPrice(_tokenAddress, _tokenId);
         uint256 fee = total / 2;
 
-        marginNeeded[winner[_tokenAddress][_tokenId]] -= total;
+        address winnerOfToken = winner[_tokenAddress][_tokenId];
+        marginNeeded[winnerOfToken] -= total;
+        margin[winnerOfToken] -= total;
 
-        IERC20(paymentTokenAddress).safeTransfer(serviceFeeRecipient, fee);
-        IERC20(paymentTokenAddress).safeTransfer(
+        IERC20Upgradeable(paymentTokenAddress).safeTransfer(
+            serviceFeeRecipient,
+            fee
+        );
+        IERC20Upgradeable(paymentTokenAddress).safeTransfer(
             manager[_tokenAddress],
             total - fee
         );
 
         IERC721(_tokenAddress).safeTransferFrom(
             manager[_tokenAddress],
-            winner[_tokenAddress][_tokenId],
+            winnerOfToken,
             _tokenId
         );
     }
