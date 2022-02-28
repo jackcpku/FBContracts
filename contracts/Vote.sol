@@ -10,8 +10,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "./interfaces/IPVSTicket.sol";
 
-import "hardhat/console.sol";
-
 contract Vote is Initializable, OwnableUpgradeable {
     using SafeMath for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
