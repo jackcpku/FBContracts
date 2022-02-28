@@ -142,7 +142,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
 
     function burn(address _ticketOwner, uint256 _amount) external override onlyRole(TICKET_BURNER_ROLE) {
         updateCheckpoint(_ticketOwner);
-        require(tktBalanceAtCheckpoint[_ticketOwner] >= _amount, "Your ticket balance is insufficient");
+        require(tktBalanceAtCheckpoint[_ticketOwner] >= _amount, "Ticket balance is insufficient");
         tktBalanceAtCheckpoint[_ticketOwner] -= _amount;
         totalSupplyAtCheckpoint -= _amount;
 
