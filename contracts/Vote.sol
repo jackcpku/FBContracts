@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
 
-import "solidity-bytes-utils/contracts/BytesLib.sol";
-
 interface Ticket {
     function burn(address owner, uint256 amount) external;
 }
