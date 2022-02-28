@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/PVSTicket.sol";
 
 /**
@@ -13,8 +12,8 @@ import "./interfaces/PVSTicket.sol";
  * 2. TKT implemented SimpleIERC20 standards, but transfers were restricted, and only whitelisted addresses can mint or burn
  */
 
-contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20 {
-    using SafeERC20 for IERC20;
+contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     string private _name;
     string private _symbol;
@@ -161,7 +160,7 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20 {
 
     //stake more PVS 
     function stake(uint256 amount) external {
-        IERC20(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20Upgradeable(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
         
         updateCheckpoint(msg.sender);
         pvsBalance[msg.sender] += amount;
@@ -174,6 +173,6 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20 {
         updateCheckpoint(msg.sender);
         pvsBalance[msg.sender] -= amount;
 
-        IERC20(pvsAddress).safeTransfer(msg.sender, amount);
+        IERC20Upgradeable(pvsAddress).safeTransfer(msg.sender, amount);
     }
 }
