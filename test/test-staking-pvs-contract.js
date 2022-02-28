@@ -11,9 +11,7 @@ describe("Test Staking PVS..........", function () {
 
         [owner, u1, u2, u3, u4] = await hre.ethers.getSigners();
         pvs = await deployMajorToken(owner.address);
-        sk = await deployStaking();
-        await sk.initialize("Ticket", "TKT", pvs.address);
-
+        sk = await deployStaking("Ticket", "TKT", pvs.address);
     });
 
     describe("Dealing with..........", function () {
