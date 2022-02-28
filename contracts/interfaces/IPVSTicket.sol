@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 /**
  * @dev Interface of the PVSTicket Burn & Mint.
  */
-interface PVSTicket {
+interface IPVSTicket {
     /**
      * @dev Burn `amount` tokens from the _ticketOwner's account to `address(0)`.
      */
