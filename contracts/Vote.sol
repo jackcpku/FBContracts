@@ -61,9 +61,13 @@ contract Vote is Initializable, OwnableUpgradeable {
         _;
     }
 
-    function initialize(address _ticketAddress) public initializer {
+    function initialize(address _ticketAddress, address _pvsAddress)
+        public
+        initializer
+    {
         __Ownable_init();
         ticketAddress = _ticketAddress;
+        paymentTokenAddress = _pvsAddress;
     }
 
     // Called by owner.

@@ -2,7 +2,11 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
 
-const { deployVote, deployMajorToken } = require("../lib/deploy.js");
+const {
+  deployVote,
+  deployMajorToken,
+  deployStaking,
+} = require("../lib/deploy.js");
 
 describe("Test Vote Contract", function () {
   let vote, ticket, pvs;
@@ -18,7 +22,7 @@ describe("Test Vote Contract", function () {
     pvs = await deployMajorToken(owner.address);
 
     // Deploy Staking contract
-    // TODO
+    ticket = await deployStaking("Ticket", "TKT", pvs.address);
 
     vote = await deployVote();
   });
