@@ -161,13 +161,10 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20 {
 
     //stake more PVS 
     function stake(uint256 amount) external {
-        uint256 allowAmt = IERC20(pvsAddress).allowance(msg.sender, address(this));
-        require(allowAmt >= amount, "Insufficient PVS allowance to stake");
-
+        IERC20(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
+        
         updateCheckpoint(msg.sender);
         pvsBalance[msg.sender] += amount;
-
-        IERC20(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     //withdraw PVS 
