@@ -87,20 +87,20 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
     }
 
     /**
-     * Add a _miner
+     * Add a _minter
      * @notice Only the admin can call this function.
      */
-    function addMiner(address _miner) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(TICKET_MINTER_ROLE, _miner);
+    function addMinter(address _minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(TICKET_MINTER_ROLE, _minter);
     }
 
     /**
-     * Remove a _miner
+     * Remove a _minter
      * @notice Only the admin can call this function.
      */
-    function removeMiner(address _miner) public onlyRole(DEFAULT_ADMIN_ROLE)
+    function removeMinter(address _minter) public onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _revokeRole(TICKET_MINTER_ROLE, _miner);
+        _revokeRole(TICKET_MINTER_ROLE, _minter);
     }
 
      /********************************************************************

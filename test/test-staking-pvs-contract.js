@@ -25,6 +25,29 @@ describe("Test Staking PVS..........", function () {
       expect(await sk.balanceOf(owner.address)).to.equal(0);
     });
 
+    it("Test timestamp", async function() {
+      // const sevenDays = 7 * 24 * 60 * 60;
+
+      // const blockNumBefore = await ethers.provider.getBlockNumber();
+      // const blockBefore = await ethers.provider.getBlock(blockNumBefore);
+      // const timestampBefore = blockBefore.timestamp;
+      // console.log(blockNumBefore, blockBefore, timestampBefore);
+
+
+      // var time = new Date(timestampBefore * 1000)
+      // console.log(time.toUTCString());
+
+      // await ethers.provider.send('evm_increaseTime', [sevenDays]);
+      // await ethers.provider.send('evm_mine');
+
+      // const blockNumAfter = await ethers.provider.getBlockNumber();
+      // const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      // const timestampAfter = blockAfter.timestamp;
+
+      // expect(blockNumAfter).to.be.equal(blockNumBefore + 1);
+      // expect(timestampAfter).to.be.equal(timestampBefore + sevenDays);
+    });
+
     it("Test stake", async function () {
       await pvs.connect(u1).approve(sk.address, BigInt(10000));
 
