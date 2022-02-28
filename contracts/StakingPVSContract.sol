@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./interfaces/PVSTicket.sol";
 
 /**
@@ -12,7 +12,7 @@ import "./interfaces/PVSTicket.sol";
  * 2. TKT implemented SimpleIERC20 standards, but transfers were restricted, and only whitelisted addresses can mint or burn
  */
 
-contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable {
+contract StakingPVSContract is IERC20Upgradeable, PVSTicket, AccessControlUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     string private _name;
@@ -22,8 +22,6 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable 
     address public pvsAddress;
 
     uint256 public totalSupplyAtCheckpoint;
-
-    mapping(address => bool) whitelist;
 
     //factor
     uint256 public constant PRODUCT_FACTOR = 10_000; 
@@ -38,37 +36,22 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable 
     // # of tkt at last checkpoint
     mapping (address => uint256) public tktBalanceAtCheckpoint; 
 
-    modifier onlyWhiteList() {
-        require(whitelist[msg.sender], "No permission to burn or mint");
-        _;
-    }
+    /**
+     * The role responsible for mint ticket.
+     */
+    bytes32 public constant TICKET_MINTER_ROLE = keccak256("TICKET_MINTER_ROLE");
+    
+    /**
+     * The role responsible for burn ticket.
+     */
+    bytes32 public constant TICKET_BURNER_ROLE = keccak256("TICKET_BURNER_ROLE");
 
      /********************************************************************
      *                           Management                              *
      ********************************************************************/
 
-    // add whitelist
-    function addWhitelists(address[] calldata addrs)
-        external
-        onlyOwner
-    {
-        for (uint256 i = 0; i < addrs.length; i++) {
-            whitelist[addrs[i]] = true;
-        }
-    }
-
-    // remove whitelist
-    function removeWhitelists(address[] calldata addrs)
-        external
-        onlyOwner
-    {
-        for (uint256 i = 0; i < addrs.length; i++) {
-            whitelist[addrs[i]] = false;
-        }
-    }
-
     function initialize(string memory name_, string memory symbol_, address _pvsAddress) public initializer {
-        __Ownable_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _name = name_;
         _symbol = symbol_;
         pvsAddress = _pvsAddress;
@@ -80,6 +63,44 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable 
 
     function symbol() external view returns (string memory) {
         return _symbol;
+    }
+
+    /********************************************************************
+     *                      Admin-only functions                        *
+     ********************************************************************/
+
+    /**
+     * Add a _burner
+     * @notice Only the admin can call this function.
+     */
+    function addBurner(address _burner) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(TICKET_BURNER_ROLE, _burner);
+    }
+
+    /**
+     * Remove a _burner
+     * @notice Only the admin can call this function.
+     */
+    function removeBurner(address _burner) public onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _revokeRole(TICKET_BURNER_ROLE, _burner);
+    }
+
+    /**
+     * Add a _miner
+     * @notice Only the admin can call this function.
+     */
+    function addMiner(address _miner) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(TICKET_MINTER_ROLE, _miner);
+    }
+
+    /**
+     * Remove a _miner
+     * @notice Only the admin can call this function.
+     */
+    function removeMiner(address _miner) public onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _revokeRole(TICKET_MINTER_ROLE, _miner);
     }
 
      /********************************************************************
@@ -115,7 +136,7 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable 
      *                          Override PVSTicket                       *
      ********************************************************************/
 
-    function burn(address _ticketOwner, uint256 _amount) external override onlyWhiteList {
+    function burn(address _ticketOwner, uint256 _amount) external override onlyRole(TICKET_BURNER_ROLE) {
         updateCheckpoint(_ticketOwner);
         require(tktBalanceAtCheckpoint[_ticketOwner] >= _amount, "Your ticket balance is insufficient");
         tktBalanceAtCheckpoint[_ticketOwner] -= _amount;
@@ -125,7 +146,7 @@ contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20Upgradeable 
         emit TicketBurned(_ticketOwner, msg.sender, _amount);
     }
 
-    function mint(address _ticketOwner, uint256 _amount) external override onlyWhiteList {
+    function mint(address _ticketOwner, uint256 _amount) external override onlyRole(TICKET_MINTER_ROLE) {
         tktBalanceAtCheckpoint[_ticketOwner] += _amount;
         totalSupplyAtCheckpoint += _amount;
 
