@@ -57,6 +57,10 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         pvsAddress = _pvsAddress;
     }
 
+    function decimals() external pure returns (uint8) {
+        return 18;
+    }
+
     function name() external view returns (string memory) {
         return _name;
     }
@@ -159,7 +163,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
      ********************************************************************/
 
     // C * s(cp) * (t - t(cp))
-    function calculateIncrement(address _staker) internal view returns (uint256) {
+    function calculateIncrement(address _staker) public view returns (uint256) {
         uint256 _last = checkpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
         return PRODUCT_FACTOR * pvsBalance[_staker] * timeInterval;
@@ -195,5 +199,9 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         pvsBalance[msg.sender] -= amount;
 
         IERC20Upgradeable(pvsAddress).safeTransfer(msg.sender, amount);
+    }
+
+    function pvsAmount(address _staker) external view returns (uint256) {
+        return pvsBalance[_staker];
     }
 }

@@ -5,7 +5,11 @@ const { deployMajorToken, deployStaking } = require("../lib/deploy");
 describe("Test Staking PVS..........", function () {
   let pvs, tkt, sk; // Contract objects
   const u1PVS = BigInt(1000000) * BigInt(10) ** BigInt(18);
-  
+
+  const oneHour = 60 * 60;
+  const oneDay = 24 * oneHour;
+  const sevenDays = 7 * oneDay;
+
   beforeEach("contracts deployed.", async function () {
     await hre.network.provider.send("hardhat_reset");
 
@@ -23,44 +27,49 @@ describe("Test Staking PVS..........", function () {
       expect(await sk.name()).to.equal("Ticket");
       expect(await sk.symbol()).to.equal("TKT");
       expect(await sk.balanceOf(owner.address)).to.equal(0);
+      expect(await sk.totalSupply()).to.equal(0);
     });
 
-    it("Test timestamp", async function() {
-      // const sevenDays = 7 * 24 * 60 * 60;
+    it("Test u1 stake & withdraw", async function() {
+      const amtToStake = u1PVS / BigInt(2);
+      await pvs.connect(u1).approve(sk.address, amtToStake);
+      await sk.connect(u1).stake(amtToStake);
 
-      // const blockNumBefore = await ethers.provider.getBlockNumber();
-      // const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-      // const timestampBefore = blockBefore.timestamp;
-      // console.log(blockNumBefore, blockBefore, timestampBefore);
+      expect(await sk.pvsAmount(u1.address)).to.equal(amtToStake);
+      const blockBefore = await ethers.provider.getBlock("latest");
 
+      //after one hour
+      await ethers.provider.send('evm_increaseTime', [oneHour]);
+      await ethers.provider.send('evm_mine');
+      expect(await sk.balanceOf(u1.address)).to.equal(BigInt(await sk.calculateIncrement(u1.address)));
+      
+      //after one day
+      await ethers.provider.send('evm_increaseTime', [oneDay]);
+      await ethers.provider.send('evm_mine');
+      expect(await sk.balanceOf(u1.address)).to.equal(BigInt(await sk.calculateIncrement(u1.address)));
 
-      // var time = new Date(timestampBefore * 1000)
-      // console.log(time.toUTCString());
+      //after seven days
+      await ethers.provider.send('evm_increaseTime', [sevenDays]);
+      await ethers.provider.send('evm_mine');
+      expect(await sk.balanceOf(u1.address)).to.equal(BigInt(await sk.calculateIncrement(u1.address)));
 
-      // await ethers.provider.send('evm_increaseTime', [sevenDays]);
-      // await ethers.provider.send('evm_mine');
+      //withdraw Half
+      await sk.connect(u1).withdraw(amtToStake / BigInt(2));
+      const balanceAfterWithdrawHalf = await sk.balanceOf(u1.address);
 
-      // const blockNumAfter = await ethers.provider.getBlockNumber();
-      // const blockAfter = await ethers.provider.getBlock(blockNumAfter);
-      // const timestampAfter = blockAfter.timestamp;
+      //after seven days
+      await ethers.provider.send('evm_increaseTime', [sevenDays]);
+      await ethers.provider.send('evm_mine');
+      expect(await sk.balanceOf(u1.address)).to.equal((BigInt(balanceAfterWithdrawHalf) + BigInt(await sk.calculateIncrement(u1.address))));
 
-      // expect(blockNumAfter).to.be.equal(blockNumBefore + 1);
-      // expect(timestampAfter).to.be.equal(timestampBefore + sevenDays);
-    });
+      //withdraw all
+      await sk.connect(u1).withdraw(amtToStake / BigInt(2));
+      const balanceAfterWithdrawAll = await sk.balanceOf(u1.address);
 
-    it("Test stake", async function () {
-      await pvs.connect(u1).approve(sk.address, BigInt(10000));
-
-      await sk.connect(u1).stake(BigInt(100));
-      // console.log(await sk.calculateIncrement(u1.address));
-
-      const block = await hre.ethers.provider.getBlock("latest");
-
-      // console.log(block.number);
-      // console.log(block.timestamp);
-
-      // const tktbalabce = await sk.connect(u1).updateCheckpoint(u1.address);
-      // console.log(tktbalabce);
+      //after seven days
+      await ethers.provider.send('evm_increaseTime', [sevenDays]);
+      await ethers.provider.send('evm_mine');
+      expect(await sk.balanceOf(u1.address)).to.equal(balanceAfterWithdrawAll);
     });
 
     // it("Test", async function () {
