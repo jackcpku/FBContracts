@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "./interfaces/PVSTicket.sol";
 
 /**
  * This Contract is designed for staking our platform token:PVS to generate & manage our voting ticket:TKT
@@ -12,24 +13,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
  * 2. TKT implemented SimpleIERC20 standards, but transfers were restricted, and only whitelisted addresses can mint or burn
  */
 
-interface SimpleIERC20 {
-
-    function name() external view returns (string memory);
-
-    function symbol() external view returns (string memory);
-
-    function totalSupply() external view returns (uint256);
-
-    function balanceOf(address account) external view returns (uint256);
-
-    function burn(address _ticketOwner, uint256 _amount) external;
-
-    function mint(address _ticketOwner, uint256 _amount) external;
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
-contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
+contract StakingPVSContract is OwnableUpgradeable, PVSTicket, IERC20 {
     using SafeERC20 for IERC20;
 
     string private _name;
@@ -54,10 +38,6 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
 
     // # of tkt at last checkpoint
     mapping (address => uint256) public tktBalanceAtCheckpoint; 
-
-    event TicketBurned(address indexed from, address indexed to, uint256 value);
-
-    event TicketMinted(address indexed from, address indexed to, uint256 value);
 
     modifier onlyWhiteList() {
         require(whitelist[msg.sender], "No permission to burn or mint");
@@ -88,10 +68,6 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         }
     }
 
-     /********************************************************************
-     *                          Override ERC20                           *
-     ********************************************************************/
-
     function initialize(string memory name_, string memory symbol_, address _pvsAddress) public initializer {
         __Ownable_init();
         _name = name_;
@@ -99,13 +75,17 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
         pvsAddress = _pvsAddress;
     }
 
-    function name() external view override returns (string memory) {
+    function name() external view returns (string memory) {
         return _name;
     }
 
-    function symbol() external view override returns (string memory) {
+    function symbol() external view returns (string memory) {
         return _symbol;
     }
+
+     /********************************************************************
+     *                          Override IERC20                          *
+     ********************************************************************/
 
     function totalSupply() external view override returns (uint256) {
         return totalSupplyAtCheckpoint;
@@ -115,6 +95,26 @@ contract StakingPVSContract is OwnableUpgradeable, SimpleIERC20 {
     function balanceOf(address _staker) external view override returns (uint256) {
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
+
+    function transfer(address recipient, uint256 amount) external pure override returns (bool) {
+        return true;
+    }
+
+    function allowance(address owner, address spender) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function approve(address spender, uint256 amount) external pure override returns (bool) {
+        return true;
+    }
+
+    function transferFrom(address sender, address recipient, uint256 amount) external pure override returns (bool) {
+        return true;
+    }
+
+     /********************************************************************
+     *                          Override PVSTicket                       *
+     ********************************************************************/
 
     function burn(address _ticketOwner, uint256 _amount) external override onlyWhiteList {
         updateCheckpoint(_ticketOwner);
