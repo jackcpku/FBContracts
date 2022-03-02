@@ -20,7 +20,11 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
 
     // the target ERC20 token for staking
     address public pvsAddress;
+    
+    // total staked pvs 
+    uint256 public totalStaked;
 
+    // totalSupply of ticket token at the latest checkpoint 
     uint256 public totalSupplyAtCheckpoint;
 
     //factor
@@ -29,7 +33,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
     // last checkpoint time
     mapping (address => uint256) public checkpointTime;	
 
-    // # of pvs at last checkpoint || now checkpoint
+    // # of pvs at the latest checkpoint 
     // (if any change between this time interval , the pvs Balance will be updated automatically)
     mapping (address => uint256) public staked; 
 
@@ -153,6 +157,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         
         updateCheckpoint(msg.sender);
         staked[msg.sender] += amount;
+        totalStaked += amount;
     }
 
     //withdraw PVS 
@@ -161,6 +166,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
 
         updateCheckpoint(msg.sender);
         staked[msg.sender] -= amount;
+        totalStaked -= amount;
 
         IERC20Upgradeable(pvsAddress).safeTransfer(msg.sender, amount);
     }
