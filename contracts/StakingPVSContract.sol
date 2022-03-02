@@ -120,20 +120,22 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
 
-    function transfer(address recipient, uint256 amount) external pure override returns (bool) {
-        return true;
+    function transfer(address /*recipient*/, uint256 /*amount*/) external pure override returns (bool) {
+        require(false, "Ticket transfer is not allowed!");
+        return false;
     }
 
-    function allowance(address owner, address spender) external pure override returns (uint256) {
+    function allowance(address /*owner*/, address /*spender*/) external pure override returns (uint256) {
         return 0;
     }
 
-    function approve(address spender, uint256 amount) external pure override returns (bool) {
-        return true;
+    function approve(address /*spender*/, uint256 /*amount*/) external pure override returns (bool) {
+        return false;
     }
 
-    function transferFrom(address sender, address recipient, uint256 amount) external pure override returns (bool) {
-        return true;
+    function transferFrom(address /*sender*/, address /*recipient*/, uint256 /*amount*/) external pure override returns (bool) {
+        require(false, "Ticket transfer is not allowed!");
+        return false;
     }
 
      /********************************************************************
