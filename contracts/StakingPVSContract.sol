@@ -31,7 +31,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
 
     // # of pvs at last checkpoint || now checkpoint
     // (if any change between this time interval , the pvs Balance will be updated automatically)
-    mapping (address => uint256) public pvsBalance; 
+    mapping (address => uint256) public staked; 
 
     // # of tkt at last checkpoint
     mapping (address => uint256) public tktBalanceAtCheckpoint; 
@@ -168,7 +168,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
     function calculateIncrement(address _staker) public view returns (uint256) {
         uint256 _last = checkpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
-        return PRODUCT_FACTOR * pvsBalance[_staker] * timeInterval;
+        return PRODUCT_FACTOR * staked[_staker] * timeInterval;
     }
 
     //check & update # of TKT at current timestamp
@@ -190,20 +190,20 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         IERC20Upgradeable(pvsAddress).safeTransferFrom(msg.sender, address(this), amount);
         
         updateCheckpoint(msg.sender);
-        pvsBalance[msg.sender] += amount;
+        staked[msg.sender] += amount;
     }
 
     //withdraw PVS 
     function withdraw(uint256 amount) external {
-        require(pvsBalance[msg.sender] >= amount, "Your PVS balance is insufficient");
+        require(staked[msg.sender] >= amount, "Not Allowed! The withdraw amount exceeded the staked amount");
 
         updateCheckpoint(msg.sender);
-        pvsBalance[msg.sender] -= amount;
+        staked[msg.sender] -= amount;
 
         IERC20Upgradeable(pvsAddress).safeTransfer(msg.sender, amount);
     }
 
     function pvsAmount(address _staker) external view returns (uint256) {
-        return pvsBalance[_staker];
+        return staked[_staker];
     }
 }
