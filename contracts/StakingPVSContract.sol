@@ -69,44 +69,6 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         return _symbol;
     }
 
-    /********************************************************************
-     *                      Admin-only functions                        *
-     ********************************************************************/
-
-    /**
-     * Add a _burner
-     * @notice Only the admin can call this function.
-     */
-    function addBurner(address _burner) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(TICKET_BURNER_ROLE, _burner);
-    }
-
-    /**
-     * Remove a _burner
-     * @notice Only the admin can call this function.
-     */
-    function removeBurner(address _burner) public onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _revokeRole(TICKET_BURNER_ROLE, _burner);
-    }
-
-    /**
-     * Add a _minter
-     * @notice Only the admin can call this function.
-     */
-    function addMinter(address _minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(TICKET_MINTER_ROLE, _minter);
-    }
-
-    /**
-     * Remove a _minter
-     * @notice Only the admin can call this function.
-     */
-    function removeMinter(address _minter) public onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _revokeRole(TICKET_MINTER_ROLE, _minter);
-    }
-
      /********************************************************************
      *                          Override IERC20                          *
      ********************************************************************/

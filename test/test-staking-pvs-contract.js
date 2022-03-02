@@ -94,7 +94,7 @@ describe("Test Staking PVS..........", function () {
       const mintRole = await sk.TICKET_MINTER_ROLE();
 
       //addBurner
-      await sk.connect(owner).addBurner(burner.address);
+      await sk.connect(owner).grantRole(burnRole, burner.address);
       await expect(sk.connect(burner).burn(burner.address, 1)).to.be.revertedWith("Ticket balance is insufficient");
 
       //burn
@@ -103,14 +103,14 @@ describe("Test Staking PVS..........", function () {
       expect(burning).to.emit(sk, "TicketBurned").withArgs(u1.address, burner.address, u1TKTAmt);
       
       //removeBurner
-      await sk.connect(owner).removeBurner(burner.address);
+      await sk.connect(owner).revokeRole(burnRole, burner.address);
       // await expect(sk.connect(burner).burn(burner.address, 0, TEST_OVERRIDES_FOR_REVERT)).to.be.revertedWith(`'AccessControl: account ${burner.address} is missing role ${burnRole}'`);
       await expect(sk.connect(burner).burn(burner.address, 0)).to.be.reverted;
 
 
       //addMinter
       const mintAmt = BigInt(5) * BigInt(10) ** BigInt(18);
-      await sk.connect(owner).addMinter(minter.address); 
+      await sk.connect(owner).grantRole(mintRole, minter.address); 
 
       //mint
       const oldSupply = BigInt(await sk.totalSupply());
@@ -120,7 +120,7 @@ describe("Test Staking PVS..........", function () {
       expect(mint).to.emit(sk, "TicketMinted").withArgs(minter.address, u1.address, mintAmt);
 
       //remove Minter
-      await sk.connect(owner).removeMinter(minter.address);
+      await sk.connect(owner).revokeRole(mintRole ,minter.address);
       // await expect(sk.connect(minter).mint(minter.address, mintAmt, TEST_OVERRIDES_FOR_REVERT)).to.be.revertedWith(`'AccessControl: account ${minter.address} is missing role ${mintRole}'`);
       await expect(sk.connect(minter).mint(minter.address, mintAmt)).to.be.reverted;
     });
