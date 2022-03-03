@@ -117,7 +117,7 @@ describe("Test Staking PVS..........", function () {
       const mint = await sk.connect(minter).mint(u1.address, mintAmt);
       expect(await sk.totalSupply()).to.equal((oldSupply + mintAmt));
       expect(mint).to.emit(sk, "Transfer").withArgs("0x0000000000000000000000000000000000000000", u1.address, mintAmt);
-      expect(mint).to.emit(sk, "TicketMinted").withArgs(minter.address, u1.address, mintAmt);
+      expect(mint).to.emit(sk, "TicketMinted").withArgs(u1.address, minter.address, mintAmt);
 
       //remove Minter
       await sk.connect(owner).revokeRole(mintRole ,minter.address);

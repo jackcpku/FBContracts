@@ -123,7 +123,7 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         totalSupplyAtCheckpoint += _amount;
 
         emit Transfer(address(0), _ticketOwner, _amount);
-        emit TicketMinted(msg.sender, _ticketOwner, _amount);
+        emit TicketMinted(_ticketOwner, msg.sender, _amount);
     }
 
     /********************************************************************

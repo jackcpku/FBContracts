@@ -27,5 +27,5 @@ interface IPVSTicket {
      *
      * Note that `value` may be zero.
      */
-    event TicketMinted(address indexed minter, address indexed owner, uint256 amount);
+    event TicketMinted(address indexed owner, address indexed minter, uint256 amount);
 }
