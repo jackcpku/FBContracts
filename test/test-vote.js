@@ -67,7 +67,6 @@ describe("Test Vote Contract", function () {
     // Complex dependencies
     const burnerRole = await ticket.TICKET_BURNER_ROLE();
     await ticket.grantRole(burnerRole, vote.address);
-    await someERC721Contract.connect(manager0).approve(vote.address, 0);
   });
 
   it("should get fallback price", async function () {
@@ -105,6 +104,16 @@ describe("Test Vote Contract", function () {
         .initializeVote(someERC721Contract.address, deadlineTimestamp + 1)
     ).to.be.revertedWith("Vote: vote can be initialized only once");
 
+    // No one is able to vote before the nft is transferred to vote contract
+    await expect(
+      vote.connect(user0).vote(someERC721Contract.address, 0, 10)
+    ).to.be.revertedWith("Vote: nft not owned by contract");
+
+    // Transfer the nft to vote contract
+    await someERC721Contract
+      .connect(manager0)
+      .transferFrom(manager0.address, vote.address, 0);
+
     // user0 votes 0 and fails
     await expect(
       vote.connect(user0).vote(someERC721Contract.address, 0, 10)
@@ -117,7 +126,7 @@ describe("Test Vote Contract", function () {
     await pvs.connect(user1).approve(vote.address, 80);
     await expect(
       vote.connect(user1).vote(someERC721Contract.address, 0, 10)
-    ).to.be.revertedWith("Vote: Please vote more");
+    ).to.be.revertedWith("Vote: please vote more");
     // user1 votes more than user0 and succeeds
     await vote.connect(user1).vote(someERC721Contract.address, 0, 20);
     // user0 votes even more
@@ -125,7 +134,7 @@ describe("Test Vote Contract", function () {
     // user1 votes more than he has and fails
     await expect(
       vote.connect(user1).vote(someERC721Contract.address, 0, tktAmount[1])
-    ).to.be.revertedWith("Your ticket balance is insufficient");
+    ).to.be.revertedWith("Ticket balance is insufficient");
     // user0 votes more when he is already the winner
     await vote.connect(user0).vote(someERC721Contract.address, 0, 1);
     await vote.connect(user0).vote(someERC721Contract.address, 0, 1);

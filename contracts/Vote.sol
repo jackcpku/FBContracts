@@ -45,13 +45,10 @@ contract Vote is Initializable, OwnableUpgradeable {
     mapping(address => uint256) margin;
 
     // Minimum PVS margin amount
-    mapping(address => uint256) marginNeeded;
+    mapping(address => uint256) marginLocked;
 
     // Winner of a certain NFT
     mapping(address => mapping(uint256 => address)) winner;
-
-    // Previous winner of a certain NFT
-    mapping(address => mapping(uint256 => address)) prevWinner;
 
     modifier onlyManager(address _tokenAddress) {
         require(msg.sender == manager[_tokenAddress], "Vote: not manager");
@@ -139,7 +136,7 @@ contract Vote is Initializable, OwnableUpgradeable {
      */
     function withdrawMargin(uint256 _amount) external {
         require(
-            marginNeeded[msg.sender] + _amount <= margin[msg.sender],
+            marginLocked[msg.sender] + _amount <= margin[msg.sender],
             "Vote: low margin balance"
         );
         margin[msg.sender] -= _amount;
@@ -171,8 +168,15 @@ contract Vote is Initializable, OwnableUpgradeable {
 
         require(
             totalVoted > maxVoted[_tokenAddress][_tokenId],
-            "Vote: Please vote more"
+            "Vote: please vote more"
         );
+
+        // Check if the NFT has been transferred to this contract
+        require(
+            IERC721(_tokenAddress).ownerOf(_tokenId) == address(this),
+            "Vote: nft not owned by contract"
+        );
+
         // Burn the tickets
         IPVSTicket(ticketAddress).burn(msg.sender, _amount);
 
@@ -185,27 +189,27 @@ contract Vote is Initializable, OwnableUpgradeable {
 
         uint256 tokenPrice = getPrice(_tokenAddress, _tokenId);
 
-        // Update marginNeeded
-        marginNeeded[msg.sender] += tokenPrice;
+        // Update marginLocked
+        marginLocked[msg.sender] += tokenPrice;
 
         // If margin is not enough
-        if (margin[msg.sender] < marginNeeded[msg.sender]) {
+        if (margin[msg.sender] < marginLocked[msg.sender]) {
             IERC20Upgradeable(paymentTokenAddress).safeTransferFrom(
                 msg.sender,
                 address(this),
-                marginNeeded[msg.sender] - margin[msg.sender]
+                marginLocked[msg.sender] - margin[msg.sender]
             );
-            margin[msg.sender] = marginNeeded[msg.sender];
+            margin[msg.sender] = marginLocked[msg.sender];
         }
 
         // Voted successfully, update states
-        prevWinner[_tokenAddress][_tokenId] = winner[_tokenAddress][_tokenId];
+        address prevWinner = winner[_tokenAddress][_tokenId];
         winner[_tokenAddress][_tokenId] = msg.sender;
         hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
         maxVoted[_tokenAddress][_tokenId] = totalVoted;
 
-        if (prevWinner[_tokenAddress][_tokenId] != address(0)) {
-            marginNeeded[prevWinner[_tokenAddress][_tokenId]] -= tokenPrice;
+        if (prevWinner != address(0)) {
+            marginLocked[prevWinner] -= tokenPrice;
         }
     }
 
@@ -224,7 +228,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         uint256 fee = total / 2;
 
         address winnerOfToken = winner[_tokenAddress][_tokenId];
-        marginNeeded[winnerOfToken] -= total;
+        marginLocked[winnerOfToken] -= total;
         margin[winnerOfToken] -= total;
 
         IERC20Upgradeable(paymentTokenAddress).safeTransfer(
@@ -237,7 +241,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         );
 
         IERC721(_tokenAddress).safeTransferFrom(
-            manager[_tokenAddress],
+            address(this),
             winnerOfToken,
             _tokenId
         );
