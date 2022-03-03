@@ -34,7 +34,8 @@ describe("Test Vote Contract", function () {
 
     // Set up Staking contract
     ticket = await deployStaking("Ticket", "TKT", pvs.address);
-    await ticket.addMinter(owner.address);
+    const minterRole = await ticket.TICKET_MINTER_ROLE();
+    await ticket.grantRole(minterRole, owner.address);
     await ticket.mint(user0.address, tktAmount[0]);
     await ticket.mint(user1.address, tktAmount[1]);
 
@@ -64,7 +65,8 @@ describe("Test Vote Contract", function () {
       );
 
     // Complex dependencies
-    await ticket.addBurner(vote.address);
+    const burnerRole = await ticket.TICKET_BURNER_ROLE();
+    await ticket.grantRole(burnerRole, vote.address);
     await someERC721Contract.connect(manager0).approve(vote.address, 0);
   });
 
