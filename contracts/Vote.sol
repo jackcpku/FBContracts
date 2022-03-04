@@ -218,32 +218,39 @@ contract Vote is Initializable, OwnableUpgradeable {
      *
      * @dev Can be called by anyone.
      */
-    function claim(address _tokenAddress, uint256 _tokenId) external {
-        require(
-            block.timestamp >= deadline[_tokenAddress],
-            "Vote: The voting process has not finished"
-        );
+    function claim(
+        address[] calldata _tokenAddress,
+        uint256[] calldata _tokenId
+    ) external {
+        require(_tokenAddress.length == _tokenId.length, "Vote: invalid input");
 
-        uint256 total = getPrice(_tokenAddress, _tokenId);
-        uint256 fee = total / 2;
+        for (uint256 i = 0; i < _tokenAddress.length; i++) {
+            require(
+                block.timestamp >= deadline[_tokenAddress[i]],
+                "Vote: The voting process has not finished"
+            );
 
-        address winnerOfToken = winner[_tokenAddress][_tokenId];
-        marginLocked[winnerOfToken] -= total;
-        margin[winnerOfToken] -= total;
+            uint256 total = getPrice(_tokenAddress[i], _tokenId[i]);
+            uint256 fee = total / 2;
 
-        IERC20Upgradeable(paymentTokenAddress).safeTransfer(
-            serviceFeeRecipient,
-            fee
-        );
-        IERC20Upgradeable(paymentTokenAddress).safeTransfer(
-            manager[_tokenAddress],
-            total - fee
-        );
+            address winnerOfToken = winner[_tokenAddress[i]][_tokenId[i]];
+            marginLocked[winnerOfToken] -= total;
+            margin[winnerOfToken] -= total;
 
-        IERC721(_tokenAddress).safeTransferFrom(
-            address(this),
-            winnerOfToken,
-            _tokenId
-        );
+            IERC20Upgradeable(paymentTokenAddress).safeTransfer(
+                serviceFeeRecipient,
+                fee
+            );
+            IERC20Upgradeable(paymentTokenAddress).safeTransfer(
+                manager[_tokenAddress[i]],
+                total - fee
+            );
+
+            IERC721(_tokenAddress[i]).safeTransferFrom(
+                address(this),
+                winnerOfToken,
+                _tokenId[i]
+            );
+        }
     }
 }

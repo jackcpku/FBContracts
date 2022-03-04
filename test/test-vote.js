@@ -144,9 +144,13 @@ describe("Test Vote Contract", function () {
     );
     // user1 withdraws margin and succeeds
     await vote.connect(user1).withdrawMargin(80);
+    // user0 claims with invalid input
+    await expect(
+      vote.connect(user0).claim([someERC721Contract.address], [0, 0])
+    ).to.be.revertedWith("Vote: invalid input");
     // user0 claims before ddl and fails
     await expect(
-      vote.connect(user0).claim(someERC721Contract.address, 0)
+      vote.connect(user0).claim([someERC721Contract.address], [0])
     ).to.be.revertedWith("Vote: The voting process has not finished");
 
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -157,6 +161,6 @@ describe("Test Vote Contract", function () {
       vote.connect(user0).vote(someERC721Contract.address, 0, 1)
     ).to.be.revertedWith("Vote: the voting process has been finished");
     // user0 claims after the ddl and succeeds
-    await vote.connect(user0).claim(someERC721Contract.address, 0);
+    await vote.connect(user0).claim([someERC721Contract.address], [0]);
   });
 });
