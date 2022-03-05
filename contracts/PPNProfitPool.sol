@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * This Contract is designed for 
+ * This Contract is designed for helping the platform distribute dividends for each nft in each period
  * 1. 
  * 2. 
  * 3. 
@@ -40,26 +40,47 @@ contract PPNProfitPool is Ownable {
     // Dividend that has been claimed by this nft's owner
     mapping(uint256 => uint256) public hasClaimed;
 
-    // update last period pool, periodProfit, totalPool
+    // constructor, init period = 1 with amt of 
+    constructor(address _pvsAddress, uint256 _newAmt) {
+        pvsAddress = _pvsAddress;
+        period = 1;
+        totalAmount += _newAmt;
+        maxTokenId[period] = totalAmount;
+    }
+
+    /**
+     * Update previous period's profit per nft
+     * Update totalAmount of nft, period and maxTokenId in the new period
+     */
     function updatePeriod(uint256 _newPeriod, uint256 _newAmt) external onlyOwner {
-        if (_newPeriod == 1) {
-            period = _newPeriod;
-            maxTokenId[_newPeriod] = _newAmt;
-            return;
-        } else {
-            require(_newPeriod > period, "The new period must be later than the present");
+        require(_newPeriod > period, "The new period must be later than the present");
 
-            uint256 pool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - totalPool;
-            periodProfit[period] = pool / totalAmount;
+        uint256 pool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - totalPool;
+        periodProfit[period] = pool / totalAmount;
+        totalPool += pool;
 
-            totalPool += pool;
-            totalAmount += _newAmt;
-
-            period = _newPeriod;
-            maxTokenId[_newPeriod] = totalAmount;
-        }
+        totalAmount += _newAmt;
+        period = _newPeriod;
+        maxTokenId[_newPeriod] = totalAmount;
     } 
 
+    /**
+     * Get one nft's minted period
+     */
+    function getPeriod(uint256 _tokenId) internal view returns (uint256) {
+        require(_tokenId <= totalAmount, "tokenId exceeded limit");
+
+        for (uint256 i = 1; i <= period; i++) {
+            if (_tokenId <= maxTokenId[i]) {
+                return i;
+            }
+        }
+        return period;
+    }
+
+    /**
+     * Get the total dividend of a nft from its minted period
+     */
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
         uint256 beginPeriod = getPeriod(_tokenId);
 
@@ -73,6 +94,7 @@ contract PPNProfitPool is Ownable {
         return previousProfit + profit;
     } 
 
+    // claim dividend for nft with _tokenId
     function claim(uint256 _tokenId) public {
         //todo check 
 
@@ -81,21 +103,10 @@ contract PPNProfitPool is Ownable {
         hasClaimed[_tokenId] += amount;
         totalClaimed += amount;
     }
-
+ 
     function claimBatch(uint256[] calldata _tokenIds) external {
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             claim(_tokenIds[i]);
         }
-    }
-
-    function getPeriod(uint256 _tokenId) internal view returns (uint256) {
-        require(_tokenId <= totalAmount, "tokenId exceeded limit");
-
-        for (uint256 i = 1; i <= period; i++) {
-            if (_tokenId <= maxTokenId[i]) {
-                return i;
-            }
-        }
-        return period;
     }
 }
