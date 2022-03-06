@@ -60,7 +60,7 @@ async function run(tc) {
       .callStatic.deployBasicERC721("nft-contract-1", "UC1");
     await factory.connect(manager1).deployBasicERC721("nft-contract-1", "UC1");
     nftContract1 = await hre.ethers.getContractAt(
-      "BasicERC721",
+      "ERC721Base",
       nftContract1Address
     );
 
@@ -69,7 +69,7 @@ async function run(tc) {
       .callStatic.deployBasicERC721("nft-contract-2", "UC2");
     await factory.connect(manager2).deployBasicERC721("nft-contract-2", "UC2");
     nftContract2 = await hre.ethers.getContractAt(
-      "BasicERC721",
+      "ERC721Base",
       nftContract2Address
     );
 

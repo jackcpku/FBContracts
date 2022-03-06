@@ -2,7 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
 
-const { deployMajorToken, deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
+const {
+  deployMajorToken,
+  deployNFTGatewayAndNFTFactory,
+} = require("../lib/deploy.js");
 
 describe("Test Marketplace Contract", function () {
   // Contracts
@@ -49,7 +52,7 @@ describe("Test Marketplace Contract", function () {
       .callStatic.deployBasicERC721("nft-contract-1", "UC1");
     await factory.connect(manager1).deployBasicERC721("nft-contract-1", "UC1");
     nftContract1 = await hre.ethers.getContractAt(
-      "BasicERC721",
+      "ERC721Base",
       nftContract1Address
     );
 
@@ -58,7 +61,7 @@ describe("Test Marketplace Contract", function () {
       .callStatic.deployBasicERC721("nft-contract-2", "UC2");
     await factory.connect(manager2).deployBasicERC721("nft-contract-2", "UC2");
     nftContract2 = await hre.ethers.getContractAt(
-      "BasicERC721",
+      "ERC721Base",
       nftContract2Address
     );
 
@@ -109,12 +112,7 @@ describe("Test Marketplace Contract", function () {
       // Manager1 mints an NFT to seller.
       await gateway
         .connect(manager1)
-        .mint(nftContract1.address, seller.address, "Some URI");
-      const tokenIdMinted = await nftContract1.tokenOfOwnerByIndex(
-        seller.address,
-        0
-      );
-      expect(tokenIdMinted).to.equal(tokenId);
+        .mint(nftContract1.address, seller.address, tokenId);
 
       /**
        * 1. seller puts a sell bid on the market

@@ -91,29 +91,14 @@ contract NFTGateway is Initializable, AccessControl {
      * Mint an NFT of the given contract and send it to recipient.
      * @param _nftContract The target NFT contract.
      * @param _recipient Whom should the newly minted NFT belong to.
-     * @param _tokenURI The meta data URI of the newly minted NFT.
+     * @param _tokenId The tokenId of the newly minted NFT.
      */
     function mint(
         address _nftContract,
         address _recipient,
-        string memory _tokenURI
+        uint256 _tokenId
     ) public onlyManagerOf(_nftContract) {
-        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
-    }
-
-    /**
-     * The entrance point to managing a certain NFT contract.
-     * Set the tokenURI of a certain NFT given the contract address and tokenId.
-     * @param _nftContract The target NFT contract.
-     * @param _tokenId Which token of the contract to modify.
-     * @param _tokenURI Set the meta data URI of the NFT.
-     */
-    function setTokenURI(
-        address _nftContract,
-        uint256 _tokenId,
-        string memory _tokenURI
-    ) public onlyManagerOf(_nftContract) {
-        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
+        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenId);
     }
 
     /********************************************************************
@@ -125,7 +110,7 @@ contract NFTGateway is Initializable, AccessControl {
      * Anyone can mint if they have the manager's signature
      * @param _nftContract The target NFT contract.
      * @param _recipient Whom should the newly minted NFT belong to.
-     * @param _tokenURI The meta data URI of the newly minted NFT.
+     * @param _tokenId The tokenId of the newly minted NFT.
      * @param _expire Signature's expire moment. If 0, never expire.
      * @param _saltNonce Random nonce used against replay attacks.
      * @param _managerSig The manager's signature mint action.
@@ -133,7 +118,7 @@ contract NFTGateway is Initializable, AccessControl {
     function delegatedMint(
         address _nftContract,
         address _recipient,
-        string memory _tokenURI,
+        uint256 _tokenId,
         uint256 _expire,
         bytes memory _saltNonce,
         bytes memory _managerSig
@@ -144,47 +129,7 @@ contract NFTGateway is Initializable, AccessControl {
         bytes32 criteriaMessageHash = getMessageHash(
             _nftContract,
             _recipient,
-            _tokenURI,
-            _expire,
-            _saltNonce
-        );
-        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
-            criteriaMessageHash
-        );
-        require(
-            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
-                nftManager[_nftContract],
-            "Gateway: invalid manager signature"
-        );
-
-        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
-    }
-
-    /**
-     * This is the delegated version of setTokenURI()
-     * Anyone can setTokenURI if they have the manager's signature
-     * @param _nftContract The target NFT contract.
-     * @param _tokenId Which token of the contract to modify.
-     * @param _tokenURI Set the meta data URI of the NFT.
-     * @param _expire Signature's expire moment. If 0, never expire.
-     * @param _saltNonce Random nonce used against replay attacks.
-     * @param _managerSig The manager's signature of setTokenURI action.
-     */
-    function delegatedSetTokenURI(
-        address _nftContract,
-        uint256 _tokenId,
-        string memory _tokenURI,
-        uint256 _expire,
-        bytes memory _saltNonce,
-        bytes memory _managerSig
-    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
-        /**
-         * Check signature
-         */
-        bytes32 criteriaMessageHash = getMessageHash(
-            _nftContract,
             _tokenId,
-            _tokenURI,
             _expire,
             _saltNonce
         );
@@ -196,7 +141,8 @@ contract NFTGateway is Initializable, AccessControl {
                 nftManager[_nftContract],
             "Gateway: invalid manager signature"
         );
-        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
+
+        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenId);
     }
 
     /********************************************************************
@@ -313,7 +259,7 @@ contract NFTGateway is Initializable, AccessControl {
     function getMessageHash(
         address _nftContract,
         address _recipient,
-        string memory _tokenURI,
+        uint256 _tokenId,
         uint256 _expire,
         bytes memory _saltNonce
     ) internal pure returns (bytes32) {
@@ -322,29 +268,7 @@ contract NFTGateway is Initializable, AccessControl {
                 abi.encodePacked(
                     _nftContract,
                     _recipient,
-                    _tokenURI,
-                    _expire,
-                    _saltNonce
-                )
-            );
-    }
-
-    /**
-     * For delegatedSetTokenURI()
-     */
-    function getMessageHash(
-        address _nftContract,
-        uint256 _tokenId,
-        string memory _tokenURI,
-        uint256 _expire,
-        bytes memory _saltNonce
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    _nftContract,
                     _tokenId,
-                    _tokenURI,
                     _expire,
                     _saltNonce
                 )
