@@ -13,12 +13,4 @@ interface IBaseNFTManagement {
      * @param gateway The new gateway address.
      */
     function setGateway(address gateway) external;
-
-    /**
-     * @dev Mint an NFT to the given address.
-     * @notice Only gateway contract is authorized to mint.
-     * @param recipient The recipient of the minted NFT.
-     * @param tokenId The tokenId to be minted.
-     */
-    function mint(address recipient, uint256 tokenId) external;
 }

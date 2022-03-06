@@ -13,15 +13,4 @@ contract ERC721Base is ERC721MintableBurnable, BaseNFTManagement {
         string memory _symbol,
         address _gateway
     ) ERC721MintableBurnable(_name, _symbol) BaseNFTManagement(_gateway) {}
-
-    /**
-     * @inheritdoc IBaseNFTManagement
-     */
-    function mint(address recipient, uint256 tokenId)
-        external
-        override
-        onlyGateway
-    {
-        _safeMint(recipient, tokenId);
-    }
 }

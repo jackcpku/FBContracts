@@ -43,10 +43,10 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     // Similate the call to obtain the return value.
     let u2ContractAddress = await factory
       .connect(u2)
-      .callStatic.deployBasicERC721("U2-contract", "U2T");
+      .callStatic.deployBaseERC721("U2-contract", "U2T");
 
     // Let u2 deploy the contract.
-    await factory.connect(u2).deployBasicERC721("U2-contract", "U2T");
+    await factory.connect(u2).deployBaseERC721("U2-contract", "U2T");
     let u2Contract = await hre.ethers.getContractAt(
       "ERC721Base",
       u2ContractAddress
@@ -60,8 +60,8 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     beforeEach("Deploy contracts on behalf of u5 & u6", async function () {
       let u5ContractAddress = await factory
         .connect(u5)
-        .callStatic.deployBasicERC721("u5-contract", "u5T");
-      await factory.connect(u5).deployBasicERC721("u5-contract", "u5T");
+        .callStatic.deployBaseERC721("u5-contract", "u5T");
+      await factory.connect(u5).deployBaseERC721("u5-contract", "u5T");
       u5Contract = await hre.ethers.getContractAt(
         "ERC721Base",
         u5ContractAddress
@@ -69,8 +69,8 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
       let u6ContractAddress = await factory
         .connect(u6)
-        .callStatic.deployBasicERC721("u6-contract", "u6T");
-      await factory.connect(u6).deployBasicERC721("u6-contract", "u6T");
+        .callStatic.deployBaseERC721("u6-contract", "u6T");
+      await factory.connect(u6).deployBaseERC721("u6-contract", "u6T");
       u6Contract = await hre.ethers.getContractAt(
         "ERC721Base",
         u6ContractAddress
@@ -127,8 +127,8 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     beforeEach("Deploy contracts on behalf of u2 & u3", async function () {
       let u2ContractAddress = await factory
         .connect(u2)
-        .callStatic.deployBasicERC721("U2-contract", "U2T");
-      await factory.connect(u2).deployBasicERC721("U2-contract", "U2T");
+        .callStatic.deployBaseERC721("U2-contract", "U2T");
+      await factory.connect(u2).deployBaseERC721("U2-contract", "U2T");
       u2Contract = await hre.ethers.getContractAt(
         "ERC721Base",
         u2ContractAddress
@@ -136,8 +136,8 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
       let u3ContractAddress = await factory
         .connect(u3)
-        .callStatic.deployBasicERC721("U3-contract", "U3T");
-      await factory.connect(u3).deployBasicERC721("U3-contract", "U3T");
+        .callStatic.deployBaseERC721("U3-contract", "U3T");
+      await factory.connect(u3).deployBaseERC721("U3-contract", "U3T");
       u3Contract = await hre.ethers.getContractAt(
         "ERC721Base",
         u3ContractAddress
@@ -146,7 +146,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     it("NFTGateway manager should not be able to mint on U2-contract", async function () {
       await expect(
-        gateway.connect(gatewayAdmin).mint(u2Contract.address, u2.address, 2)
+        gateway
+          .connect(gatewayAdmin)
+          .ERC721_mint(u2Contract.address, u2.address, 2)
       ).to.be.revertedWith("Unauthorized");
     });
 
@@ -194,17 +196,17 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
         .setManagerOf(u3Contract.address, u4.address);
 
       // u3 should still be able to mint
-      await gateway.connect(u3).mint(u3Contract.address, u3.address, 3);
+      await gateway.connect(u3).ERC721_mint(u3Contract.address, u3.address, 3);
 
       // u4 should also be able to mint
-      await gateway.connect(u4).mint(u3Contract.address, u4.address, 4);
+      await gateway.connect(u4).ERC721_mint(u3Contract.address, u4.address, 4);
 
       // Speed up the clock to skip the grace period.
       await hre.network.provider.send("evm_increaseTime", [86401]);
 
       // After the grace period ends, u3 should not be able to mint any more.
       await expect(
-        gateway.connect(u3).mint(u3Contract.address, u3.address, 33)
+        gateway.connect(u3).ERC721_mint(u3Contract.address, u3.address, 33)
       ).to.be.revertedWith("Unauthorized");
     });
 
