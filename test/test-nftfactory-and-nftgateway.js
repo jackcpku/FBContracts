@@ -39,7 +39,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
   });
 
-  it("Should deploy a new contract on behalf of u2", async function () {
+  it("ERC721 gateway operations", async function () {
+    /***************** Preparations ****************/
+
     // Similate the call to obtain the return value.
     let u2ContractAddress = await factory
       .connect(u2)
@@ -52,6 +54,27 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       u2ContractAddress
     );
     expect(await u2Contract.gateway()).to.equal(gateway.address);
+
+    /******************** Tests ********************/
+
+    // u2 mints to u2, u3
+    await gateway.connect(u2).ERC721_mint(u2Contract.address, u2.address, 222);
+    await gateway.connect(u2).ERC721_mint(u2Contract.address, u2.address, 223);
+    await gateway.connect(u2).ERC721_mint(u2Contract.address, u3.address, 333);
+    expect(await u2Contract.ownerOf(222)).to.equal(u2.address);
+    expect(await u2Contract.ownerOf(223)).to.equal(u2.address);
+    expect(await u2Contract.ownerOf(333)).to.equal(u3.address);
+
+    // After approving gateway, u2 burns from u2
+    await u2Contract.connect(u2).approve(gateway.address, 223);
+    await gateway.connect(u2).ERC721_burn(u2Contract.address, 223);
+    await expect(u2Contract.ownerOf(223)).to.be.revertedWith(
+      "ERC721: owner query for nonexistent token"
+    );
+
+    // u2 sets uri of u2Contract
+    await gateway.connect(u2).ERC721_setURI(u2Contract.address, "ipfs://");
+    expect(await u2Contract.tokenURI(333)).to.equal("ipfs://333");
   });
 
   describe("Access control", function () {
