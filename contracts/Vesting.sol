@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -48,14 +48,16 @@ contract Vesting {
     uint256[] public unlockProportion;
 
     // Token released to the corresponding beneficiary
-    event TokenReleased(address indexed beneficiary, uint256 amount);
+    event ReleaseToken(address indexed beneficiary, uint256 amount);
 
     // Manager changed from currentManager to newManager.
-    event ManagementTransferred(address indexed currentManager, address indexed newManager);
+    event TransferManagement(address indexed currentManager, address indexed newManager);
 
     // Beneficiary changed from originalBeneficiary to newBeneficiary.
-    event BeneficiaryChanged(address indexed originalBeneficiary, address indexed newBeneficiary, address indexed executor);
+    event ChangeBeneficiary(address indexed originalBeneficiary, address indexed newBeneficiary, address indexed executor);
  
+    // A new beneficiary with specified vesting amount added by the executor.
+    event AddBeneficiary(address indexed beneficiary, address indexed executor, uint256 amount);
 
     constructor(
         address _manager,
@@ -79,7 +81,7 @@ contract Vesting {
     function transferManagement(address _newManager) public {
         require(msg.sender == manager, "Unauthorized");
 
-        emit ManagementTransferred(manager, _newManager);
+        emit TransferManagement(manager, _newManager);
 
         manager = _newManager;
     }
@@ -102,6 +104,8 @@ contract Vesting {
             address(this),
             _amount
         );
+
+        emit AddBeneficiary(_beneficiary, msg.sender, _amount);
     }
 
     /**
@@ -128,7 +132,7 @@ contract Vesting {
         released[msg.sender] += releasable;
         totalReleased += releasable;
         
-        emit TokenReleased(msg.sender, releasable);
+        emit ReleaseToken(msg.sender, releasable);
 
         // send ERC20 token to `msg.sender`.
         IERC20(tokenAddress).safeTransfer(
@@ -182,7 +186,7 @@ contract Vesting {
 
         require(msg.sender == _originalBeneficiary || msg.sender == manager, "Unauthorized request");
 
-        emit BeneficiaryChanged(_originalBeneficiary, _newBeneficiary, msg.sender);
+        emit ChangeBeneficiary(_originalBeneficiary, _newBeneficiary, msg.sender);
 
         beneficiaryAmount[_newBeneficiary] = beneficiaryAmount[_originalBeneficiary];
         beneficiaryAmount[_originalBeneficiary] = 0;

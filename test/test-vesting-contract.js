@@ -172,7 +172,7 @@ describe("Test Vesting", function () {
       "Tokens not available."
     );
 
-    it("Test TokenReleased events", async function () {
+    it("Test ReleaseToken events", async function () {
       // Speed up the clock to the first unlock stage.
       await hre.network.provider.send("evm_setNextBlockTimestamp", [
         startTime + stages[0],
@@ -180,7 +180,7 @@ describe("Test Vesting", function () {
 
       // Let u0 pull his part from vc.
       expect(await vc.connect(u0).release())
-        .to.emit(vc, "TokenReleased")
+        .to.emit(vc, "ReleaseToken")
         .withArgs(
           u0.address,
           (beneficiaryAmounts[0] * unlockProportion[1]) / PROPORTION_BASE
@@ -193,7 +193,7 @@ describe("Test Vesting", function () {
 
       // Let u0 pull again.
       expect(await vc.connect(u0).release())
-        .to.emit(vc, "TokenReleased")
+        .to.emit(vc, "ReleaseToken")
         .withArgs(
           u0.address,
           (beneficiaryAmounts[0] * PROPORTION_BASE) / PROPORTION_BASE -
@@ -202,7 +202,7 @@ describe("Test Vesting", function () {
 
       // Let u1 pull all funds at once.
       expect(await vc.connect(u1).release())
-        .to.emit(vc, "TokenReleased")
+        .to.emit(vc, "ReleaseToken")
         .withArgs(
           u1.address,
           (beneficiaryAmounts[1] * PROPORTION_BASE) / PROPORTION_BASE
@@ -216,7 +216,7 @@ describe("Test Vesting", function () {
       ]);
 
       expect(await vc.transferManagement(owner2.address))
-        .to.emit(vc, "ManagementTransferred")
+        .to.emit(vc, "TransferManagement")
         .withArgs(owner1.address, owner2.address);
 
       // After owner becomes ex-manager, he has no right to change any beneficiary.
@@ -226,7 +226,7 @@ describe("Test Vesting", function () {
 
       // While owner2 has the right to do so.
       expect(await vc.connect(owner2).changeBeneficiary(u0.address, u2.address))
-        .to.emit(vc, "BeneficiaryChanged")
+        .to.emit(vc, "ChangeBeneficiary")
         .withArgs(u0.address, u2.address, owner2.address);
     });
 
@@ -316,7 +316,7 @@ describe("Test Vesting", function () {
       );
     });
 
-    it("Test BeneficiaryChanged events.", async function () {
+    it("Test ChangeBeneficiary events.", async function () {
       const block = await hre.ethers.provider.getBlock("latest");
       // Deployment should be earlier than startTime.
       expect(block.timestamp < startTime);
@@ -331,12 +331,12 @@ describe("Test Vesting", function () {
 
       // u0 changes beneficiary to u2.
       expect(await vc.connect(u0).changeBeneficiary(u0.address, u2.address))
-        .to.emit(vc, "BeneficiaryChanged")
+        .to.emit(vc, "ChangeBeneficiary")
         .withArgs(u0.address, u2.address, u0.address);
 
       // Owner replaces u1 with u3.
       expect(await vc.changeBeneficiary(u1.address, u3.address))
-        .to.emit(vc, "BeneficiaryChanged")
+        .to.emit(vc, "ChangeBeneficiary")
         .withArgs(u1.address, u3.address, owner1.address);
     });
   });
