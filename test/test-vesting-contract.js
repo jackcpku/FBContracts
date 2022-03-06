@@ -172,7 +172,6 @@ describe("Test Vesting", function () {
       "Tokens not available."
     );
 
-<<<<<<< HEAD
     it("Test ReleaseToken events", async function () {
       // Speed up the clock to the first unlock stage.
       await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -250,15 +249,6 @@ describe("Test Vesting", function () {
         (beneficiaryAmounts[0] * unlockProportion[1]) / PROPORTION_BASE
       );
       expect(await vc.released(u1.address)).to.equal(0);
-=======
-  });
-
-  it("Test TokenReleased events", async function () {
-    // Speed up the clock to the first unlock stage.
-    await hre.network.provider.send("evm_setNextBlockTimestamp", [
-      startTime + stages[0],
-    ]);
->>>>>>> master
 
       // Let u0 pull his part from vc.
       expect(await vc.connect(u0).release())
