@@ -149,7 +149,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
         gateway
           .connect(gatewayAdmin)
           .ERC721_mint(u2Contract.address, u2.address, 2)
-      ).to.be.revertedWith("Unauthorized");
+      ).to.be.revertedWith(
+        "Gateway: caller is not manager of the nft contract"
+      );
     });
 
     it("u2 should not be able to set gateway of U2-contract", async function () {
@@ -171,7 +173,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
         gateway
           .connect(gatewayAdmin)
           .setGatewayOf(u2Contract.address, gateway.address)
-      ).to.be.revertedWith("Should assign a different gateway");
+      ).to.be.revertedWith(
+        "Gateway: new gateway should be different than the current one"
+      );
 
       // Success: through gateway contract
       await gateway
@@ -207,7 +211,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       // After the grace period ends, u3 should not be able to mint any more.
       await expect(
         gateway.connect(u3).ERC721_mint(u3Contract.address, u3.address, 33)
-      ).to.be.revertedWith("Unauthorized");
+      ).to.be.revertedWith(
+        "Gateway: caller is not manager of the nft contract"
+      );
     });
 
     it("Gateway admin role transfer", async function () {

@@ -51,7 +51,10 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     );
 
     modifier onlyManagerOf(address _nftContract) {
-        require(isInManagement(msg.sender, _nftContract), "Unauthorized");
+        require(
+            isInManagement(msg.sender, _nftContract),
+            "Gateway: caller is not manager of the nft contract"
+        );
         _;
     }
 
@@ -60,7 +63,10 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      * Modifier used in every user-delegated calls.
      */
     modifier checkUsedSignature(bytes memory _managerSig) {
-        require(!usedSignagure[_managerSig], "Gateway: used manager signature");
+        require(
+            !usedSignagure[_managerSig],
+            "Gateway: manager signature has been used"
+        );
         _;
         usedSignagure[_managerSig] = true;
     }
@@ -72,7 +78,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     modifier checkExpire(uint256 _expire) {
         require(
             _expire == 0 || block.timestamp < _expire,
-            "Gateway: expired signature"
+            "Gateway: signature has expired"
         );
         _;
     }
@@ -261,7 +267,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     {
         require(
             _newGateway != address(this),
-            "Should assign a different gateway"
+            "Gateway: new gateway should be different than the current one"
         );
 
         nftManager[_nftContract] = address(0);
@@ -279,7 +285,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     {
         require(
             _gatewayAdmin != msg.sender,
-            "Should set a different gateway manager"
+            "Gateway: new gateway admin should be different than the current one"
         );
 
         emit GatewayOwnershipTransferred(msg.sender, _gatewayAdmin);
