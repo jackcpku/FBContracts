@@ -160,6 +160,16 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     expect(await u2Contract.uri(333)).to.equal("ipfs://{id}");
   });
 
+  it("should fail to transfer gateway ownership", async function () {
+    await expect(
+      gateway
+        .connect(gatewayAdmin)
+        .transferGatewayOwnership(gatewayAdmin.address)
+    ).to.be.revertedWith(
+      "Gateway: new gateway admin should be different than the current one"
+    );
+  });
+
   describe("Access control", function () {
     let u2Contract, u3Contract;
     beforeEach("Deploy contracts on behalf of u2 & u3", async function () {
