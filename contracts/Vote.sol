@@ -26,8 +26,11 @@ contract Vote is Initializable, OwnableUpgradeable {
     // tokenAddress => (tokenId => maxVoted)
     mapping(address => mapping(uint256 => uint256)) public maxVoted;
 
+    // Vote is valid if block.timestamp in [listingTime, expirationTime)
+    // tokenAddress => start time
+    mapping(address => uint256) listingTime;
     // tokenAddress => ddl
-    mapping(address => uint256) deadline;
+    mapping(address => uint256) expirationTime;
 
     // cp of the nft
     mapping(address => address) manager;
@@ -49,6 +52,26 @@ contract Vote is Initializable, OwnableUpgradeable {
 
     // Winner of a certain NFT
     mapping(address => mapping(uint256 => address)) winner;
+
+    event ManagerSet(
+        address operator,
+        address indexed tokenAddress,
+        address indexed manager
+    );
+
+    event VoteInitialized(
+        address manager,
+        address indexed tokenAddress,
+        uint256 indexed listingTime,
+        uint256 indexed expirationTime
+    );
+
+    event Voted(
+        address indexed voter,
+        address indexed tokenAddress,
+        uint256 indexed tokenId,
+        uint256 amount
+    );
 
     modifier onlyManager(address _tokenAddress) {
         require(msg.sender == manager[_tokenAddress], "Vote: not manager");
@@ -75,6 +98,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         onlyOwner
     {
         manager[_tokenAddress] = _manager;
+        emit ManagerSet(msg.sender, _tokenAddress, _manager);
     }
 
     // Called by managers.
@@ -99,15 +123,29 @@ contract Vote is Initializable, OwnableUpgradeable {
     /**
      * @dev Called by managers.
      */
-    function initializeVote(address _tokenAddress, uint256 _deadline)
-        public
-        onlyManager(_tokenAddress)
-    {
+    function initializeVote(
+        address _tokenAddress,
+        uint256 _listingTime,
+        uint256 _expirationTime
+    ) public onlyManager(_tokenAddress) {
         require(
-            deadline[_tokenAddress] == 0,
+            listingTime[_tokenAddress] == 0 &&
+                expirationTime[_tokenAddress] == 0,
             "Vote: vote can be initialized only once"
         );
-        deadline[_tokenAddress] = _deadline;
+        require(
+            _listingTime < _expirationTime,
+            "Vote: invalid listingTime or expirationTime"
+        );
+        listingTime[_tokenAddress] = _listingTime;
+        expirationTime[_tokenAddress] = _expirationTime;
+
+        emit VoteInitialized(
+            msg.sender,
+            _tokenAddress,
+            _listingTime,
+            _expirationTime
+        );
     }
 
     /**
@@ -156,9 +194,14 @@ contract Vote is Initializable, OwnableUpgradeable {
         uint256 _tokenId,
         uint256 _amount
     ) external {
+        // Check if vote has started
+        require(
+            block.timestamp >= listingTime[_tokenAddress],
+            "Vote: the voting process has not started"
+        );
         // Check if vote has expired
         require(
-            block.timestamp < deadline[_tokenAddress],
+            block.timestamp < expirationTime[_tokenAddress],
             "Vote: the voting process has been finished"
         );
 
@@ -211,6 +254,8 @@ contract Vote is Initializable, OwnableUpgradeable {
         if (prevWinner != address(0)) {
             marginLocked[prevWinner] -= tokenPrice;
         }
+
+        emit Voted(msg.sender, _tokenAddress, _tokenId, _amount);
     }
 
     /**
@@ -226,7 +271,7 @@ contract Vote is Initializable, OwnableUpgradeable {
 
         for (uint256 i = 0; i < _tokenAddress.length; i++) {
             require(
-                block.timestamp >= deadline[_tokenAddress[i]],
+                block.timestamp >= expirationTime[_tokenAddress[i]],
                 "Vote: The voting process has not finished"
             );
 

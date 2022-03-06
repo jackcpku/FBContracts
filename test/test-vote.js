@@ -83,26 +83,60 @@ describe("Test Vote Contract", function () {
 
   it("should fail initializing vote if not manager", async function () {
     await expect(
-      vote.initializeVote(someERC721Contract.address, deadlineTimestamp)
+      vote.initializeVote(
+        someERC721Contract.address,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      )
     ).to.be.revertedWith("Vote: not manager");
   });
 
   it("should pass integration test", async function () {
+    /****************** Before Listing Time ******************/
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-      currentTimestamp,
+      currentTimestamp - 100,
     ]);
+
+    // Manager initializes vote and fails
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          deadlineTimestamp + 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith("Vote: invalid listingTime or expirationTime");
 
     // Manager initializes vote
     await vote
       .connect(manager0)
-      .initializeVote(someERC721Contract.address, deadlineTimestamp);
+      .initializeVote(
+        someERC721Contract.address,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
 
     // Manager initializes vote again and fails
     await expect(
       vote
         .connect(manager0)
-        .initializeVote(someERC721Contract.address, deadlineTimestamp + 1)
+        .initializeVote(
+          someERC721Contract.address,
+          currentTimestamp - 1,
+          deadlineTimestamp + 1
+        )
     ).to.be.revertedWith("Vote: vote can be initialized only once");
+
+    // No one is able to vote before listing time
+    await expect(
+      vote.connect(user0).vote(someERC721Contract.address, 0, 10)
+    ).to.be.revertedWith("Vote: the voting process has not started");
+
+    /****************** After Listing Time ******************/
+    await hre.network.provider.send("evm_setNextBlockTimestamp", [
+      currentTimestamp,
+    ]);
 
     // No one is able to vote before the nft is transferred to vote contract
     await expect(
@@ -153,6 +187,7 @@ describe("Test Vote Contract", function () {
       vote.connect(user0).claim([someERC721Contract.address], [0])
     ).to.be.revertedWith("Vote: The voting process has not finished");
 
+    /****************** After Expiration Time ******************/
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       deadlineTimestamp,
     ]);
