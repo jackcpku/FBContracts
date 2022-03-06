@@ -77,6 +77,89 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     expect(await u2Contract.tokenURI(333)).to.equal("ipfs://333");
   });
 
+  it("ERC1155 gateway operations", async function () {
+    /***************** Preparations ****************/
+
+    // Similate the call to obtain the return value.
+    let u2ContractAddress = await factory
+      .connect(u2)
+      .callStatic.deployBaseERC1155("some uri");
+
+    // Let u2 deploy the contract.
+    await factory.connect(u2).deployBaseERC1155("some uri");
+    let u2Contract = await hre.ethers.getContractAt(
+      "ERC1155Base",
+      u2ContractAddress
+    );
+    expect(await u2Contract.gateway()).to.equal(gateway.address);
+
+    /******************** Tests ********************/
+
+    const erc1155MintAmount = 10;
+    const erc1155BurnAmount = 4;
+
+    // u2 mints to u3
+    await gateway
+      .connect(u2)
+      .ERC1155_mint(
+        u2Contract.address,
+        u3.address,
+        333,
+        erc1155MintAmount,
+        "0x"
+      );
+
+    // mintBatch
+    await gateway
+      .connect(u2)
+      .ERC1155_mintBatch(
+        u2Contract.address,
+        u2.address,
+        [222, 223],
+        [erc1155MintAmount, erc1155MintAmount],
+        "0x"
+      );
+
+    expect(await u2Contract.balanceOf(u2.address, 222)).to.equal(
+      erc1155MintAmount
+    );
+    expect(await u2Contract.balanceOf(u2.address, 223)).to.equal(
+      erc1155MintAmount
+    );
+    expect(await u2Contract.balanceOf(u3.address, 333)).to.equal(
+      erc1155MintAmount
+    );
+
+    // After approving gateway, u2 burns from u2
+    await u2Contract.connect(u2).setApprovalForAll(gateway.address, true);
+    await gateway
+      .connect(u2)
+      .ERC1155_burn(u2Contract.address, u2.address, 223, erc1155BurnAmount);
+    expect(await u2Contract.balanceOf(u2.address, 223)).to.equal(
+      erc1155MintAmount - erc1155BurnAmount
+    );
+
+    // burnBatch
+    await gateway
+      .connect(u2)
+      .ERC1155_burnBatch(
+        u2Contract.address,
+        u2.address,
+        [222, 223],
+        [erc1155BurnAmount, erc1155BurnAmount]
+      );
+    expect(await u2Contract.balanceOf(u2.address, 222)).to.equal(
+      erc1155MintAmount - erc1155BurnAmount
+    );
+    expect(await u2Contract.balanceOf(u2.address, 223)).to.equal(
+      erc1155MintAmount - 2 * erc1155BurnAmount
+    );
+
+    // u2 sets uri of u2Contract
+    await gateway.connect(u2).ERC1155_setURI(u2Contract.address, "ipfs://{id}");
+    expect(await u2Contract.uri(333)).to.equal("ipfs://{id}");
+  });
+
   describe("Access control", function () {
     let u2Contract, u3Contract;
     beforeEach("Deploy contracts on behalf of u2 & u3", async function () {
