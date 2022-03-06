@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const { deployMajorToken, deployVesting } = require("../lib/deploy");
 
-describe("Test VestingContract", function () {
+describe("Test Vesting", function () {
   let fbt, vc; // Contract objects
   let owner1, owner2, u0, u1, u2, u3, u4; // Signers
 

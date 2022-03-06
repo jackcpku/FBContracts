@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * Consequently, if the vesting has already started, new tokens sent to this contract for the newly added beneficiary may partly be immediately releasable.
  * There is a multi-sig manager address, who can change beneficiary addresses in emergency cases (e.g. the beneficiary lost his private key).
  */
-contract VestingContract {
+contract Vesting {
     using SafeERC20 for IERC20;
 
     uint256 public constant PROPORTION_BASE = 10_000;
