@@ -54,7 +54,7 @@ describe("Test Vesting", function () {
     // Should approve before adding
     await expect(
       vc.addBeneficiary(u2.address, beneficiaryAmounts[2])
-    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+    ).to.be.revertedWith("ERC20: insufficient allowance");
 
     // Approve
     await fbt.approve(vc.address, beneficiaryAmounts[2]);
@@ -172,7 +172,6 @@ describe("Test Vesting", function () {
     await expect(vc.connect(u1).release()).to.be.revertedWith(
       "Tokens not available."
     );
-
   });
 
   it("Test ReleaseToken events", async function () {
@@ -200,7 +199,7 @@ describe("Test Vesting", function () {
       .withArgs(
         u0.address,
         (beneficiaryAmounts[0] * PROPORTION_BASE) / PROPORTION_BASE -
-        (beneficiaryAmounts[0] * unlockProportion[1]) / PROPORTION_BASE
+          (beneficiaryAmounts[0] * unlockProportion[1]) / PROPORTION_BASE
       );
 
     // Let u1 pull all funds at once.
@@ -290,7 +289,7 @@ describe("Test Vesting", function () {
     );
     expect(await fbt.balanceOf(u2.address)).to.equal(
       (beneficiaryAmounts[0] * PROPORTION_BASE) / PROPORTION_BASE -
-      (beneficiaryAmounts[0] * unlockProportion[1]) / PROPORTION_BASE
+        (beneficiaryAmounts[0] * unlockProportion[1]) / PROPORTION_BASE
     );
 
     // Let u1 pull and fail.
@@ -342,5 +341,4 @@ describe("Test Vesting", function () {
       .to.emit(vc, "ChangeBeneficiary")
       .withArgs(u1.address, u3.address, owner1.address);
   });
-
 });

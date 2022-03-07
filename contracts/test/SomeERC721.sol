@@ -1,21 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../nft/common/MostBaseERC721.sol";
+import "../nft/common/ERC721MintableBurnable.sol";
 
 /**
  * A test NFT contract that doesn't use gateway logic.
  */
-contract SomeERC721 is MostBaseERC721 {
+contract SomeERC721 is ERC721MintableBurnable {
     constructor(string memory _name, string memory _symbol)
-        MostBaseERC721(_name, _symbol)
+        ERC721MintableBurnable(_name, _symbol)
     {}
-
-    function setTokenURI(uint256 tokenId, string memory tokenURI) external {
-        _setTokenURI(tokenId, tokenURI);
-    }
-
-    function mint(address recipient, string memory tokenURI) external {
-        safeMint(recipient, tokenURI);
-    }
 }

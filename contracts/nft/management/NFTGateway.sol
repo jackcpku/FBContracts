@@ -5,9 +5,13 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+import "../common/INFTGateway.sol";
 import "../common/IBaseNFTManagement.sol";
 
-contract NFTGateway is Initializable, AccessControl {
+import "../ERC721Base.sol";
+import "../ERC1155Base.sol";
+
+contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /********************************************************************
      *                          Role System                             *
      ********************************************************************/
@@ -47,28 +51,9 @@ contract NFTGateway is Initializable, AccessControl {
     );
 
     modifier onlyManagerOf(address _nftContract) {
-        require(isInManagement(msg.sender, _nftContract), "Unauthorized");
-        _;
-    }
-
-    /**
-     * Check if a signature has already been used.
-     * Modifier used in every user-delegated calls.
-     */
-    modifier checkUsedSignature(bytes memory _managerSig) {
-        require(!usedSignagure[_managerSig], "Gateway: used manager signature");
-        _;
-        usedSignagure[_managerSig] = true;
-    }
-
-    /**
-     * Check if a signature has expired.
-     * Modifier used in every user-delegated calls.
-     */
-    modifier checkExpire(uint256 _expire) {
         require(
-            _expire == 0 || block.timestamp < _expire,
-            "Gateway: expired signature"
+            isInManagement(msg.sender, _nftContract),
+            "Gateway: caller is not manager of the nft contract"
         );
         _;
     }
@@ -86,117 +71,74 @@ contract NFTGateway is Initializable, AccessControl {
      *               Interfaces exposed to nft managers                 *
      ********************************************************************/
 
-    /**
-     * The entrance point to managing a certain NFT contract.
-     * Mint an NFT of the given contract and send it to recipient.
-     * @param _nftContract The target NFT contract.
-     * @param _recipient Whom should the newly minted NFT belong to.
-     * @param _tokenURI The meta data URI of the newly minted NFT.
-     */
-    function mint(
+    function ERC721_mint(
         address _nftContract,
         address _recipient,
-        string memory _tokenURI
-    ) public onlyManagerOf(_nftContract) {
-        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
+        uint256 _tokenId
+    ) external override onlyManagerOf(_nftContract) {
+        ERC721Base(_nftContract).mint(_recipient, _tokenId);
     }
 
-    /**
-     * The entrance point to managing a certain NFT contract.
-     * Set the tokenURI of a certain NFT given the contract address and tokenId.
-     * @param _nftContract The target NFT contract.
-     * @param _tokenId Which token of the contract to modify.
-     * @param _tokenURI Set the meta data URI of the NFT.
-     */
-    function setTokenURI(
-        address _nftContract,
-        uint256 _tokenId,
-        string memory _tokenURI
-    ) public onlyManagerOf(_nftContract) {
-        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
+    function ERC721_burn(address _nftContract, uint256 _tokenId)
+        external
+        override
+        onlyManagerOf(_nftContract)
+    {
+        ERC721Base(_nftContract).burn(_tokenId);
     }
 
-    /********************************************************************
-     *      Interfaces exposed to anyone on behalf of nft managers      *
-     ********************************************************************/
-
-    /**
-     * This is the delegated version of mint()
-     * Anyone can mint if they have the manager's signature
-     * @param _nftContract The target NFT contract.
-     * @param _recipient Whom should the newly minted NFT belong to.
-     * @param _tokenURI The meta data URI of the newly minted NFT.
-     * @param _expire Signature's expire moment. If 0, never expire.
-     * @param _saltNonce Random nonce used against replay attacks.
-     * @param _managerSig The manager's signature mint action.
-     */
-    function delegatedMint(
-        address _nftContract,
-        address _recipient,
-        string memory _tokenURI,
-        uint256 _expire,
-        bytes memory _saltNonce,
-        bytes memory _managerSig
-    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
-        /**
-         * Check signature
-         */
-        bytes32 criteriaMessageHash = getMessageHash(
-            _nftContract,
-            _recipient,
-            _tokenURI,
-            _expire,
-            _saltNonce
-        );
-        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
-            criteriaMessageHash
-        );
-        require(
-            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
-                nftManager[_nftContract],
-            "Gateway: invalid manager signature"
-        );
-
-        IBaseNFTManagement(_nftContract).mint(_recipient, _tokenURI);
+    function ERC721_setURI(address _nftContract, string memory _newURI)
+        external
+        override
+        onlyManagerOf(_nftContract)
+    {
+        ERC721Base(_nftContract).setURI(_newURI);
     }
 
-    /**
-     * This is the delegated version of setTokenURI()
-     * Anyone can setTokenURI if they have the manager's signature
-     * @param _nftContract The target NFT contract.
-     * @param _tokenId Which token of the contract to modify.
-     * @param _tokenURI Set the meta data URI of the NFT.
-     * @param _expire Signature's expire moment. If 0, never expire.
-     * @param _saltNonce Random nonce used against replay attacks.
-     * @param _managerSig The manager's signature of setTokenURI action.
-     */
-    function delegatedSetTokenURI(
+    function ERC1155_mint(
         address _nftContract,
-        uint256 _tokenId,
-        string memory _tokenURI,
-        uint256 _expire,
-        bytes memory _saltNonce,
-        bytes memory _managerSig
-    ) public checkUsedSignature(_managerSig) checkExpire(_expire) {
-        /**
-         * Check signature
-         */
-        bytes32 criteriaMessageHash = getMessageHash(
-            _nftContract,
-            _tokenId,
-            _tokenURI,
-            _expire,
-            _saltNonce
-        );
-        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(
-            criteriaMessageHash
-        );
-        require(
-            ECDSA.recover(ethSignedMessageHash, _managerSig) ==
-                nftManager[_nftContract],
-            "Gateway: invalid manager signature"
-        );
-        IBaseNFTManagement(_nftContract).setTokenURI(_tokenId, _tokenURI);
+        address _account,
+        uint256 _id,
+        uint256 _amount,
+        bytes memory _data
+    ) external override onlyManagerOf(_nftContract) {
+        ERC1155Base(_nftContract).mint(_account, _id, _amount, _data);
+    }
+
+    function ERC1155_mintBatch(
+        address _nftContract,
+        address _to,
+        uint256[] memory _ids,
+        uint256[] memory _amounts,
+        bytes memory _data
+    ) external override onlyManagerOf(_nftContract) {
+        ERC1155Base(_nftContract).mintBatch(_to, _ids, _amounts, _data);
+    }
+
+    function ERC1155_burn(
+        address _nftContract,
+        address _account,
+        uint256 _id,
+        uint256 _value
+    ) external override onlyManagerOf(_nftContract) {
+        ERC1155Base(_nftContract).burn(_account, _id, _value);
+    }
+
+    function ERC1155_burnBatch(
+        address _nftContract,
+        address _account,
+        uint256[] memory _ids,
+        uint256[] memory _values
+    ) external override onlyManagerOf(_nftContract) {
+        ERC1155Base(_nftContract).burnBatch(_account, _ids, _values);
+    }
+
+    function ERC1155_setURI(address _nftContract, string memory _newuri)
+        external
+        override
+        onlyManagerOf(_nftContract)
+    {
+        ERC1155Base(_nftContract).setURI(_newuri);
     }
 
     /********************************************************************
@@ -256,7 +198,7 @@ contract NFTGateway is Initializable, AccessControl {
     {
         require(
             _newGateway != address(this),
-            "Should assign a different gateway"
+            "Gateway: new gateway should be different than the current one"
         );
 
         nftManager[_nftContract] = address(0);
@@ -274,7 +216,7 @@ contract NFTGateway is Initializable, AccessControl {
     {
         require(
             _gatewayAdmin != msg.sender,
-            "Should set a different gateway manager"
+            "Gateway: new gateway admin should be different than the current one"
         );
 
         emit GatewayOwnershipTransferred(msg.sender, _gatewayAdmin);
@@ -305,49 +247,5 @@ contract NFTGateway is Initializable, AccessControl {
             (_x == nftPreviousManager[_nftContract] &&
                 block.timestamp <
                 nftManagerGraceTimeStart[_nftContract] + 1 days);
-    }
-
-    /**
-     * For delegatedMint()
-     */
-    function getMessageHash(
-        address _nftContract,
-        address _recipient,
-        string memory _tokenURI,
-        uint256 _expire,
-        bytes memory _saltNonce
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    _nftContract,
-                    _recipient,
-                    _tokenURI,
-                    _expire,
-                    _saltNonce
-                )
-            );
-    }
-
-    /**
-     * For delegatedSetTokenURI()
-     */
-    function getMessageHash(
-        address _nftContract,
-        uint256 _tokenId,
-        string memory _tokenURI,
-        uint256 _expire,
-        bytes memory _saltNonce
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    _nftContract,
-                    _tokenId,
-                    _tokenURI,
-                    _expire,
-                    _saltNonce
-                )
-            );
     }
 }

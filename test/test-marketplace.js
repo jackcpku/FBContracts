@@ -2,19 +2,20 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
 
-const { deployMajorToken, deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
+const {
+  deployMajorToken,
+  deployNFTGatewayAndNFTFactory,
+} = require("../lib/deploy.js");
 
 describe("Test Marketplace Contract", function () {
   // Contracts
   let gateway, factory, marketplace, fbt;
   let nftContract1; // NFT contract deployed by manager1.
   let nftContract2; // NFT contract deployed by manager2.
-  let someERC721Contract; // NFT contract deployed by someERC721Manager.
-  let someERC1155Contract; // NFT contract deployed by someERC1155Manager.
   // Addresses
   let owner, gatewayAdmin;
   let platform; // The Big Brother
-  let manager1, manager2, someERC721Manager, someERC1155Manager; // Game providers
+  let manager1, manager2; // Game providers
   let seller, buyer, user3, randomUser; // users
 
   const BASE = 10000;
@@ -29,8 +30,6 @@ describe("Test Marketplace Contract", function () {
       platform,
       manager1,
       manager2,
-      someERC721Manager,
-      someERC1155Manager,
       seller,
       buyer,
       user3,
@@ -46,35 +45,21 @@ describe("Test Marketplace Contract", function () {
     // Let managers deploy nft contracts.
     let nftContract1Address = await factory
       .connect(manager1)
-      .callStatic.deployBasicERC721("nft-contract-1", "UC1");
-    await factory.connect(manager1).deployBasicERC721("nft-contract-1", "UC1");
+      .callStatic.deployBaseERC721("nft-contract-1", "UC1");
+    await factory.connect(manager1).deployBaseERC721("nft-contract-1", "UC1");
     nftContract1 = await hre.ethers.getContractAt(
-      "BasicERC721",
+      "ERC721Base",
       nftContract1Address
     );
 
     let nftContract2Address = await factory
       .connect(manager2)
-      .callStatic.deployBasicERC721("nft-contract-2", "UC2");
-    await factory.connect(manager2).deployBasicERC721("nft-contract-2", "UC2");
+      .callStatic.deployBaseERC1155("some uri");
+    await factory.connect(manager2).deployBaseERC1155("some uri");
     nftContract2 = await hre.ethers.getContractAt(
-      "BasicERC721",
+      "ERC1155Base",
       nftContract2Address
     );
-
-    let SomeERC721Contract = await hre.ethers.getContractFactory("SomeERC721");
-    someERC721Contract = await SomeERC721Contract.connect(
-      someERC721Manager
-    ).deploy("Some NFT", "SNFT");
-    await someERC721Contract.deployed();
-
-    let SomeERC1155Contract = await hre.ethers.getContractFactory(
-      "SomeERC1155"
-    );
-    someERC1155Contract = await SomeERC1155Contract.connect(
-      someERC1155Manager
-    ).deploy("Some URI");
-    await someERC1155Contract.deployed();
 
     // Deploy the marketplace contract.
     const Marketplace = await hre.ethers.getContractFactory("Marketplace");
@@ -109,12 +94,7 @@ describe("Test Marketplace Contract", function () {
       // Manager1 mints an NFT to seller.
       await gateway
         .connect(manager1)
-        .mint(nftContract1.address, seller.address, "Some URI");
-      const tokenIdMinted = await nftContract1.tokenOfOwnerByIndex(
-        seller.address,
-        0
-      );
-      expect(tokenIdMinted).to.equal(tokenId);
+        .ERC721_mint(nftContract1.address, seller.address, tokenId);
 
       /**
        * 1. seller puts a sell bid on the market
@@ -1202,9 +1182,15 @@ describe("Test Marketplace Contract", function () {
       // Mints fbt to buyer
       await fbt.transfer(buyer.address, balance);
       // Manager of some erc1155 mints some NFT to seller.
-      await someERC1155Contract
-        .connect(someERC1155Manager)
-        .mint(seller.address, tokenId, sellerMaximumFill, "0x");
+      await gateway
+        .connect(manager2)
+        .ERC1155_mint(
+          nftContract2.address,
+          seller.address,
+          tokenId,
+          sellerMaximumFill,
+          "0x"
+        );
 
       /**
        * 1. seller puts a sell bid on the market
@@ -1216,13 +1202,13 @@ describe("Test Marketplace Contract", function () {
       // Prepare Order info
       const order = {
         marketplaceAddress: marketplace.address,
-        targetTokenAddress: someERC1155Contract.address,
+        targetTokenAddress: nftContract2.address,
         targetTokenId: tokenId,
         paymentTokenAddress: fbt.address,
         price: price,
         serviceFee: serviceFee,
         royaltyFee: royaltyFee,
-        royaltyFeeReceipient: someERC1155Manager.address,
+        royaltyFeeReceipient: manager2.address,
       };
 
       const orderBytes = encoder.encode(
@@ -1353,7 +1339,7 @@ describe("Test Marketplace Contract", function () {
        * 1. Seller approves the marketplace contract of spending all.
        * 2. Buyer approves the marketplace contract of spending buyerMaxmumFill amount.
        */
-      await someERC1155Contract
+      await nftContract2
         .connect(seller)
         .setApprovalForAll(marketplace.address, true);
       await fbt
@@ -1380,9 +1366,7 @@ describe("Test Marketplace Contract", function () {
 
       expect(await fbt.balanceOf(buyer.address)).to.equal(balance - totalCost);
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
-      expect(await fbt.balanceOf(someERC1155Manager.address)).to.equal(
-        managerFee
-      );
+      expect(await fbt.balanceOf(manager2.address)).to.equal(managerFee);
       expect(await fbt.balanceOf(seller.address)).to.equal(
         totalCost - platFormFee - managerFee
       );
@@ -1426,7 +1410,7 @@ describe("Test Marketplace Contract", function () {
        * 1. Seller approves the marketplace contract of spending all.
        * 2. Buyer approves the marketplace contract of spending buyerMaxmumFill amount.
        */
-      await someERC1155Contract
+      await nftContract2
         .connect(seller)
         .setApprovalForAll(marketplace.address, true);
       await fbt
@@ -1453,9 +1437,7 @@ describe("Test Marketplace Contract", function () {
 
       expect(await fbt.balanceOf(buyer.address)).to.equal(0);
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
-      expect(await fbt.balanceOf(someERC1155Manager.address)).to.equal(
-        managerFee
-      );
+      expect(await fbt.balanceOf(manager2.address)).to.equal(managerFee);
       expect(await fbt.balanceOf(seller.address)).to.equal(
         totalCost - platFormFee - managerFee
       );
@@ -1499,7 +1481,7 @@ describe("Test Marketplace Contract", function () {
        * 1. Seller approves the marketplace contract of spending all.
        * 2. Buyer approves the marketplace contract of spending buyerMaxmumFill amount.
        */
-      await someERC1155Contract
+      await nftContract2
         .connect(seller)
         .setApprovalForAll(marketplace.address, true);
       await fbt
@@ -1526,9 +1508,7 @@ describe("Test Marketplace Contract", function () {
 
       expect(await fbt.balanceOf(buyer.address)).to.equal(balance - totalCost);
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
-      expect(await fbt.balanceOf(someERC1155Manager.address)).to.equal(
-        managerFee
-      );
+      expect(await fbt.balanceOf(manager2.address)).to.equal(managerFee);
       expect(await fbt.balanceOf(seller.address)).to.equal(
         totalCost - platFormFee - managerFee
       );
@@ -1572,7 +1552,7 @@ describe("Test Marketplace Contract", function () {
        * 1. Seller approves the marketplace contract of spending all.
        * 2. Buyer approves the marketplace contract of spending buyerMaxmumFill amount.
        */
-      await someERC1155Contract
+      await nftContract2
         .connect(seller)
         .setApprovalForAll(marketplace.address, true);
       await fbt
@@ -1641,7 +1621,7 @@ describe("Test Marketplace Contract", function () {
         buyerSalt,
       });
 
-      await someERC1155Contract
+      await nftContract2
         .connect(seller)
         .setApprovalForAll(marketplace.address, true);
       await fbt
@@ -1711,9 +1691,7 @@ describe("Test Marketplace Contract", function () {
         balance * 2 - totalCost
       );
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
-      expect(await fbt.balanceOf(someERC1155Manager.address)).to.equal(
-        managerFee
-      );
+      expect(await fbt.balanceOf(manager2.address)).to.equal(managerFee);
       expect(await fbt.balanceOf(seller.address)).to.equal(
         totalCost - platFormFee - managerFee
       );
@@ -1752,7 +1730,7 @@ describe("Test Marketplace Contract", function () {
         buyerSalt,
       });
 
-      await someERC1155Contract
+      await nftContract2
         .connect(seller)
         .setApprovalForAll(marketplace.address, true);
       await fbt
@@ -1822,9 +1800,7 @@ describe("Test Marketplace Contract", function () {
         balance * 2 - totalCost
       );
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
-      expect(await fbt.balanceOf(someERC1155Manager.address)).to.equal(
-        managerFee
-      );
+      expect(await fbt.balanceOf(manager2.address)).to.equal(managerFee);
       expect(await fbt.balanceOf(seller.address)).to.equal(
         totalCost - platFormFee - managerFee
       );
