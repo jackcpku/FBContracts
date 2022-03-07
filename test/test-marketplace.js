@@ -7,6 +7,11 @@ const {
   deployNFTGatewayAndNFTFactory,
 } = require("../lib/deploy.js");
 
+const {
+  calculateCreate2AddressERC721Base,
+  calculateCreate2AddressERC1155Base,
+} = require("../lib/create2.js");
+
 describe("Test Marketplace Contract", function () {
   // Contracts
   let gateway, factory, marketplace, fbt;
@@ -42,24 +47,43 @@ describe("Test Marketplace Contract", function () {
     // Deploy Gateway and Factory contract.
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
 
-    // Let managers deploy nft contracts.
-    let nftContract1Address = await factory
-      .connect(manager1)
-      .callStatic.deployBaseERC721("nft-contract-1", "UC1", 233);
+    const from1 = factory.address;
+    const deployeeName1 = "ERC721Base";
+    const tokenName = "nft-contract-1";
+    const tokenSymbol = "UC1";
+    const salt1 = 233;
+    const nftContract1Address = await calculateCreate2AddressERC721Base(
+      from1,
+      deployeeName1,
+      tokenName,
+      tokenSymbol,
+      gateway.address,
+      salt1
+    );
+
     await factory
       .connect(manager1)
-      .deployBaseERC721("nft-contract-1", "UC1", 233);
+      .deployBaseERC721(tokenName, tokenSymbol, salt1);
     nftContract1 = await hre.ethers.getContractAt(
-      "ERC721Base",
+      deployeeName1,
       nftContract1Address
     );
 
-    let nftContract2Address = await factory
-      .connect(manager2)
-      .callStatic.deployBaseERC1155("some uri", 233);
-    await factory.connect(manager2).deployBaseERC1155("some uri", 233);
+    const from2 = factory.address;
+    const deployeeName2 = "ERC1155Base";
+    const uri = "some uri";
+    const salt2 = 233;
+    const nftContract2Address = await calculateCreate2AddressERC1155Base(
+      from2,
+      deployeeName2,
+      uri,
+      gateway.address,
+      salt2
+    );
+
+    await factory.connect(manager2).deployBaseERC1155(uri, salt2);
     nftContract2 = await hre.ethers.getContractAt(
-      "ERC1155Base",
+      deployeeName2,
       nftContract2Address
     );
 
