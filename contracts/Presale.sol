@@ -30,9 +30,6 @@ contract Presale is Ownable {
     // Allowed stablecoin tokens set
     EnumerableSet.AddressSet private stableCoinSet;
 
-    // All whitelisted users, recorded for later audit
-    EnumerableSet.AddressSet private whitelistUserSet;
-
     // Presale quota, map of (addr => max # of token can buy),
     mapping(address => uint256) public limitAmount;
     // Presale quota consumed, map of (addr => # of token has bought)
@@ -97,7 +94,6 @@ contract Presale is Ownable {
         );
         for (uint256 i = 0; i < addrs.length; i++) {
             limitAmount[addrs[i]] = amounts[i];
-            whitelistUserSet.add(addrs[i]);
             emit SetWhitelist(addrs[i], amounts[i]);
         }
     }
@@ -105,7 +101,6 @@ contract Presale is Ownable {
     // Set whitelist with limit amount
     function setWhitelist(address addr, uint256 amount) external onlyOwner {
         limitAmount[addr] = amount;
-        whitelistUserSet.add(addr);
         emit SetWhitelist(addr, amount);
     }
 
@@ -189,29 +184,6 @@ contract Presale is Ownable {
     // Remaining # of token for addr can buy
     function remainingAmount(address addr) external view returns (uint256) {
         return limitAmount[addr] - boughtAmount[addr];
-    }
-
-    // Query whitelists of [from , to]  0-based
-    function whitelist(uint256 from, uint256 to)
-        external
-        view
-        returns (address[] memory)
-    {
-        require(
-            (from >= 0) && (from <= to) && (to < whitelistUserSet.length()),
-            "Query Params Illegal"
-        );
-
-        address[] memory ret = new address[](to - from + 1);
-        for (uint256 i = from; i <= to; i++) {
-            ret[i] = whitelistUserSet.at(i);
-        }
-        return ret;
-    }
-
-    // Total # of white list user
-    function whitelistCnt() external view returns (uint256) {
-        return whitelistUserSet.length();
     }
 
     // Token decimal for a given token

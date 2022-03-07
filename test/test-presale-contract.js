@@ -105,10 +105,7 @@ describe("Test Presale", function () {
             
             expect(whitelistEvent).to.emit(ps, "SetWhitelist").withArgs(u1.address, BigInt(8) * BigInt(10) ** BigInt(18));
             expect(whitelistEvent).to.emit(ps, "SetWhitelist").withArgs(u2.address, BigInt(999) * BigInt(10) ** BigInt(18));
-            expect(whitelistEvent).to.emit(ps, "SetWhitelist").withArgs(u4.address, 0);
-
-            const addrs = await ps.whitelist(0, await ps.whitelistCnt() - 1);
-            expect(addrs).eql([u1.address, u2.address, u3.address, u4.address]);
+            expect(whitelistEvent).to.emit(ps, "SetWhitelist").withArgs(u4.address, 0);        
 
             expect(await ps.limitAmount(u1.address)).to.equal(BigInt(8) * BigInt(10) ** BigInt(18));
         });
