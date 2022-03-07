@@ -45,8 +45,10 @@ describe("Test Marketplace Contract", function () {
     // Let managers deploy nft contracts.
     let nftContract1Address = await factory
       .connect(manager1)
-      .callStatic.deployBaseERC721("nft-contract-1", "UC1");
-    await factory.connect(manager1).deployBaseERC721("nft-contract-1", "UC1");
+      .callStatic.deployBaseERC721("nft-contract-1", "UC1", 233);
+    await factory
+      .connect(manager1)
+      .deployBaseERC721("nft-contract-1", "UC1", 233);
     nftContract1 = await hre.ethers.getContractAt(
       "ERC721Base",
       nftContract1Address
@@ -54,8 +56,8 @@ describe("Test Marketplace Contract", function () {
 
     let nftContract2Address = await factory
       .connect(manager2)
-      .callStatic.deployBaseERC1155("some uri");
-    await factory.connect(manager2).deployBaseERC1155("some uri");
+      .callStatic.deployBaseERC1155("some uri", 233);
+    await factory.connect(manager2).deployBaseERC1155("some uri", 233);
     nftContract2 = await hre.ethers.getContractAt(
       "ERC1155Base",
       nftContract2Address

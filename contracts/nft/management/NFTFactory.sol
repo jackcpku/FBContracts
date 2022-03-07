@@ -22,13 +22,14 @@ contract NFTFactory is Initializable {
     /**
      * Deploy a ERC721Base contract.
      */
-    function deployBaseERC721(string memory _name, string memory _symbol)
-        public
-        returns (address deployedAddress)
-    {
+    function deployBaseERC721(
+        string calldata _name,
+        string calldata _symbol,
+        uint256 _salt
+    ) external returns (address deployedAddress) {
         // Deploy the contract and set its gateway.
         deployedAddress = address(
-            new ERC721Base(_name, _symbol, gatewayAddress)
+            new ERC721Base{salt: bytes32(_salt)}(_name, _symbol, gatewayAddress)
         );
 
         emit ContractDeployed(msg.sender, deployedAddress);
@@ -40,12 +41,14 @@ contract NFTFactory is Initializable {
     /**
      * Deploy a ERC1155Base contract.
      */
-    function deployBaseERC1155(string memory _uri)
-        public
+    function deployBaseERC1155(string calldata _uri, uint256 _salt)
+        external
         returns (address deployedAddress)
     {
         // Deploy the contract and set its gateway.
-        deployedAddress = address(new ERC1155Base(_uri, gatewayAddress));
+        deployedAddress = address(
+            new ERC1155Base{salt: bytes32(_salt)}(_uri, gatewayAddress)
+        );
 
         emit ContractDeployed(msg.sender, deployedAddress);
 
