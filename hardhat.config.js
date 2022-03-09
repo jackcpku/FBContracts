@@ -37,7 +37,8 @@ extendEnvironment((hre) => {
   let presale = "";
   switch (hre.network.name) {
     case "rinkeby":
-      token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
+      // token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
+      token = "0x68944779E69686467189fE3e20b0751158103053";       //hzr's pvs
       presale = "0x0B4174812EBDD920B75237F376521057a2b23991";
       vesting = "0xcac23BF1ebD991356930da8762a411a9F233933f";
       break;
@@ -71,7 +72,8 @@ module.exports = {
     hardhat: {
     },
     rinkeby: {
-      url: "https://rinkeby.infura.io/v3/" + process.env.API_KEY_INFURA_RINKEBY,
+      // url: "https://rinkeby.infura.io/v3/" + process.env.API_KEY_INFURA_RINKEBY,
+      url: "https://eth-rinkeby.alchemyapi.io/v2/" + process.env.API_KEY_ALCHEMY_RINKEBY,
       accounts: privateKey != "" ? [privateKey] : []
     },
     // mainnet: {
