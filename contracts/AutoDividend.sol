@@ -30,19 +30,16 @@ contract AutoDividend {
     uint256 public totalClaimed;
 
     // All pvs(dividend) that have been priced in
-    uint256 public totalPool;
+    uint256 public accumulatedPool;
 
-    // Dividends per nft per period
-    uint256[] public dividends;
+    // Accumulated dividends of each nft in [mintedPeriod, nowPeriod)
+    uint256[] public accumulatedDividends;
 
     // Dividend that has been claimed by this nft's owner
     mapping(uint256 => uint256) public hasClaimed;
 
-    // startSecond of dividend
-    uint256 public startSecond;
-
-    // each period begins second from the startSecond
-    uint256[] public periodSecond;
+    // each period begined second
+    uint256[] public periodStartTime;
 
     // fixed amount of release in each period
     uint256 public constant NFT_AMOUNT_RELASED_PER_PERIOD = 2_000;
@@ -59,16 +56,12 @@ contract AutoDividend {
     constructor(
         address _pvsAddress,
         address _tokenAddress,
-        uint256 _startSecond,
-        uint256[] memory _periods
+        uint256[] memory _periodStartTime
     ) {
         pvsAddress = _pvsAddress;
         tokenAddress = _tokenAddress;
-        startSecond = _startSecond;
-        periodSecond = _periods;
-
-        dividends.push(0);
-        period = 1;
+        periodStartTime = _periodStartTime;
+        accumulatedDividends.push(0);           //period from 0
     }
 
     /**
@@ -82,20 +75,24 @@ contract AutoDividend {
             "Dividend: the new period must be exactly one period after the present"
         );
         require(
-            block.timestamp >= startSecond + periodSecond[_newPeriod],
+            block.timestamp >= periodStartTime[_newPeriod],
             "Dividend: the next period has not yet begun"
         );
+        // lastPool
+        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool;
+        // 
+        accumulatedDividends.push(0);
+        for (uint256 i = 0; i <= period; i++) {
+            accumulatedDividends[i] += lastPool / mintedNFTAmount();
+        }
 
-        uint256 pool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - totalPool;
-        dividends.push(pool / (NFT_AMOUNT_RELASED_PER_PERIOD * period));
-        totalPool += pool;
-
+        accumulatedPool += lastPool;         
         period = _newPeriod;
 
         emit UpdatePeriod(
             msg.sender,
             period,
-            (NFT_AMOUNT_RELASED_PER_PERIOD * period)
+            mintedNFTAmount()
         );
     }
 
@@ -103,8 +100,8 @@ contract AutoDividend {
      * Get one nft's minted period
      */
     function getPeriod(uint256 _tokenId) internal view returns (uint256) {
-        require(_tokenId > 0 && _tokenId <= (NFT_AMOUNT_RELASED_PER_PERIOD * period), "Dividend: tokenId exceeded limit");
-        return ceilDiv(_tokenId, NFT_AMOUNT_RELASED_PER_PERIOD);
+        require(_tokenId > 0 && _tokenId <= mintedNFTAmount(), "Dividend: tokenId exceeded limit");
+        return ((_tokenId - 1) /  NFT_AMOUNT_RELASED_PER_PERIOD);    //ceilDiv
     }
 
     /**
@@ -115,14 +112,8 @@ contract AutoDividend {
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
         // get the nft's minted period
         uint256 beginPeriod = getPeriod(_tokenId);
-        // previous dividends
-        uint256 previous;
-        for (uint256 i = beginPeriod; i < period; i++) {
-            previous += dividends[i];
-        }
-        // current dividend
-        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - totalPool) / (NFT_AMOUNT_RELASED_PER_PERIOD * period);
-        return previous + current;
+        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool) / mintedNFTAmount();
+        return accumulatedDividends[beginPeriod] + current;
     }
 
     // claim dividend for nft with _tokenId
@@ -152,8 +143,8 @@ contract AutoDividend {
         return totalDividend(_tokenId) - hasClaimed[_tokenId];
     }
 
-    // ceilDiv 
-    function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a / b + (a % b == 0 ? 0 : 1);
+    // total minted amount in period (0-based)
+    function mintedNFTAmount() internal view returns (uint256) {
+        return NFT_AMOUNT_RELASED_PER_PERIOD * (period + 1);
     }
 }

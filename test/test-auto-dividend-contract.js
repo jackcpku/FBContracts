@@ -21,7 +21,7 @@ describe("Test NFT Dividend..........", function () {
   const oneHour = 60 * 60;
   const oneDay = 24 * oneHour;
   const sevenDays = 7 * oneDay;
-  const periods = [0, 0, oneHour, oneDay, sevenDays];
+  const periodStartTime = [startTime + 0, startTime + oneHour, startTime + oneDay, startTime + sevenDays];
 
   beforeEach("contracts deployed.", async function () {
     await hre.network.provider.send("hardhat_reset");
@@ -36,7 +36,7 @@ describe("Test NFT Dividend..........", function () {
       .connect(u2)
       .callStatic.deployBaseERC721("U2-contract", "U2T");
 
-    dd = await deployAutoDividend(pvs.address, nftContractAddress, startTime, periods);
+    dd = await deployAutoDividend(pvs.address, nftContractAddress, periodStartTime);
 
     //set start time for our blockchian
     await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime]);
@@ -56,15 +56,15 @@ describe("Test NFT Dividend..........", function () {
 
     const block = await hre.ethers.provider.getBlock("latest");
     console.log(block.timestamp);
-    await expect(dd.updatePeriod(2)).to.be.revertedWith("Dividend: the next period has not yet begun");
+    await expect(dd.updatePeriod(1)).to.be.revertedWith("Dividend: the next period has not yet begun");
 
     // Speed up the clock to the second period 
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-        startTime + periods[2],
+        startTime + periodStartTime[1],
     ]);
     // period 2 begin
-    await dd.updatePeriod(2);
-    await expect(dd.updatePeriod(1)).to.be.revertedWith("Dividend: the new period must be exactly one period after the present");
+    await dd.updatePeriod(1);
+    await expect(dd.updatePeriod(0)).to.be.revertedWith("Dividend: the new period must be exactly one period after the present");
     //add p2pvs to pool[2]
     await pvs.transfer(dd.address, p2pvs);
     expect (await dd.totalDividend(1))
@@ -80,19 +80,19 @@ describe("Test NFT Dividend..........", function () {
 
     // Speed up the clock to the second period 
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-        startTime + periods[2],
+        startTime + periodStartTime[1],
     ]);
     //period 2 begin
-    await dd.updatePeriod(2);
+    await dd.updatePeriod(1);
     //add p2pvs to pool[2]
     await pvs.transfer(dd.address, p2pvs);
 
     // Speed up the clock to the second period 
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-        startTime + periods[3],
+        startTime + periodStartTime[2],
     ]);
     //period 3 begin
-    await dd.updatePeriod(3);
+    await dd.updatePeriod(2);
     await pvs.transfer(dd.address, p3pvs);
 
     expect (await dd.totalDividend(1))
@@ -110,18 +110,18 @@ describe("Test NFT Dividend..........", function () {
     await pvs.transfer(dd.address, p1pvs);
     // Speed up the clock to the second period 
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-        startTime + periods[2],
+        startTime + periodStartTime[1],
     ]);
     //period 2 begin
-    await dd.updatePeriod(2);
+    await dd.updatePeriod(1);
     //add p2pvs to pool[2]
     await pvs.transfer(dd.address, p2pvs);
     // Speed up the clock to the second period 
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-        startTime + periods[3],
+        startTime + periodStartTime[2],
     ]);
     //period 3 begin
-    await dd.updatePeriod(3);
+    await dd.updatePeriod(2);
     await pvs.transfer(dd.address, p3pvs);
 
     // Let u2 deploy the contract.
