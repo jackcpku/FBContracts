@@ -53,14 +53,11 @@ contract VestingNFT {
     ) {
         manager = _manager;
         tokenAddress = _tokenAddress;
-
         startSecond = _start;
-        require(_periods.length == _unlockQuantity.length);
 
-        for (uint256 i = 0; i < _periods.length; i++) {
-            periodSecond.push(_periods[i]);
-            unlockQuantity.push(_unlockQuantity[i]);
-        }
+        require(_periods.length == _unlockQuantity.length);
+        periodSecond = _periods;
+        unlockQuantity = _unlockQuantity;
     }
 
     function transferManagement(address _newManager) public onlyManager {
@@ -70,12 +67,15 @@ contract VestingNFT {
     }
 
     function maxUnlockId() public view returns (uint256) {
+        if (block.timestamp < startSecond) {
+            return 0;
+        }
         for (uint256 i = 0; i < periodSecond.length; i++) {
-            if ((startSecond + periodSecond[i]) > block.timestamp) {
+            if (block.timestamp < (startSecond + periodSecond[i])) {
                 return unlockQuantity[i];
             }
         }
-        return 0;
+        return unlockQuantity[unlockQuantity.length - 1];
     }
 
     // claim batch
