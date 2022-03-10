@@ -1,6 +1,7 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
 const hre = require("hardhat");
+const { deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
+const { calculateCreate2AddressBasicERC721 } = require("../lib/create2.js");
 
 const {
   deployVote,
@@ -9,6 +10,7 @@ const {
 } = require("../lib/deploy.js");
 
 describe("Test Vote Contract", function () {
+  let gateway, factory;
   let vote, ticket, pvs, someERC721Contract;
   let owner, manager0, user0, user1;
 
@@ -16,7 +18,8 @@ describe("Test Vote Contract", function () {
   const tktAmount = [100000, 100000];
   const fallbackPrice = 40;
   const specialPrice = 80;
-  const specialTokenId = 0;
+  const specialTokenId = 1;
+  const normalTokenId = 2;
 
   const currentTimestamp = 9_000_000_000;
   const deadlineTimestamp = 10_000_000_000;
@@ -40,14 +43,35 @@ describe("Test Vote Contract", function () {
     await ticket.mint(user1.address, tktAmount[1]);
 
     // Set up ERC721 contract
-    let SomeERC721Contract = await hre.ethers.getContractFactory("SomeERC721");
-    someERC721Contract = await SomeERC721Contract.connect(manager0).deploy(
-      "Some NFT",
-      "SNFT"
+    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(owner));
+    const from = factory.address;
+    const deployeeName = "BasicERC721";
+    const tokenName = "SomeERC721";
+    const tokenSymbol = "SNFT";
+    const baseURI = "baseURI";
+    const salt = 233;
+    const someNFTAddress = await calculateCreate2AddressBasicERC721(
+      from,
+      deployeeName,
+      tokenName,
+      tokenSymbol,
+      baseURI,
+      gateway.address,
+      salt
     );
-    await someERC721Contract.deployed();
-    await someERC721Contract.connect(manager0).mint(manager0.address, "uri-0");
-    await someERC721Contract.connect(manager0).mint(manager0.address, "uri-1");
+    await factory
+      .connect(manager0)
+      .deployBaseERC721(tokenName, tokenSymbol, baseURI, salt);
+    someERC721Contract = await hre.ethers.getContractAt(
+      "BasicERC721",
+      someNFTAddress
+    );
+    await gateway
+      .connect(manager0)
+      .ERC721_mint(someNFTAddress, manager0.address, normalTokenId);
+    await gateway
+      .connect(manager0)
+      .ERC721_mint(someNFTAddress, manager0.address, specialTokenId);
 
     // Set up Vote contract
     vote = await deployVote(ticket.address, pvs.address);
@@ -70,15 +94,15 @@ describe("Test Vote Contract", function () {
   });
 
   it("should get fallback price", async function () {
-    expect(await vote.getPrice(someERC721Contract.address, 1)).to.equal(
-      fallbackPrice
-    );
+    expect(
+      await vote.getPrice(someERC721Contract.address, normalTokenId)
+    ).to.equal(fallbackPrice);
   });
 
   it("should get special price", async function () {
-    expect(await vote.getPrice(someERC721Contract.address, 0)).to.equal(
-      specialPrice
-    );
+    expect(
+      await vote.getPrice(someERC721Contract.address, specialTokenId)
+    ).to.equal(specialPrice);
   });
 
   it("should fail initializing vote if not manager", async function () {
