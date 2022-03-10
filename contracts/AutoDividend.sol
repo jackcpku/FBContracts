@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
@@ -15,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * 2. The accumulated dividend amount of a certain nft to the current period  = the accumulated dividend amount from the period when it was minted + the dividend amount of current period.
  */
 
-contract AutoDividend is Ownable {
+contract AutoDividend {
     using SafeERC20 for IERC20;
 
     // The token used to pay dividends
@@ -60,12 +59,12 @@ contract AutoDividend is Ownable {
     constructor(
         address _pvsAddress,
         address _tokenAddress,
-        uint256 _start,
+        uint256 _startSecond,
         uint256[] memory _periods
     ) {
         pvsAddress = _pvsAddress;
         tokenAddress = _tokenAddress;
-        startSecond = _start;
+        startSecond = _startSecond;
         periodSecond = _periods;
 
         dividends.push(0);
