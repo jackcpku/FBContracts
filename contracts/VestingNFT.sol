@@ -71,7 +71,7 @@ contract VestingNFT {
             return 0;
         }
         for (uint256 i = 0; i < periodSecond.length; i++) {
-            if (block.timestamp < (startSecond + periodSecond[i])) {
+            if (block.timestamp > (startSecond + periodSecond[i])) {
                 return unlockQuantity[i];
             }
         }
