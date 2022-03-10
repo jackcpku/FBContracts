@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../ERC721Base.sol";
-import "../ERC1155Base.sol";
+import "../BasicERC721.sol";
+import "../BasicERC1155.sol";
 import "./NFTGateway.sol";
 
 contract NFTFactory is Initializable {
@@ -20,7 +20,7 @@ contract NFTFactory is Initializable {
     }
 
     /**
-     * Deploy a ERC721Base contract.
+     * Deploy a BasicERC721 contract.
      */
     function deployBaseERC721(
         string calldata _name,
@@ -29,7 +29,11 @@ contract NFTFactory is Initializable {
     ) external returns (address deployedAddress) {
         // Deploy the contract and set its gateway.
         deployedAddress = address(
-            new ERC721Base{salt: bytes32(_salt)}(_name, _symbol, gatewayAddress)
+            new BasicERC721{salt: bytes32(_salt)}(
+                _name,
+                _symbol,
+                gatewayAddress
+            )
         );
 
         emit ContractDeployed(msg.sender, deployedAddress);
@@ -39,7 +43,7 @@ contract NFTFactory is Initializable {
     }
 
     /**
-     * Deploy a ERC1155Base contract.
+     * Deploy a BasicERC1155 contract.
      */
     function deployBaseERC1155(string calldata _uri, uint256 _salt)
         external
@@ -47,7 +51,7 @@ contract NFTFactory is Initializable {
     {
         // Deploy the contract and set its gateway.
         deployedAddress = address(
-            new ERC1155Base{salt: bytes32(_salt)}(_uri, gatewayAddress)
+            new BasicERC1155{salt: bytes32(_salt)}(_uri, gatewayAddress)
         );
 
         emit ContractDeployed(msg.sender, deployedAddress);

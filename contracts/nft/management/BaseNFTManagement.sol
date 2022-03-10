@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IBaseNFTManagement.sol";
+import "../interfaces/IBaseNFTManagement.sol";
 
 /**
  * The management interface exposed to gateway.

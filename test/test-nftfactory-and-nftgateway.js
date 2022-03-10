@@ -3,8 +3,8 @@ const hre = require("hardhat");
 
 const { deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
 const {
-  calculateCreate2AddressERC721Base,
-  calculateCreate2AddressERC1155Base,
+  calculateCreate2AddressBasicERC721,
+  calculateCreate2AddressBasicERC1155,
 } = require("../lib/create2.js");
 
 describe("Test NFTFactory & NFTGateway Contract", function () {
@@ -35,11 +35,11 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     // calculate u2ContractAddress deployed using create2
     const from = factory.address;
-    const deployeeName = "ERC721Base";
+    const deployeeName = "BasicERC721";
     const tokenName = "U2-contract";
     const tokenSymbol = "U2T";
     const salt = 233;
-    const u2ContractAddress = await calculateCreate2AddressERC721Base(
+    const u2ContractAddress = await calculateCreate2AddressBasicERC721(
       from,
       deployeeName,
       tokenName,
@@ -51,7 +51,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     // Let u2 deploy the contract.
     await factory.connect(u2).deployBaseERC721(tokenName, tokenSymbol, salt);
     let u2Contract = await hre.ethers.getContractAt(
-      "ERC721Base",
+      "BasicERC721",
       u2ContractAddress
     );
     expect(await u2Contract.gateway()).to.equal(gateway.address);
@@ -83,10 +83,10 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     // calculate u2ContractAddress deployed using create2
     const from = factory.address;
-    const deployeeName = "ERC1155Base";
+    const deployeeName = "BasicERC1155";
     const uri = "some uri";
     const salt = 233;
-    const u2ContractAddress = await calculateCreate2AddressERC1155Base(
+    const u2ContractAddress = await calculateCreate2AddressBasicERC1155(
       from,
       deployeeName,
       uri,
@@ -183,9 +183,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     let u2Contract, u3Contract;
     beforeEach("Deploy contracts on behalf of u2 & u3", async function () {
       // calculate u2ContractAddress deployed using create2
-      const u2ContractAddress = await calculateCreate2AddressERC721Base(
+      const u2ContractAddress = await calculateCreate2AddressBasicERC721(
         factory.address,
-        "ERC721Base",
+        "BasicERC721",
         "U2-contract",
         "U2T",
         gateway.address,
@@ -194,14 +194,14 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
       await factory.connect(u2).deployBaseERC721("U2-contract", "U2T", 233);
       u2Contract = await hre.ethers.getContractAt(
-        "ERC721Base",
+        "BasicERC721",
         u2ContractAddress
       );
 
       // calculate u3ContractAddress deployed using create2
-      const u3ContractAddress = await calculateCreate2AddressERC721Base(
+      const u3ContractAddress = await calculateCreate2AddressBasicERC721(
         factory.address,
-        "ERC721Base",
+        "BasicERC721",
         "U3-contract",
         "U3T",
         gateway.address,
@@ -210,7 +210,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
       await factory.connect(u3).deployBaseERC721("U3-contract", "U3T", 233);
       u3Contract = await hre.ethers.getContractAt(
-        "ERC721Base",
+        "BasicERC721",
         u3ContractAddress
       );
     });
