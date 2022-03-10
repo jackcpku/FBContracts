@@ -51,19 +51,21 @@ describe("Test Marketplace Contract", function () {
     const deployeeName1 = "BasicERC721";
     const tokenName = "nft-contract-1";
     const tokenSymbol = "UC1";
+    const baseURI = "baseURI";
     const salt1 = 233;
     const nftContract1Address = await calculateCreate2AddressBasicERC721(
       from1,
       deployeeName1,
       tokenName,
       tokenSymbol,
+      baseURI,
       gateway.address,
       salt1
     );
 
     await factory
       .connect(manager1)
-      .deployBaseERC721(tokenName, tokenSymbol, salt1);
+      .deployBaseERC721(tokenName, tokenSymbol, baseURI, salt1);
     nftContract1 = await hre.ethers.getContractAt(
       deployeeName1,
       nftContract1Address

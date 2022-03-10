@@ -25,6 +25,7 @@ contract NFTFactory is Initializable {
     function deployBaseERC721(
         string calldata _name,
         string calldata _symbol,
+        string calldata _baseURI,
         uint256 _salt
     ) external returns (address deployedAddress) {
         // Deploy the contract and set its gateway.
@@ -32,6 +33,7 @@ contract NFTFactory is Initializable {
             new BasicERC721{salt: bytes32(_salt)}(
                 _name,
                 _symbol,
+                _baseURI,
                 gatewayAddress
             )
         );

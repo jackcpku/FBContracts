@@ -14,8 +14,11 @@ contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
     constructor(
         string memory _name,
         string memory _symbol,
+        string memory _baseURI,
         address _gateway
-    ) ERC721(_name, _symbol) BaseNFTManagement(_gateway) {}
+    ) ERC721(_name, _symbol) BaseNFTManagement(_gateway) {
+        __baseURI = _baseURI;
+    }
 
     function mint(address to, uint256 tokenId) external onlyGateway {
         _safeMint(to, tokenId);
