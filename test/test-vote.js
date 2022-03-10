@@ -154,7 +154,7 @@ describe("Test Vote Contract", function () {
 
     // No one is able to vote before listing time
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, 0, 10)
+      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
     ).to.be.revertedWith("Vote: the voting process has not started");
 
     /****************** After Listing Time ******************/
@@ -164,38 +164,53 @@ describe("Test Vote Contract", function () {
 
     // No one is able to vote before the nft is transferred to vote contract
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, 0, 10)
+      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
     ).to.be.revertedWith("Vote: nft not owned by contract");
 
-    // Transfer the nft to vote contract
+    // Transfer the nfts to vote contract
     await someERC721Contract
       .connect(manager0)
-      .transferFrom(manager0.address, vote.address, 0);
+      .transferFrom(manager0.address, vote.address, specialTokenId);
+    await someERC721Contract
+      .connect(manager0)
+      .transferFrom(manager0.address, vote.address, normalTokenId);
 
     // user0 votes 0 and fails
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, 0, 10)
-    ).to.be.revertedWith("ERC20: insufficient allowance");
+      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
+    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
     // user0 approves vote of spending pvs
     await pvs.connect(user0).approve(vote.address, 80);
     // user0 votes 0 and succeeds
-    await vote.connect(user0).vote(someERC721Contract.address, 0, 10);
+    await vote
+      .connect(user0)
+      .vote(someERC721Contract.address, specialTokenId, 10);
     // user1 votes less or equal than user0 and fails
     await pvs.connect(user1).approve(vote.address, 80);
     await expect(
-      vote.connect(user1).vote(someERC721Contract.address, 0, 10)
+      vote.connect(user1).vote(someERC721Contract.address, specialTokenId, 10)
     ).to.be.revertedWith("Vote: please vote more");
     // user1 votes more than user0 and succeeds
-    await vote.connect(user1).vote(someERC721Contract.address, 0, 20);
+    await vote
+      .connect(user1)
+      .vote(someERC721Contract.address, specialTokenId, 20);
     // user0 votes even more
-    await vote.connect(user0).vote(someERC721Contract.address, 0, 100);
+    await vote
+      .connect(user0)
+      .vote(someERC721Contract.address, specialTokenId, 100);
     // user1 votes more than he has and fails
     await expect(
-      vote.connect(user1).vote(someERC721Contract.address, 0, tktAmount[1])
+      vote
+        .connect(user1)
+        .vote(someERC721Contract.address, specialTokenId, tktAmount[1])
     ).to.be.revertedWith("Ticket balance is insufficient");
     // user0 votes more when he is already the winner
-    await vote.connect(user0).vote(someERC721Contract.address, 0, 1);
-    await vote.connect(user0).vote(someERC721Contract.address, 0, 1);
+    await vote
+      .connect(user0)
+      .vote(someERC721Contract.address, specialTokenId, 1);
+    await vote
+      .connect(user0)
+      .vote(someERC721Contract.address, specialTokenId, 1);
     // user0 withdraws margin and fails
     await expect(vote.connect(user0).withdrawMargin(80)).to.be.revertedWith(
       "Vote: low margin balance"
@@ -204,12 +219,21 @@ describe("Test Vote Contract", function () {
     await vote.connect(user1).withdrawMargin(80);
     // user0 claims with invalid input
     await expect(
-      vote.connect(user0).claim([someERC721Contract.address], [0, 0])
+      vote
+        .connect(user0)
+        .claim([someERC721Contract.address], [specialTokenId, specialTokenId])
     ).to.be.revertedWith("Vote: invalid input");
     // user0 claims before ddl and fails
     await expect(
-      vote.connect(user0).claim([someERC721Contract.address], [0])
-    ).to.be.revertedWith("Vote: The voting process has not finished");
+      vote.connect(user0).claim([someERC721Contract.address], [specialTokenId])
+    ).to.be.revertedWith("Vote: the voting process has not finished");
+
+    // manager claims no-winner token before ddl and fails
+    await expect(
+      vote
+        .connect(manager0)
+        .claimBack(someERC721Contract.address, [normalTokenId])
+    ).to.be.revertedWith("Vote: the voting process has not finished");
 
     /****************** After Expiration Time ******************/
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -217,9 +241,23 @@ describe("Test Vote Contract", function () {
     ]);
     // user0 votes after ddl and fails
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, 0, 1)
+      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 1)
     ).to.be.revertedWith("Vote: the voting process has been finished");
     // user0 claims after the ddl and succeeds
-    await vote.connect(user0).claim([someERC721Contract.address], [0]);
+    await vote
+      .connect(user0)
+      .claim([someERC721Contract.address], [specialTokenId]);
+
+    // manager claims no-winner token
+    await vote
+      .connect(manager0)
+      .claimBack(someERC721Contract.address, [normalTokenId]);
+
+    // manager claims non-no-winner token and fails
+    await expect(
+      vote
+        .connect(manager0)
+        .claimBack(someERC721Contract.address, [specialTokenId])
+    ).to.be.revertedWith("Vote: the token has a winner");
   });
 });

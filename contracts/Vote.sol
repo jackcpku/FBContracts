@@ -272,7 +272,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         for (uint256 i = 0; i < _tokenAddress.length; i++) {
             require(
                 block.timestamp >= expirationTime[_tokenAddress[i]],
-                "Vote: The voting process has not finished"
+                "Vote: the voting process has not finished"
             );
 
             uint256 total = getPrice(_tokenAddress[i], _tokenId[i]);
@@ -294,6 +294,33 @@ contract Vote is Initializable, OwnableUpgradeable {
             IERC721(_tokenAddress[i]).safeTransferFrom(
                 address(this),
                 winnerOfToken,
+                _tokenId[i]
+            );
+        }
+    }
+
+    /**
+     * After the sale has expired, if there is no winner for a specific token,
+     * the manager is able to claim back that token.
+     */
+    function claimBack(address _tokenAddress, uint256[] calldata _tokenId)
+        external
+        onlyManager(_tokenAddress)
+    {
+        require(
+            block.timestamp >= expirationTime[_tokenAddress],
+            "Vote: the voting process has not finished"
+        );
+
+        for (uint256 i = 0; i < _tokenId.length; i++) {
+            require(
+                winner[_tokenAddress][_tokenId[i]] == address(0),
+                "Vote: the token has a winner"
+            );
+
+            IERC721(_tokenAddress).safeTransferFrom(
+                address(this),
+                msg.sender,
                 _tokenId[i]
             );
         }
