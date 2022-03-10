@@ -9,12 +9,13 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 contract VestingNFT {
     using SafeERC20 for IERC20;
 
-    // 
+    // manager of vesting
     address public manager;
 
     // the target NFT for vesting
     address public tokenAddress;
-
+    
+    // total released nft
     uint256 totalReleased;
 
     /**
@@ -22,7 +23,7 @@ contract VestingNFT {
      *
      * startSecond: vesting start time (in Unix timestamp)
      * periodSecond: Each vesting stage (in second after `startSecond`)
-     * unlockQuantity: Unlocked proportion of tokens, between[0, `PROPORTION_DENOMINATOR`]
+     * unlockQuantity: Unlocked Quantity of nft
      *
      * The lengths of `periodSecond` and `unlockQuantity` are the same 
      * For example, in the case of periodSecond = [0, 1000, 2000] and unlockQuantity = [2000, 4000, 8000],
@@ -84,6 +85,7 @@ contract VestingNFT {
         }
     }
 
+    // claim nft 
     function claim(uint256 _tokenId, address _receiver) public onlyManager {
         require(
             IERC721(tokenAddress).ownerOf(_tokenId) == address(this),
@@ -103,5 +105,4 @@ contract VestingNFT {
             _tokenId
         );
     }
-
 }
