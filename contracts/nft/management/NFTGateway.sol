@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../common/INFTGateway.sol";
-import "../common/IBaseNFTManagement.sol";
+import "../interfaces/INFTGateway.sol";
+import "../interfaces/IBaseNFTManagement.sol";
 
-import "../ERC721Base.sol";
-import "../ERC1155Base.sol";
+import "../BasicERC721.sol";
+import "../BasicERC1155.sol";
 
 contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /********************************************************************
@@ -76,7 +76,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _recipient,
         uint256 _tokenId
     ) external override onlyManagerOf(_nftContract) {
-        ERC721Base(_nftContract).mint(_recipient, _tokenId);
+        BasicERC721(_nftContract).mint(_recipient, _tokenId);
     }
 
     function ERC721_burn(address _nftContract, uint256 _tokenId)
@@ -84,7 +84,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyManagerOf(_nftContract)
     {
-        ERC721Base(_nftContract).burn(_tokenId);
+        BasicERC721(_nftContract).burn(_tokenId);
     }
 
     function ERC721_setURI(address _nftContract, string memory _newURI)
@@ -92,7 +92,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyManagerOf(_nftContract)
     {
-        ERC721Base(_nftContract).setURI(_newURI);
+        BasicERC721(_nftContract).setURI(_newURI);
     }
 
     function ERC1155_mint(
@@ -102,7 +102,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256 _amount,
         bytes memory _data
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).mint(_account, _id, _amount, _data);
+        BasicERC1155(_nftContract).mint(_account, _id, _amount, _data);
     }
 
     function ERC1155_mintBatch(
@@ -112,7 +112,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256[] memory _amounts,
         bytes memory _data
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).mintBatch(_to, _ids, _amounts, _data);
+        BasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
     }
 
     function ERC1155_burn(
@@ -121,7 +121,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256 _id,
         uint256 _value
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).burn(_account, _id, _value);
+        BasicERC1155(_nftContract).burn(_account, _id, _value);
     }
 
     function ERC1155_burnBatch(
@@ -130,7 +130,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256[] memory _ids,
         uint256[] memory _values
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).burnBatch(_account, _ids, _values);
+        BasicERC1155(_nftContract).burnBatch(_account, _ids, _values);
     }
 
     function ERC1155_setURI(address _nftContract, string memory _newuri)
@@ -138,7 +138,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyManagerOf(_nftContract)
     {
-        ERC1155Base(_nftContract).setURI(_newuri);
+        BasicERC1155(_nftContract).setURI(_newuri);
     }
 
     /********************************************************************
