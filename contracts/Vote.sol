@@ -53,20 +53,20 @@ contract Vote is Initializable, OwnableUpgradeable {
     // Winner of a certain NFT
     mapping(address => mapping(uint256 => address)) winner;
 
-    event ManagerSet(
+    event SetManager(
         address operator,
         address indexed tokenAddress,
         address indexed manager
     );
 
-    event VoteInitialized(
+    event InitializeVote(
         address manager,
         address indexed tokenAddress,
         uint256 indexed listingTime,
         uint256 indexed expirationTime
     );
 
-    event Voted(
+    event VoteToken(
         address indexed voter,
         address indexed tokenAddress,
         uint256 indexed tokenId,
@@ -98,7 +98,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         onlyOwner
     {
         manager[_tokenAddress] = _manager;
-        emit ManagerSet(msg.sender, _tokenAddress, _manager);
+        emit SetManager(msg.sender, _tokenAddress, _manager);
     }
 
     // Called by managers.
@@ -140,7 +140,7 @@ contract Vote is Initializable, OwnableUpgradeable {
         listingTime[_tokenAddress] = _listingTime;
         expirationTime[_tokenAddress] = _expirationTime;
 
-        emit VoteInitialized(
+        emit InitializeVote(
             msg.sender,
             _tokenAddress,
             _listingTime,
@@ -255,7 +255,7 @@ contract Vote is Initializable, OwnableUpgradeable {
             marginLocked[prevWinner] -= tokenPrice;
         }
 
-        emit Voted(msg.sender, _tokenAddress, _tokenId, _amount);
+        emit VoteToken(msg.sender, _tokenAddress, _tokenId, _amount);
     }
 
     /**
@@ -279,6 +279,10 @@ contract Vote is Initializable, OwnableUpgradeable {
             uint256 fee = total / 2;
 
             address winnerOfToken = winner[_tokenAddress[i]][_tokenId[i]];
+            require(
+                winnerOfToken != address(0),
+                "Vote: winner of token is zero address"
+            );
             marginLocked[winnerOfToken] -= total;
             margin[winnerOfToken] -= total;
 
