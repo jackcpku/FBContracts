@@ -8,10 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 /**
  * The platform will release NFT in multiple periods, and addresses holding NFT can get a certain percentage of platform NFT Market revenue dividends.
  * This Contract is designed for helping the platform to calculate and distribute dividends for each nft in each period.
- * During a period, the pvs held by this contract will be evenly distributed to all NFTs that have been released at the .
- *
- * 1. At the beginning of each period, the dividend pool of the previous period is calculated and locked according to the real-time pvs balance.
- * 2. The accumulated dividend amount of a certain nft to the current period  = the accumulated dividend amount from the period when it was minted + the dividend amount of current period.
+ * During a period, the incoming dividend pvs will be evenly distributed to all NFTs that have been released.
  */
 
 contract Dividend {
@@ -68,9 +65,7 @@ contract Dividend {
     }
 
     /**
-     * Deduce and lock previous period's accumulated dividends of each nft
-     * Update totalAmount of nft & maxTokenId in the new period
-     * Update period
+     * Update period 
      */
     function updatePeriod(uint256 _newPeriod) external {
         require(
@@ -81,25 +76,23 @@ contract Dividend {
             block.timestamp >= periodStartTime[_newPeriod],
             "Dividend: the next period has not yet begun"
         );
-
-        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) +
-            totalClaimed -
-            accumulatedPool;
-
-        accumulatedDividends.push(0);
-        accumulatedDividends[_newPeriod] =
-            accumulatedDividends[currentPeriod] +
-            lastPool /
-            releasedPPNAmount();
-
+        // 1. At the beginning of _newPeriod, the dividend pool of the previous period is calculated and locked according to the real-time pvs balance.
+        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool;
+        
+        // 2. calculate: accumulatedDividends[_newPeriod] = accumulated dividends for one PPN during period k where 0 <= k < _newPeriod.
+        accumulatedDividends.push(accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount());
+        
+        // 3. accumulate pvs pool 
         accumulatedPool += lastPool;
+        
+        // 4. update period
         currentPeriod = _newPeriod;
 
         emit UpdatePeriod(msg.sender, currentPeriod, releasedPPNAmount());
     }
 
     /**
-     * Get one nft's minted period
+     * Get one nft's released period
      */
     function getPeriod(uint256 _tokenId) internal view returns (uint256) {
         require(
@@ -111,23 +104,19 @@ contract Dividend {
     }
 
     /**
-     * Get the total dividend of a nft from its minted period
-     * The accumulated dividend amount of a certain nft to the current period
-     * 	= the accumulated dividend amount from the period when it was minted + the dividend amount of current period.
-     */
+     * Get the total dividends of one PPN from its released period
+     * The accumulated dividends of one PPN 
+     *      = the accumulated dividends at the begining of current period + the dividends accumulated during current period.
+     *      = (accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod) + currentDividends
+     */     
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
-        // get the nft's minted period
+        // get the nft's released period
         uint256 releasedPeriod = getPeriod(_tokenId);
-        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) +
-            totalClaimed -
-            accumulatedPool) / releasedPPNAmount();
-        return
-            accumulatedDividends[currentPeriod] -
-            accumulatedDividends[releasedPeriod] +
-            current;
+        uint256 currentDividends = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool) / releasedPPNAmount();
+        return accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod] + currentDividends;
     }
 
-    // claim dividend for nft with _tokenId
+    // claim remaining dividends for one PPN
     function claim(uint256 _tokenId) public {
         require(
             IERC721(ppnAddress).ownerOf(_tokenId) == msg.sender,
@@ -149,12 +138,12 @@ contract Dividend {
         }
     }
 
-    // remain dividends = the total dividends attributable to this nft - the dividends already been claimed
+    // for one PPN remain dividends = total dividends - dividends has been claimed 
     function remainDividend(uint256 _tokenId) public view returns (uint256) {
         return totalDividend(_tokenId) - hasClaimed[_tokenId];
     }
 
-    // total minted amount in currentPeriod (0-based)
+    // total released PPN amount in currentPeriod (0-based)
     function releasedPPNAmount() internal view returns (uint256) {
         return NFT_AMOUNT_RELASED_PER_PERIOD * (currentPeriod + 1);
     }
