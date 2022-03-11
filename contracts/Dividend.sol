@@ -64,7 +64,7 @@ contract Dividend {
         pvsAddress = _pvsAddress;
         ppnAddress = _ppnAddress;
         periodStartTime = _periodStartTime;
-        accumulatedDividends.push(0); 
+        accumulatedDividends.push(0);
     }
 
     /**
@@ -82,10 +82,15 @@ contract Dividend {
             "Dividend: the next period has not yet begun"
         );
 
-        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool;
+        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) +
+            totalClaimed -
+            accumulatedPool;
 
         accumulatedDividends.push(0);
-        accumulatedDividends[_newPeriod] = accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount();
+        accumulatedDividends[_newPeriod] =
+            accumulatedDividends[currentPeriod] +
+            lastPool /
+            releasedPPNAmount();
 
         accumulatedPool += lastPool;
         currentPeriod = _newPeriod;
@@ -113,8 +118,13 @@ contract Dividend {
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
         // get the nft's minted period
         uint256 releasedPeriod = getPeriod(_tokenId);
-        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool) / releasedPPNAmount();
-        return accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod] + current;
+        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) +
+            totalClaimed -
+            accumulatedPool) / releasedPPNAmount();
+        return
+            accumulatedDividends[currentPeriod] -
+            accumulatedDividends[releasedPeriod] +
+            current;
     }
 
     // claim dividend for nft with _tokenId
