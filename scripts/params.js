@@ -5,7 +5,8 @@ const hre = require("hardhat");
 const multisigWalletAddr = () => {
     switch (hre.network.name) {
         case "rinkeby":
-            return "0xe407BB6578E003FF30659a265F771576f4eDc636";
+            // return "0xe407BB6578E003FF30659a265F771576f4eDc636";      //declan
+            return "0x6F272C3b23Fc0525b6696aF4405434c3c10C7c26"         //hzr
         case "mainnet":
             // TODO: Mainnet Multisig Wallet
             return "";
@@ -21,7 +22,7 @@ const presalePrice = () => {
 const presaleAllowedStableCoins = () => {
     switch (hre.network.name) {
         case "rinkeby":
-            return ["0x4b43903c586e9aa28fc49eef26146646716b051d"];
+            return ["0x4081e38991E123E3d42Ad0E3cFBC948C7cc468F1", "0xe04c9B291d0cc56B764FC02E7422c8cd2d235856"];
         case "mainnet":
             // TODO
             return [];
