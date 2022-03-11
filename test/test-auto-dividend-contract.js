@@ -55,7 +55,6 @@ describe("Test NFT Dividend..........", function () {
     await pvs.transfer(dd.address, p1pvs);
 
     const block = await hre.ethers.provider.getBlock("latest");
-    console.log(block.timestamp);
     await expect(dd.updatePeriod(1)).to.be.revertedWith("Dividend: the next period has not yet begun");
 
     // Speed up the clock to the second period 

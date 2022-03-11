@@ -21,18 +21,19 @@ contract AutoDividend {
     address public pvsAddress;
 
     // PPN address
-    address public tokenAddress;
+    address public ppnAddress;
 
-    // period of divide
-    uint256 public period;
+    // current period 
+    uint256 public currentPeriod;
 
     // Total amount of PVS that has been claimed
     uint256 public totalClaimed;
 
-    // All pvs(dividend) that have been priced in
+    // All pvs(dividend) at the begining of current period
     uint256 public accumulatedPool;
 
     // Accumulated dividends of each nft in [mintedPeriod, nowPeriod)
+    // 
     uint256[] public accumulatedDividends;
 
     // Dividend that has been claimed by this nft's owner
@@ -55,44 +56,42 @@ contract AutoDividend {
     // constructor, init period = 1 
     constructor(
         address _pvsAddress,
-        address _tokenAddress,
+        address _ppnAddress,
         uint256[] memory _periodStartTime
     ) {
         pvsAddress = _pvsAddress;
-        tokenAddress = _tokenAddress;
+        ppnAddress = _ppnAddress;
         periodStartTime = _periodStartTime;
         accumulatedDividends.push(0);           //period from 0
     }
 
     /**
-     * Deduce and lock previous period's dividend of each nft
+     * Deduce and lock previous period's accumulated dividends of each nft
      * Update totalAmount of nft & maxTokenId in the new period
      * Update period
      */
     function updatePeriod(uint256 _newPeriod) external {
         require(
-            _newPeriod == period + 1,
+            _newPeriod == currentPeriod + 1,
             "Dividend: the new period must be exactly one period after the present"
         );
         require(
             block.timestamp >= periodStartTime[_newPeriod],
             "Dividend: the next period has not yet begun"
         );
-        // lastPool
+        
         uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool;
         // 
         accumulatedDividends.push(0);
-        for (uint256 i = 0; i <= period; i++) {
-            accumulatedDividends[i] += lastPool / mintedNFTAmount();
-        }
+        accumulatedDividends[_newPeriod] = accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount();
 
         accumulatedPool += lastPool;         
-        period = _newPeriod;
+        currentPeriod = _newPeriod;
 
         emit UpdatePeriod(
             msg.sender,
-            period,
-            mintedNFTAmount()
+            currentPeriod,
+            releasedPPNAmount()
         );
     }
 
@@ -100,7 +99,7 @@ contract AutoDividend {
      * Get one nft's minted period
      */
     function getPeriod(uint256 _tokenId) internal view returns (uint256) {
-        require(_tokenId > 0 && _tokenId <= mintedNFTAmount(), "Dividend: tokenId exceeded limit");
+        require(_tokenId > 0 && _tokenId <= releasedPPNAmount(), "Dividend: tokenId exceeded limit");
         return ((_tokenId - 1) /  NFT_AMOUNT_RELASED_PER_PERIOD);    //ceilDiv
     }
 
@@ -111,15 +110,15 @@ contract AutoDividend {
      */
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
         // get the nft's minted period
-        uint256 beginPeriod = getPeriod(_tokenId);
-        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool) / mintedNFTAmount();
-        return accumulatedDividends[beginPeriod] + current;
+        uint256 releasedPeriod = getPeriod(_tokenId);
+        uint256 current = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool) / releasedPPNAmount();
+        return accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod] + current;
     }
 
     // claim dividend for nft with _tokenId
     function claim(uint256 _tokenId) public {
         require(
-            IERC721(tokenAddress).ownerOf(_tokenId) == msg.sender,
+            IERC721(ppnAddress).ownerOf(_tokenId) == msg.sender,
             "Dividend: Can't claim dividend because you are not the owner of the nft"
         );
 
@@ -143,8 +142,8 @@ contract AutoDividend {
         return totalDividend(_tokenId) - hasClaimed[_tokenId];
     }
 
-    // total minted amount in period (0-based)
-    function mintedNFTAmount() internal view returns (uint256) {
-        return NFT_AMOUNT_RELASED_PER_PERIOD * (period + 1);
+    // total minted amount in currentPeriod (0-based)
+    function releasedPPNAmount() internal view returns (uint256) {
+        return NFT_AMOUNT_RELASED_PER_PERIOD * (currentPeriod + 1);
     }
 }
