@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
- * The platform will mint NFT in multiple periods, and addresses holding NFT can get a certain percentage of platform NFT Market revenue dividends.
+ * The platform will release NFT in multiple periods, and addresses holding NFT can get a certain percentage of platform NFT Market revenue dividends.
  * This Contract is designed for helping the platform to calculate and distribute dividends for each nft in each period.
- * During a period time, the pvs held by this contract will be evenly distributed to all NFTs that have been minted at the .
+ * During a period, the pvs held by this contract will be evenly distributed to all NFTs that have been released at the .
  *
- * 1. At the beginning of each new period, the dividend pool of the previous period is calculated and locked according to the real-time pvs balance.
+ * 1. At the beginning of each period, the dividend pool of the previous period is calculated and locked according to the real-time pvs balance.
  * 2. The accumulated dividend amount of a certain nft to the current period  = the accumulated dividend amount from the period when it was minted + the dividend amount of current period.
  */
 
@@ -29,6 +29,9 @@ contract AutoDividend {
     // Total amount of PVS that has been claimed
     uint256 public totalClaimed;
 
+    // Dividend that has been claimed by one PPN
+    mapping(uint256 => uint256) public hasClaimed;
+
     // All pvs(dividend) at the begining of current period
     uint256 public accumulatedPool;
 
@@ -38,9 +41,6 @@ contract AutoDividend {
     //      = accumulatedDividends[currentPeriod] - accumulatedDividends[j]
     // Note that accumulatedDividends[0] = 0
     uint256[] public accumulatedDividends;
-
-    // Dividend that has been claimed by this nft's owner
-    mapping(uint256 => uint256) public hasClaimed;
 
     // each period begined second
     uint256[] public periodStartTime;
