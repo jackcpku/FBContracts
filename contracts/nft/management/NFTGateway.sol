@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../common/INFTGateway.sol";
-import "../common/IBaseNFTManagement.sol";
+import "../interfaces/INFTGateway.sol";
+import "../interfaces/IBaseNFTManagement.sol";
 
-import "../ERC721Base.sol";
-import "../ERC1155Base.sol";
+import "../BasicERC721.sol";
+import "../BasicERC1155.sol";
 
 contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /********************************************************************
@@ -76,7 +76,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _recipient,
         uint256 _tokenId
     ) external override onlyManagerOf(_nftContract) {
-        ERC721Base(_nftContract).mint(_recipient, _tokenId);
+        BasicERC721(_nftContract).mint(_recipient, _tokenId);
     }
 
     function ERC721_burn(address _nftContract, uint256 _tokenId)
@@ -84,15 +84,15 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyManagerOf(_nftContract)
     {
-        ERC721Base(_nftContract).burn(_tokenId);
+        BasicERC721(_nftContract).burn(_tokenId);
     }
 
-    function ERC721_setURI(address _nftContract, string memory _newURI)
+    function ERC721_setURI(address _nftContract, string calldata _newURI)
         external
         override
         onlyManagerOf(_nftContract)
     {
-        ERC721Base(_nftContract).setURI(_newURI);
+        BasicERC721(_nftContract).setURI(_newURI);
     }
 
     function ERC1155_mint(
@@ -100,19 +100,19 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _account,
         uint256 _id,
         uint256 _amount,
-        bytes memory _data
+        bytes calldata _data
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).mint(_account, _id, _amount, _data);
+        BasicERC1155(_nftContract).mint(_account, _id, _amount, _data);
     }
 
     function ERC1155_mintBatch(
         address _nftContract,
         address _to,
-        uint256[] memory _ids,
-        uint256[] memory _amounts,
-        bytes memory _data
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts,
+        bytes calldata _data
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).mintBatch(_to, _ids, _amounts, _data);
+        BasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
     }
 
     function ERC1155_burn(
@@ -121,24 +121,24 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256 _id,
         uint256 _value
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).burn(_account, _id, _value);
+        BasicERC1155(_nftContract).burn(_account, _id, _value);
     }
 
     function ERC1155_burnBatch(
         address _nftContract,
         address _account,
-        uint256[] memory _ids,
-        uint256[] memory _values
+        uint256[] calldata _ids,
+        uint256[] calldata _values
     ) external override onlyManagerOf(_nftContract) {
-        ERC1155Base(_nftContract).burnBatch(_account, _ids, _values);
+        BasicERC1155(_nftContract).burnBatch(_account, _ids, _values);
     }
 
-    function ERC1155_setURI(address _nftContract, string memory _newuri)
+    function ERC1155_setURI(address _nftContract, string calldata _newuri)
         external
         override
         onlyManagerOf(_nftContract)
     {
-        ERC1155Base(_nftContract).setURI(_newuri);
+        BasicERC1155(_nftContract).setURI(_newuri);
     }
 
     /********************************************************************
@@ -149,7 +149,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      * Set the manager of a certain NFT contract.
      */
     function setManagerOf(address _nftContract, address _manager)
-        public
+        external
         onlyRole(GATEWAY_MANAGER_ROLE)
     {
         emit ManagerAssigned(
@@ -173,7 +173,10 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      * Add a manager
      * @notice Only the admin should call this function.
      */
-    function addManager(address _manager) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addManager(address _manager)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _grantRole(GATEWAY_MANAGER_ROLE, _manager);
     }
 
@@ -182,7 +185,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      * @notice Only the admin should call this function.
      */
     function removeManager(address _manager)
-        public
+        external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _revokeRole(GATEWAY_MANAGER_ROLE, _manager);
@@ -193,7 +196,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      * @notice Should be rarely called.
      */
     function setGatewayOf(address _nftContract, address _newGateway)
-        public
+        external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(
@@ -211,7 +214,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      * @notice Should be rarely called.
      */
     function transferGatewayOwnership(address _gatewayAdmin)
-        public
+        external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(

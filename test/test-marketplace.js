@@ -7,6 +7,11 @@ const {
   deployNFTGatewayAndNFTFactory,
 } = require("../lib/deploy.js");
 
+const {
+  calculateCreate2AddressBasicERC721,
+  calculateCreate2AddressBasicERC1155,
+} = require("../lib/create2.js");
+
 describe("Test Marketplace Contract", function () {
   // Contracts
   let gateway, factory, marketplace, fbt;
@@ -42,22 +47,45 @@ describe("Test Marketplace Contract", function () {
     // Deploy Gateway and Factory contract.
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
 
-    // Let managers deploy nft contracts.
-    let nftContract1Address = await factory
+    const from1 = factory.address;
+    const deployeeName1 = "BasicERC721";
+    const tokenName = "nft-contract-1";
+    const tokenSymbol = "UC1";
+    const baseURI = "baseURI";
+    const salt1 = 233;
+    const nftContract1Address = await calculateCreate2AddressBasicERC721(
+      from1,
+      deployeeName1,
+      tokenName,
+      tokenSymbol,
+      baseURI,
+      gateway.address,
+      salt1
+    );
+
+    await factory
       .connect(manager1)
-      .callStatic.deployBaseERC721("nft-contract-1", "UC1");
-    await factory.connect(manager1).deployBaseERC721("nft-contract-1", "UC1");
+      .deployBaseERC721(tokenName, tokenSymbol, baseURI, salt1);
     nftContract1 = await hre.ethers.getContractAt(
-      "ERC721Base",
+      deployeeName1,
       nftContract1Address
     );
 
-    let nftContract2Address = await factory
-      .connect(manager2)
-      .callStatic.deployBaseERC1155("some uri");
-    await factory.connect(manager2).deployBaseERC1155("some uri");
+    const from2 = factory.address;
+    const deployeeName2 = "BasicERC1155";
+    const uri = "some uri";
+    const salt2 = 233;
+    const nftContract2Address = await calculateCreate2AddressBasicERC1155(
+      from2,
+      deployeeName2,
+      uri,
+      gateway.address,
+      salt2
+    );
+
+    await factory.connect(manager2).deployBaseERC1155(uri, salt2);
     nftContract2 = await hre.ethers.getContractAt(
-      "ERC1155Base",
+      deployeeName2,
       nftContract2Address
     );
 
