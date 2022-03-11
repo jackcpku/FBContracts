@@ -23,7 +23,7 @@ contract AutoDividend {
     // PPN address
     address public ppnAddress;
 
-    // current period 
+    // current period
     uint256 public currentPeriod;
 
     // Total amount of PVS that has been claimed
@@ -32,8 +32,11 @@ contract AutoDividend {
     // All pvs(dividend) at the begining of current period
     uint256 public accumulatedPool;
 
-    // Accumulated dividends of each nft in [mintedPeriod, nowPeriod)
-    // 
+    // accumulatedDividends[i] means the accumulated dividends for one PPN during period k where 0 <= k < i.
+    // For one PPN released in period j, it can only receive dividends of period k where k >= j,
+    // so at the begining of current period, the accumulated dividends of one PPN released in period j
+    //      = accumulatedDividends[currentPeriod] - accumulatedDividends[j]
+    // Note that accumulatedDividends[0] = 0
     uint256[] public accumulatedDividends;
 
     // Dividend that has been claimed by this nft's owner
@@ -53,7 +56,6 @@ contract AutoDividend {
 
     event Claim(address indexed receiver, uint256 tokenId, uint256 amount);
 
-    // constructor, init period = 1 
     constructor(
         address _pvsAddress,
         address _ppnAddress,
@@ -62,7 +64,7 @@ contract AutoDividend {
         pvsAddress = _pvsAddress;
         ppnAddress = _ppnAddress;
         periodStartTime = _periodStartTime;
-        accumulatedDividends.push(0);           //period from 0
+        accumulatedDividends.push(0); 
     }
 
     /**
@@ -79,28 +81,28 @@ contract AutoDividend {
             block.timestamp >= periodStartTime[_newPeriod],
             "Dividend: the next period has not yet begun"
         );
-        
+
         uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool;
-        // 
+
         accumulatedDividends.push(0);
         accumulatedDividends[_newPeriod] = accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount();
 
-        accumulatedPool += lastPool;         
+        accumulatedPool += lastPool;
         currentPeriod = _newPeriod;
 
-        emit UpdatePeriod(
-            msg.sender,
-            currentPeriod,
-            releasedPPNAmount()
-        );
+        emit UpdatePeriod(msg.sender, currentPeriod, releasedPPNAmount());
     }
 
     /**
      * Get one nft's minted period
      */
     function getPeriod(uint256 _tokenId) internal view returns (uint256) {
-        require(_tokenId > 0 && _tokenId <= releasedPPNAmount(), "Dividend: tokenId exceeded limit");
-        return ((_tokenId - 1) /  NFT_AMOUNT_RELASED_PER_PERIOD);    //ceilDiv
+        require(
+            _tokenId > 0 && _tokenId <= releasedPPNAmount(),
+            "Dividend: tokenId exceeded limit"
+        );
+        // ceilDiv
+        return ((_tokenId - 1) / NFT_AMOUNT_RELASED_PER_PERIOD);
     }
 
     /**
