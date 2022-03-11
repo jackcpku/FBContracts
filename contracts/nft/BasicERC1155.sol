@@ -24,16 +24,16 @@ contract BasicERC1155 is
         address account,
         uint256 id,
         uint256 amount,
-        bytes memory data
+        bytes calldata data
     ) external onlyGateway {
         _mint(account, id, amount, data);
     }
 
     function mintBatch(
         address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
     ) external onlyGateway {
         _mintBatch(to, ids, amounts, data);
     }
@@ -48,13 +48,13 @@ contract BasicERC1155 is
 
     function burnBatch(
         address account,
-        uint256[] memory ids,
-        uint256[] memory values
+        uint256[] calldata ids,
+        uint256[] calldata values
     ) public override onlyGateway {
         super.burnBatch(account, ids, values);
     }
 
-    function setURI(string memory newuri) external onlyGateway {
+    function setURI(string calldata newuri) external onlyGateway {
         _setURI(newuri);
     }
 

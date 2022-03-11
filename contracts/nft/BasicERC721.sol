@@ -24,7 +24,11 @@ contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
         _safeMint(to, tokenId);
     }
 
-    function setURI(string memory newBaseURI) external onlyGateway {
+    function burn(uint256 tokenId) public override onlyGateway {
+        super.burn(tokenId);
+    }
+
+    function setURI(string calldata newBaseURI) external onlyGateway {
         __baseURI = newBaseURI;
     }
 

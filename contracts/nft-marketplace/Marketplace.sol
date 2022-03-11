@@ -248,7 +248,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     /**
      * Revoke a bunch of orders. Parameters similar to the single version.
      */
-    function ignoreMessageHashs(bytes32[] memory messageHashs) public {
+    function ignoreMessageHashs(bytes32[] calldata messageHashs) external {
         for (uint256 i = 0; i < messageHashs.length; i++) {
             ignoreMessageHash(messageHashs[i]);
         }
