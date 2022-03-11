@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-const { deployMajorToken, deployNFTGatewayAndNFTFactory, deployAutoDividend } = require("../lib/deploy");
+const { deployMajorToken, deployNFTGatewayAndNFTFactory, deployDividend } = require("../lib/deploy");
 
 describe("Test NFT Dividend..........", function () {
   let pvs, dd, gateway, factory; 
@@ -36,7 +36,7 @@ describe("Test NFT Dividend..........", function () {
       .connect(u2)
       .callStatic.deployBaseERC721("U2-contract", "U2T", "", BigInt(0));
 
-    dd = await deployAutoDividend(pvs.address, nftContractAddress, periodStartTime);
+    dd = await deployDividend(pvs.address, nftContractAddress, periodStartTime);
 
     //set start time for our blockchian
     await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime]);

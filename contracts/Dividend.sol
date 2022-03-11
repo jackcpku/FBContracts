@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * 2. The accumulated dividend amount of a certain nft to the current period  = the accumulated dividend amount from the period when it was minted + the dividend amount of current period.
  */
 
-contract AutoDividend {
+contract Dividend {
     using SafeERC20 for IERC20;
 
     // The token used to pay dividends
