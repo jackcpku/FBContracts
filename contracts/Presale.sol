@@ -109,7 +109,7 @@ contract Presale is Ownable {
      * coin: stable coin address used to buy
      * amountToBuy: buying amount of the target token
      */
-    function buyPresale(address coin, uint256 amountToBuy) public {
+    function buyPresale(address coin, uint256 amountToBuy) external {
         require(
             boughtAmount[msg.sender] + amountToBuy <= limitAmount[msg.sender],
             "Exceed the purchase limit"
@@ -147,13 +147,13 @@ contract Presale is Ownable {
         address token,
         address toAddr,
         uint256 amount
-    ) public onlyOwner {
+    ) external onlyOwner {
         emit WithdrawToken(token, toAddr, amount);
         IERC20(token).safeTransfer(toAddr, amount);
     }
 
     // The manager withdraw rest of tokens including our governance token and stablecoin to a new address
-    function withdraw(address toAddr) public onlyOwner {
+    function withdraw(address toAddr) external onlyOwner {
         emit WithdrawAll(toAddr, totalSold);
 
         // send ERC20 token to `toAddr`.
