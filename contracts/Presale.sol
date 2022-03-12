@@ -71,15 +71,19 @@ contract Presale is Ownable {
     function addStableCoins(address[] calldata stableCoins) external onlyOwner {
         for (uint256 i = 0; i < stableCoins.length; i++) {
             address coin = stableCoins[i];
-            stableCoinSet.add(coin);
-            emit AddStableCoin(coin);
+            bool success = stableCoinSet.add(coin);
+            if (success) {
+                emit AddStableCoin(coin); 
+            }
         }
     }
 
     // Remove allowed stable coin
     function removeStableCoin(address stableCoin) external onlyOwner {
-        stableCoinSet.remove(stableCoin);
-        emit RemoveStableCoin(stableCoin);
+        bool success = stableCoinSet.remove(stableCoin);
+        if (success) {
+            emit RemoveStableCoin(stableCoin);
+        }
     }
 
     // Set token decimal
