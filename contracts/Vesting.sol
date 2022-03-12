@@ -66,8 +66,10 @@ contract Vesting {
         uint256[] memory _stages,
         uint256[] memory _unlockProportion
     ) {
+        require(address(_manager) != address(0), "Vesting: zero addresses not allowed");   
+        require(address(_tokenAddress) != address(0), "Vesting: zero addresses not allowed");  
         manager = _manager;
-        tokenAddress = _tokenAddress;
+        tokenAddress = _tokenAddress; 
 
         startSecond = _start;
         require(_stages.length == _unlockProportion.length);
@@ -80,6 +82,7 @@ contract Vesting {
 
     function transferManagement(address _newManager) external {
         require(msg.sender == manager, "Unauthorized");
+        require(address(_newManager) != address(0), "Vesting: zero addresses not allowed");  
 
         emit TransferManagement(manager, _newManager);
 

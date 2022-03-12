@@ -57,7 +57,12 @@ contract Presale is Ownable {
     event SetTokenDecimal(address indexed token, uint8 decimal);
     event SetWhitelist(address indexed whitelistAddr, uint256 quotaLimit);
 
-    constructor(address _tokenAddress, uint256 _presalePrice) {
+    constructor(
+        address _tokenAddress, 
+        uint256 _presalePrice
+    ) {
+        require(address(_tokenAddress) != address(0), "Presale: zero addresses not allowed");  
+        require(_presalePrice > 0, "Presale: presale price must > 0");  
         tokenAddress = _tokenAddress;
         presalePrice = _presalePrice;
     }
