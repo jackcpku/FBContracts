@@ -65,7 +65,7 @@ describe("Test Marketplace Contract", function () {
 
     await factory
       .connect(manager1)
-      .deployBaseERC721(tokenName, tokenSymbol, baseURI, salt1);
+      .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt1);
     nftContract1 = await hre.ethers.getContractAt(
       deployeeName1,
       nftContract1Address
@@ -83,7 +83,7 @@ describe("Test Marketplace Contract", function () {
       salt2
     );
 
-    await factory.connect(manager2).deployBaseERC1155(uri, salt2);
+    await factory.connect(manager2).deployBasicERC1155(uri, salt2);
     nftContract2 = await hre.ethers.getContractAt(
       deployeeName2,
       nftContract2Address
