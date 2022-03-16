@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract VestingPPN {
+contract VestingPPN is IERC721Receiver{
     using SafeERC20 for IERC20;
 
     // manager of vesting
@@ -70,9 +71,9 @@ contract VestingPPN {
             return 0;
         }
         //todo optimize
-        for (uint256 i = periodStartTime.length - 1; i >= 0; i--) {
-            if (block.timestamp <= periodStartTime[i]) {
-                return unlockQuantity[i];
+        for (uint256 i = 1; i < periodStartTime.length; i++) {
+            if (block.timestamp < periodStartTime[i]) {
+                return unlockQuantity[i - 1];
             }
         }
         return unlockQuantity[unlockQuantity.length - 1];
@@ -104,5 +105,15 @@ contract VestingPPN {
             _receiver,
             _tokenId
         );
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4) {
+        //todo  
+        return this.onERC721Received.selector;
     }
 }
