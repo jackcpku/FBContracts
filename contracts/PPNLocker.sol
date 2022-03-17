@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-//todo PPNLocker
 contract PPNLocker is IERC721Receiver {
     using SafeERC20 for IERC20;
 

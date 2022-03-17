@@ -6,7 +6,7 @@ const {
 } = require("../lib/deploy");
 const { calculateCreate2AddressBasicERC721 } = require("../lib/create2.js");
 
-describe("Test Vesting PPN ..........", function () {
+describe("Test PPNLocker ..........", function () {
   let gateway, factory, someNFTAddress;
 
   const startTime = 1700000000;
