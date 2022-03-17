@@ -66,10 +66,10 @@ contract Vesting {
         uint256[] memory _stages,
         uint256[] memory _unlockProportion
     ) {
-        require(address(_manager) != address(0), "Vesting: zero addresses not allowed");   
-        require(address(_tokenAddress) != address(0), "Vesting: zero addresses not allowed");  
+        require(address(_manager) != address(0), "Vesting: zero address is not allowed");   
+        require(address(_tokenAddress) != address(0), "Vesting: zero address is not allowed");  
         manager = _manager;
-        tokenAddress = _tokenAddress; 
+        tokenAddress = _tokenAddress;
 
         startSecond = _start;
         require(_stages.length == _unlockProportion.length);

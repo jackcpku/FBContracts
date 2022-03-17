@@ -61,8 +61,8 @@ contract Presale is Ownable {
         address _tokenAddress, 
         uint256 _presalePrice
     ) {
-        require(address(_tokenAddress) != address(0), "Presale: zero addresses not allowed");  
-        require(_presalePrice > 0, "Presale: presale price must > 0");  
+        require(address(_tokenAddress) != address(0), "Presale: zero address is not allowed");  
+        require(_presalePrice > 0, "Presale: presale price must not be 0");  
         tokenAddress = _tokenAddress;
         presalePrice = _presalePrice;
     }
