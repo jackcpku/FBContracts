@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract VestingPPN is IERC721Receiver{
+contract VestingPPN is IERC721Receiver {
     using SafeERC20 for IERC20;
 
     // manager of vesting
@@ -15,7 +15,7 @@ contract VestingPPN is IERC721Receiver{
 
     // the target NFT for vesting
     address public ppnAddress;
-    
+
     // total released nft
     uint256 totalReleased;
 
@@ -25,9 +25,9 @@ contract VestingPPN is IERC721Receiver{
      * periodStartTime: Each vesting period's startTime (in Unix timestamp)
      * unlockQuantity: Unlocked Quantity of nft
      *
-     * The lengths of `periodStartTime` and `unlockQuantity` are the same 
-     * For example, in the case of  
-     *      periodStartTime = [1647000000, 1747000000, 1847000000] 
+     * The lengths of `periodStartTime` and `unlockQuantity` are the same
+     * For example, in the case of
+     *      periodStartTime = [1647000000, 1747000000, 1847000000]
      *      unlockQuantity = [2000, 4000, 8000],
      *
      * - timestamp < `1647000000`, no nft were unlocked
@@ -39,7 +39,10 @@ contract VestingPPN is IERC721Receiver{
     uint256[] public unlockQuantity;
 
     // Manager changed from currentManager to newManager.
-    event TransferManagement(address indexed currentManager, address indexed newManager);
+    event TransferManagement(
+        address indexed currentManager,
+        address indexed newManager
+    );
 
     modifier onlyManager() {
         require(msg.sender == manager, "VestingPPN: not manager");
@@ -54,10 +57,19 @@ contract VestingPPN is IERC721Receiver{
     ) {
         manager = _manager;
         ppnAddress = _ppnAddress;
-        require(_periodStartTime.length == _unlockQuantity.length,  "VestingPPN: array not match");
+        require(
+            _periodStartTime.length == _unlockQuantity.length,
+            "VestingPPN: array not match"
+        );
         for (uint256 i = 1; i < _periodStartTime.length; i++) {
-            require(_periodStartTime[i] > _periodStartTime[i - 1], "VestingPPN: invalid _periodStartTime");
-            require(_unlockQuantity[i] > _unlockQuantity[i - 1], "VestingPPN: invalid _unlockQuantity");
+            require(
+                _periodStartTime[i] > _periodStartTime[i - 1],
+                "VestingPPN: invalid _periodStartTime"
+            );
+            require(
+                _unlockQuantity[i] > _unlockQuantity[i - 1],
+                "VestingPPN: invalid _unlockQuantity"
+            );
         }
 
         periodStartTime = _periodStartTime;
@@ -74,7 +86,6 @@ contract VestingPPN is IERC721Receiver{
         if (block.timestamp < periodStartTime[0]) {
             return 0;
         }
-        //todo optimize
         for (uint256 i = 1; i < periodStartTime.length; i++) {
             if (block.timestamp < periodStartTime[i]) {
                 return unlockQuantity[i - 1];
@@ -84,22 +95,25 @@ contract VestingPPN is IERC721Receiver{
     }
 
     // claim batch
-    function claimBatch(uint256[] calldata _tokenIds, address _receiver) external onlyManager {
+    function claimBatch(uint256[] calldata _tokenIds, address _receiver)
+        external
+        onlyManager
+    {
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             claim(_tokenIds[i], _receiver);
         }
     }
 
-    // claim nft 
+    // claim nft
     function claim(uint256 _tokenId, address _receiver) public onlyManager {
         require(
             IERC721(ppnAddress).ownerOf(_tokenId) == address(this),
-            "VestingNFT: nft not owned by contract"
+            "VestingPPN: nft not owned by contract"
         );
 
         require(
             _tokenId <= maxUnlockId(),
-            "VestingNFT: nft has not been released"
+            "VestingPPN: nft has not been released"
         );
 
         totalReleased++;
@@ -112,12 +126,14 @@ contract VestingPPN is IERC721Receiver{
     }
 
     function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override returns (bytes4) {
-        //todo  
-        return this.onERC721Received.selector;
+        address, /*operator*/
+        address, /*from*/
+        uint256, /*tokenId*/
+        bytes calldata /*data*/
+    ) external pure override returns (bytes4) {
+        return
+            bytes4(
+                keccak256("onERC721Received(address,address,uint256,bytes)")
+            );
     }
 }

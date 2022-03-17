@@ -141,11 +141,11 @@ describe("Test Vesting PPN ..........", function () {
 
     await expect(
       vp.connect(owner).claim(ppnId4, u1.address)
-    ).to.be.revertedWith("VestingNFT: nft not owned by contract");
+    ).to.be.revertedWith("VestingPPN: nft not owned by contract");
 
     await expect(
         vp.connect(owner).claim(ppnId1, u1.address)
-    ).to.be.revertedWith("VestingNFT: nft has not been released");
+    ).to.be.revertedWith("VestingPPN: nft has not been released");
   
     // Id0 from pv to u1 
     await vp.connect(owner).claim(ppnId0, u1.address)
