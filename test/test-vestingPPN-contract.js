@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const {
   deployNFTGatewayAndNFTFactory,
-  deployVestingPPN,
+  deployPPNLocker,
 } = require("../lib/deploy");
 const { calculateCreate2AddressBasicERC721 } = require("../lib/create2.js");
 
@@ -61,7 +61,7 @@ describe("Test Vesting PPN ..........", function () {
       someNFTAddress
     );
 
-    vp = await deployVestingPPN(
+    vp = await deployPPNLocker(
       owner.address,
       someNFTAddress,
       periodStartTime,
@@ -136,29 +136,27 @@ describe("Test Vesting PPN ..........", function () {
 
     //claim
     await expect(vp.connect(u1).claim(ppnId0, u1.address)).to.be.revertedWith(
-      "VestingPPN: not manager"
+      "PPNLocker: not manager"
     );
 
     await expect(
       vp.connect(owner).claim(ppnId4, u1.address)
-    ).to.be.revertedWith("VestingPPN: nft not owned by contract");
+    ).to.be.revertedWith("PPNLocker: nft not owned by contract");
 
     await expect(
-        vp.connect(owner).claim(ppnId1, u1.address)
-    ).to.be.revertedWith("VestingPPN: nft has not been released");
-  
-    // Id0 from pv to u1 
-    await vp.connect(owner).claim(ppnId0, u1.address)
+      vp.connect(owner).claim(ppnId1, u1.address)
+    ).to.be.revertedWith("PPNLocker: nft has not been released");
+
+    // Id0 from pv to u1
+    await vp.connect(owner).claim(ppnId0, u1.address);
     expect(await someERC721Contract.ownerOf(ppnId0)).to.equal(u1.address);
-
-
 
     // Speed up the clock to the second period 1
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
-        periodStartTime[3],
+      periodStartTime[3],
     ]);
 
-    await vp.connect(owner).claimBatch([ppnId1, ppnId2, ppnId3], u2.address)
+    await vp.connect(owner).claimBatch([ppnId1, ppnId2, ppnId3], u2.address);
     expect(await someERC721Contract.ownerOf(ppnId1)).to.equal(u2.address);
     expect(await someERC721Contract.ownerOf(ppnId2)).to.equal(u2.address);
     expect(await someERC721Contract.ownerOf(ppnId3)).to.equal(u2.address);

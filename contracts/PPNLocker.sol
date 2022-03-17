@@ -7,7 +7,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract VestingPPN is IERC721Receiver {
+//todo PPNLocker
+contract PPNLocker is IERC721Receiver {
     using SafeERC20 for IERC20;
 
     // manager of vesting
@@ -45,7 +46,7 @@ contract VestingPPN is IERC721Receiver {
     );
 
     modifier onlyManager() {
-        require(msg.sender == manager, "VestingPPN: not manager");
+        require(msg.sender == manager, "PPNLocker: not manager");
         _;
     }
 
@@ -59,16 +60,16 @@ contract VestingPPN is IERC721Receiver {
         ppnAddress = _ppnAddress;
         require(
             _periodStartTime.length == _unlockQuantity.length,
-            "VestingPPN: array not match"
+            "PPNLocker: array not match"
         );
         for (uint256 i = 1; i < _periodStartTime.length; i++) {
             require(
                 _periodStartTime[i] > _periodStartTime[i - 1],
-                "VestingPPN: invalid _periodStartTime"
+                "PPNLocker: invalid _periodStartTime"
             );
             require(
                 _unlockQuantity[i] > _unlockQuantity[i - 1],
-                "VestingPPN: invalid _unlockQuantity"
+                "PPNLocker: invalid _unlockQuantity"
             );
         }
 
@@ -76,6 +77,7 @@ contract VestingPPN is IERC721Receiver {
         unlockQuantity = _unlockQuantity;
     }
 
+    // todo onlyOwner
     function transferManagement(address _newManager) public onlyManager {
         emit TransferManagement(manager, _newManager);
 
@@ -95,10 +97,12 @@ contract VestingPPN is IERC721Receiver {
     }
 
     // claim batch
+    //todo 范围
     function claimBatch(uint256[] calldata _tokenIds, address _receiver)
         external
         onlyManager
     {
+        //todo remove claim
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             claim(_tokenIds[i], _receiver);
         }
@@ -108,12 +112,12 @@ contract VestingPPN is IERC721Receiver {
     function claim(uint256 _tokenId, address _receiver) public onlyManager {
         require(
             IERC721(ppnAddress).ownerOf(_tokenId) == address(this),
-            "VestingPPN: nft not owned by contract"
+            "PPNLocker: nft not owned by contract"
         );
 
         require(
             _tokenId <= maxUnlockId(),
-            "VestingPPN: nft has not been released"
+            "PPNLocker: nft has not been released"
         );
 
         totalReleased++;
@@ -131,6 +135,7 @@ contract VestingPPN is IERC721Receiver {
         uint256, /*tokenId*/
         bytes calldata /*data*/
     ) external pure override returns (bytes4) {
+        //todo msg.sender == ppnaddr
         return
             bytes4(
                 keccak256("onERC721Received(address,address,uint256,bytes)")
