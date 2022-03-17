@@ -55,7 +55,7 @@ describe("Test Vesting PPN ..........", function () {
     await factory
       .connect(manager0)
       .deployBaseERC721(tokenName, tokenSymbol, baseURI, salt);
-      
+
     someERC721Contract = await hre.ethers.getContractAt(
       "BasicERC721",
       someNFTAddress
@@ -107,7 +107,7 @@ describe("Test Vesting PPN ..........", function () {
     expect(await vp.maxUnlockId()).to.equal(unlockQuantity[3]);
   });
 
-  it.only("Test claim", async function () {
+  it("Test claim", async function () {
     // Speed up the clock to the second period 1
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[0],

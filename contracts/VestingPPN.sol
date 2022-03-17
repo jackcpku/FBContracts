@@ -54,8 +54,12 @@ contract VestingPPN is IERC721Receiver{
     ) {
         manager = _manager;
         ppnAddress = _ppnAddress;
-
         require(_periodStartTime.length == _unlockQuantity.length,  "VestingPPN: array not match");
+        for (uint256 i = 1; i < _periodStartTime.length; i++) {
+            require(_periodStartTime[i] > _periodStartTime[i - 1], "VestingPPN: invalid _periodStartTime");
+            require(_unlockQuantity[i] > _unlockQuantity[i - 1], "VestingPPN: invalid _unlockQuantity");
+        }
+
         periodStartTime = _periodStartTime;
         unlockQuantity = _unlockQuantity;
     }
