@@ -10,9 +10,10 @@ import "./NFTGateway.sol";
 contract NFTFactory is Initializable {
     address public gatewayAddress;
 
-    event ContractDeployed(
+    event DeployContract(
         address indexed deployer,
-        address indexed deployedAddress
+        address indexed deployedAddress,
+        bool indexed isERC721
     );
 
     function initialize(address _gatewayAddress) public initializer {
@@ -22,7 +23,7 @@ contract NFTFactory is Initializable {
     /**
      * Deploy a BasicERC721 contract.
      */
-    function deployBaseERC721(
+    function deployBasicERC721(
         string calldata _name,
         string calldata _symbol,
         string calldata _baseURI,
@@ -38,7 +39,7 @@ contract NFTFactory is Initializable {
             )
         );
 
-        emit ContractDeployed(msg.sender, deployedAddress);
+        emit DeployContract(msg.sender, deployedAddress, true);
 
         // Set manager of the newly deployed contract.
         NFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
@@ -47,7 +48,7 @@ contract NFTFactory is Initializable {
     /**
      * Deploy a BasicERC1155 contract.
      */
-    function deployBaseERC1155(string calldata _uri, uint256 _salt)
+    function deployBasicERC1155(string calldata _uri, uint256 _salt)
         external
         returns (address deployedAddress)
     {
@@ -56,7 +57,7 @@ contract NFTFactory is Initializable {
             new BasicERC1155{salt: bytes32(_salt)}(_uri, gatewayAddress)
         );
 
-        emit ContractDeployed(msg.sender, deployedAddress);
+        emit DeployContract(msg.sender, deployedAddress, false);
 
         // Set manager of the newly deployed contract.
         NFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
