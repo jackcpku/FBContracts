@@ -68,12 +68,18 @@ contract Vesting {
     ) {
         require(address(_manager) != address(0), "Vesting: zero address is not allowed");   
         require(address(_tokenAddress) != address(0), "Vesting: zero address is not allowed");  
+
+        require(_stages.length == _unlockProportion.length, "Vesting: _stages and _unlockProportion should have the same length");
+        require(_stages[0] == 0 && _unlockProportion[0] == 0, "Vesting: first stage and unlockProportion should be 0");
+        for (uint256 i = 1; i < _stages.length; i++) {
+            require(_stages[i] > _stages[i - 1], "Vesting: invalid _stages");
+            require(_unlockProportion[i] > _unlockProportion[i - 1], "Vesting: invalid _unlockProportion");
+        }
+        
         manager = _manager;
         tokenAddress = _tokenAddress;
 
         startSecond = _start;
-        require(_stages.length == _unlockProportion.length);
-        require(_unlockProportion[0] == 0);
         for (uint256 i = 0; i < _stages.length; i++) {
             stageSecond.push(_stages[i]);
             unlockProportion.push(_unlockProportion[i]);
