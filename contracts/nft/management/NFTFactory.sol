@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../BasicERC721.sol";
 import "../BasicERC1155.sol";
-import "./NFTGateway.sol";
+import "../interfaces/INFTGateway.sol";
 
 contract NFTFactory is Initializable {
     address public gatewayAddress;
@@ -42,7 +42,7 @@ contract NFTFactory is Initializable {
         emit DeployContract(msg.sender, deployedAddress, true);
 
         // Set manager of the newly deployed contract.
-        NFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
+        INFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
     }
 
     /**
@@ -60,6 +60,6 @@ contract NFTFactory is Initializable {
         emit DeployContract(msg.sender, deployedAddress, false);
 
         // Set manager of the newly deployed contract.
-        NFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
+        INFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
     }
 }
