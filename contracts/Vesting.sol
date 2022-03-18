@@ -66,6 +66,8 @@ contract Vesting {
         uint256[] memory _stages,
         uint256[] memory _unlockProportion
     ) {
+        require(address(_manager) != address(0), "Vesting: zero address is not allowed");   
+        require(address(_tokenAddress) != address(0), "Vesting: zero address is not allowed");  
         manager = _manager;
         tokenAddress = _tokenAddress;
 
@@ -78,8 +80,9 @@ contract Vesting {
         }
     }
 
-    function transferManagement(address _newManager) public {
+    function transferManagement(address _newManager) external {
         require(msg.sender == manager, "Unauthorized");
+        require(address(_newManager) != address(0), "Vesting: zero addresses not allowed");  
 
         emit TransferManagement(manager, _newManager);
 
@@ -95,7 +98,7 @@ contract Vesting {
      * No matter when, the token for vesting will follow the vesting schedule as if they were locked from the beginning.
      * Consequently, if the vesting has already started, new tokens sent to this contract for the newly added beneficiary may partly be immediately releasable.
      */
-    function addBeneficiary(address _beneficiary, uint256 _amount) public {
+    function addBeneficiary(address _beneficiary, uint256 _amount) external {
         require(beneficiaryAmount[_beneficiary] == 0, "Beneficiary already exists");
         beneficiaryAmount[_beneficiary] = _amount;
 
@@ -111,7 +114,7 @@ contract Vesting {
     /**
      * Beneficiary calls this function to request releasing vested tokens which have been unlocked according to the vesting schedule.
      */
-    function release() public {
+    function release() external {
         require(
             beneficiaryAmount[msg.sender] != 0,
             "Only beneficiaries receive."
@@ -179,7 +182,7 @@ contract Vesting {
         address _originalBeneficiary, 
         address _newBeneficiary
     ) 
-        public 
+        external 
     {
         require(beneficiaryAmount[_originalBeneficiary] != 0, "Not a beneficiary");
         require(beneficiaryAmount[_newBeneficiary] == 0, "The new beneficiary already exists");
