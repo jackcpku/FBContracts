@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract PPNLocker is IERC721Receiver {
+contract PPNLocker is IERC721Receiver, Ownable {
     using SafeERC20 for IERC20;
 
     // manager of vesting
@@ -20,9 +20,9 @@ contract PPNLocker is IERC721Receiver {
     uint256 totalReleased;
 
     /**
-     * Vesting schedule parameters
+     * lock schedule parameters
      *
-     * periodStartTime: Each vesting period's startTime (in Unix timestamp)
+     * periodStartTime: Each lock period's startTime (in Unix timestamp)
      * unlockQuantity: Unlocked Quantity of nft
      *
      * The lengths of `periodStartTime` and `unlockQuantity` are the same
@@ -37,17 +37,6 @@ contract PPNLocker is IERC721Receiver {
      */
     uint256[] public periodStartTime;
     uint256[] public unlockQuantity;
-
-    // Manager changed from currentManager to newManager.
-    event TransferManagement(
-        address indexed currentManager,
-        address indexed newManager
-    );
-
-    modifier onlyManager() {
-        require(msg.sender == manager, "PPNLocker: not manager");
-        _;
-    }
 
     constructor(
         address _manager,
@@ -76,13 +65,6 @@ contract PPNLocker is IERC721Receiver {
         unlockQuantity = _unlockQuantity;
     }
 
-    // todo onlyOwner
-    function transferManagement(address _newManager) public onlyManager {
-        emit TransferManagement(manager, _newManager);
-
-        manager = _newManager;
-    }
-
     function maxUnlockId() public view returns (uint256) {
         if (block.timestamp < periodStartTime[0]) {
             return 0;
@@ -99,7 +81,7 @@ contract PPNLocker is IERC721Receiver {
     //todo 范围
     function claimBatch(uint256[] calldata _tokenIds, address _receiver)
         external
-        onlyManager
+        onlyOwner
     {
         //todo remove claim
         for (uint256 i = 0; i < _tokenIds.length; i++) {
@@ -108,7 +90,7 @@ contract PPNLocker is IERC721Receiver {
     }
 
     // claim nft
-    function claim(uint256 _tokenId, address _receiver) public onlyManager {
+    function claim(uint256 _tokenId, address _receiver) public onlyOwner {
         require(
             IERC721(ppnAddress).ownerOf(_tokenId) == address(this),
             "PPNLocker: nft not owned by contract"
@@ -133,8 +115,8 @@ contract PPNLocker is IERC721Receiver {
         address, /*from*/
         uint256, /*tokenId*/
         bytes calldata /*data*/
-    ) external pure override returns (bytes4) {
-        //todo msg.sender == ppnaddr
+    ) external view override returns (bytes4) {
+        require(msg.sender == ppnAddress, "PPNLocker: only accept ppn");
         return
             bytes4(
                 keccak256("onERC721Received(address,address,uint256,bytes)")

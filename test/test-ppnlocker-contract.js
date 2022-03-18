@@ -74,7 +74,7 @@ describe("Test PPNLocker ..........", function () {
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[0],
     ]);
-    await vp.transferManagement(owner.address);
+    await vp.transferOwnership(owner.address);
     expect(await vp.manager()).to.equal(owner.address);
     expect(await vp.maxUnlockId()).to.equal(unlockQuantity[0]);
 
@@ -82,28 +82,28 @@ describe("Test PPNLocker ..........", function () {
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[1],
     ]);
-    await vp.transferManagement(owner.address);
+    await vp.transferOwnership(owner.address);
     expect(await vp.maxUnlockId()).to.equal(unlockQuantity[1]);
 
     //period 2 start
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[2],
     ]);
-    await vp.transferManagement(owner.address);
+    await vp.transferOwnership(owner.address);
     expect(await vp.maxUnlockId()).to.equal(unlockQuantity[2]);
 
     //period 3 start
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[3],
     ]);
-    await vp.transferManagement(owner.address);
+    await vp.transferOwnership(owner.address);
     expect(await vp.maxUnlockId()).to.equal(unlockQuantity[3]);
 
     // after last period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       2 * periodStartTime[3],
     ]);
-    await vp.transferManagement(owner.address);
+    await vp.transferOwnership(owner.address);
     expect(await vp.maxUnlockId()).to.equal(unlockQuantity[3]);
   });
 
@@ -136,7 +136,7 @@ describe("Test PPNLocker ..........", function () {
 
     //claim
     await expect(vp.connect(u1).claim(ppnId0, u1.address)).to.be.revertedWith(
-      "PPNLocker: not manager"
+      "Ownable: caller is not the owner"
     );
 
     await expect(
