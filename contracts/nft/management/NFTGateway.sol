@@ -150,6 +150,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      */
     function setManagerOf(address _nftContract, address _manager)
         external
+        override
         onlyRole(GATEWAY_MANAGER_ROLE)
     {
         emit AssignManager(
