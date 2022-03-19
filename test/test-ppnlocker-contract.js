@@ -111,6 +111,10 @@ describe("Test PPNLocker ..........", function () {
   });
 
   it("Test claim", async function () {
+    await expect(
+      vp.connect(owner).claimBatch(ppnId0, ppnId0, u1.address)
+    ).to.be.revertedWith("PPNLocker: nft has not been released");
+
     // Speed up the clock to the second period 1
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[0],
@@ -161,8 +165,8 @@ describe("Test PPNLocker ..........", function () {
   });
 
   it("Test 100 ppn claimBatch", async function () {
-     // Speed up the clock to the second period 3
-     await hre.network.provider.send("evm_setNextBlockTimestamp", [
+    // Speed up the clock to the second period 3
+    await hre.network.provider.send("evm_setNextBlockTimestamp", [
       2 * periodStartTime[3],
     ]);
 
