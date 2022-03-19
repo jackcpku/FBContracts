@@ -77,37 +77,35 @@ contract PPNLocker is IERC721Receiver, Ownable {
         return unlockQuantity[unlockQuantity.length - 1];
     }
 
-    // claim batch
-    //todo 范围
-    function claimBatch(uint256[] calldata _tokenIds, address _receiver)
-        external
-        onlyOwner
-    {
-        //todo remove claim
-        for (uint256 i = 0; i < _tokenIds.length; i++) {
-            claim(_tokenIds[i], _receiver);
-        }
-    }
-
-    // claim nft
-    function claim(uint256 _tokenId, address _receiver) public onlyOwner {
+    function claimBatch(
+        uint256 _startId,
+        uint256 _endId,
+        address _receiver
+    ) external onlyOwner {
         require(
-            IERC721(ppnAddress).ownerOf(_tokenId) == address(this),
-            "PPNLocker: nft not owned by contract"
+            address(_receiver) != address(0),
+            "PPNLocker: zero address is not allowed"
         );
-
         require(
-            _tokenId <= maxUnlockId(),
+            _startId > 0 && _startId <= _endId,
+            "PPNLocker: _startId is invalid"
+        );
+        require(
+            _endId <= maxUnlockId(),
             "PPNLocker: nft has not been released"
         );
 
-        totalReleased++;
-
-        IERC721(ppnAddress).safeTransferFrom(
-            address(this),
-            _receiver,
-            _tokenId
-        );
+        for (uint256 _tokenId = _startId; _tokenId <= _endId; _tokenId++) {
+            require(
+                IERC721(ppnAddress).ownerOf(_tokenId) == address(this),
+                "PPNLocker: nft not owned by contract"
+            );
+            IERC721(ppnAddress).safeTransferFrom(
+                address(this),
+                _receiver,
+                _tokenId
+            );
+        }
     }
 
     function onERC721Received(

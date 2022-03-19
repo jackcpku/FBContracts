@@ -29,6 +29,9 @@ describe("Test PPNLocker ..........", function () {
   const ppnId3 = 6001;
   const ppnId4 = 8001;
 
+  const ppnStartId = 6002;
+  const ppnEndId = 6102;
+
   beforeEach("contracts deployed.", async function () {
     await hre.network.provider.send("hardhat_reset");
 
@@ -128,37 +131,52 @@ describe("Test PPNLocker ..........", function () {
       .connect(manager0)
       .ERC721_mint(someNFTAddress, vp.address, ppnId3);
 
-    // Id4 mint to manager0
+    // // Id4 mint to manager0
     await gateway
       .connect(manager0)
       .ERC721_mint(someNFTAddress, manager0.address, ppnId4);
     expect(await someERC721Contract.ownerOf(ppnId0)).to.equal(vp.address);
 
     //claim
-    await expect(vp.connect(u1).claim(ppnId0, u1.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(
+      vp.connect(u1).claimBatch(ppnId0, ppnId0, u1.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
 
     await expect(
-      vp.connect(owner).claim(ppnId4, u1.address)
-    ).to.be.revertedWith("PPNLocker: nft not owned by contract");
+      vp.connect(owner).claimBatch(ppnId4, ppnId4, u1.address)
+    ).to.be.revertedWith("PPNLocker: nft has not been released");
 
     await expect(
-      vp.connect(owner).claim(ppnId1, u1.address)
+      vp.connect(owner).claimBatch(ppnId1, ppnId1, u1.address)
     ).to.be.revertedWith("PPNLocker: nft has not been released");
 
     // Id0 from pv to u1
-    await vp.connect(owner).claim(ppnId0, u1.address);
+    await vp.connect(owner).claimBatch(ppnId0, ppnId0, u1.address);
     expect(await someERC721Contract.ownerOf(ppnId0)).to.equal(u1.address);
 
     // Speed up the clock to the second period 1
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       periodStartTime[3],
     ]);
+  });
 
-    await vp.connect(owner).claimBatch([ppnId1, ppnId2, ppnId3], u2.address);
-    expect(await someERC721Contract.ownerOf(ppnId1)).to.equal(u2.address);
-    expect(await someERC721Contract.ownerOf(ppnId2)).to.equal(u2.address);
-    expect(await someERC721Contract.ownerOf(ppnId3)).to.equal(u2.address);
+  it("Test 100 ppn claimBatch", async function () {
+     // Speed up the clock to the second period 3
+     await hre.network.provider.send("evm_setNextBlockTimestamp", [
+      2 * periodStartTime[3],
+    ]);
+
+    // ppnStartId - ppnEndId mint to vp
+    for (var i = ppnStartId; i <= ppnEndId; i++) {
+      await gateway
+        .connect(manager0)
+        .ERC721_mint(someNFTAddress, vp.address, i);
+    }
+
+    await vp.connect(owner).claimBatch(ppnStartId, ppnEndId, u1.address);
+
+    for (var i = ppnStartId; i <= ppnEndId; i++) {
+      expect(await someERC721Contract.ownerOf(i)).to.equal(u1.address);
+    }
   });
 });
