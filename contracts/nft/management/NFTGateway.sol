@@ -38,12 +38,12 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
 
     mapping(bytes => bool) usedSignagure;
 
-    event GatewayOwnershipTransferred(
+    event TransferGatewayOwnership(
         address indexed previousGatewayManager,
         address indexed newGatewayManager
     );
 
-    event ManagerAssigned(
+    event AssignManager(
         address indexed assigner,
         address indexed contractAddress,
         address previousContractManager,
@@ -150,9 +150,10 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      */
     function setManagerOf(address _nftContract, address _manager)
         external
+        override
         onlyRole(GATEWAY_MANAGER_ROLE)
     {
-        emit ManagerAssigned(
+        emit AssignManager(
             msg.sender,
             _nftContract,
             nftManager[_nftContract],
@@ -222,7 +223,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
             "Gateway: new gateway admin should be different than the current one"
         );
 
-        emit GatewayOwnershipTransferred(msg.sender, _gatewayAdmin);
+        emit TransferGatewayOwnership(msg.sender, _gatewayAdmin);
 
         // The new gateway manager picks up his role.
         _grantRole(DEFAULT_ADMIN_ROLE, _gatewayAdmin);

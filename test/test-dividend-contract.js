@@ -43,7 +43,7 @@ describe("Test NFT Dividend..........", function () {
     // Similate the call to obtain the return value.
     nftContractAddress = await factory
       .connect(u2)
-      .callStatic.deployBaseERC721("U2-contract", "U2T", "", BigInt(0));
+      .callStatic.deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
 
     dd = await deployDividend(pvs.address, nftContractAddress, periodStartTime);
 
@@ -149,7 +149,7 @@ describe("Test NFT Dividend..........", function () {
     // Let u2 deploy the contract.
     await factory
       .connect(u2)
-      .deployBaseERC721("U2-contract", "U2T", "", BigInt(0));
+      .deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
     await gateway
       .connect(u2)
       .ERC721_mint(nftContractAddress, u2.address, u2nftId);

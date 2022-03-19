@@ -57,7 +57,7 @@ describe("Test PPNLocker ..........", function () {
     );
     await factory
       .connect(manager0)
-      .deployBaseERC721(tokenName, tokenSymbol, baseURI, salt);
+      .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt);
 
     someERC721Contract = await hre.ethers.getContractAt(
       "BasicERC721",
