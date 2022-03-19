@@ -9,15 +9,12 @@ const {
 
 async function run(tc) {
   // Contracts
-  let gateway, factory, marketplace, fbt;
-  let nftContract1; // NFT contract deployed by manager1.
-  let nftContract2; // NFT contract deployed by manager2.
-  let someERC721Contract; // NFT contract deployed by someERC721Manager.
-  let someERC1155Contract; // NFT contract deployed by someERC1155Manager.
+  let gateway, factory, marketplace, pvs;
+  let basicERC721; // NFT contract deployed by basicERC721Manager.
   // Addresses
   let gatewayAdmin;
-  let platform; // The Big Brother
-  let manager1, manager2, someERC721Manager, someERC1155Manager; // Game providers
+  let platform; // The big fee receiver
+  let basicERC721Manager; // Game providers
   let seller1, buyer1, seller2, buyer2; // users
   let sellers = {},
     buyers = {};
@@ -30,10 +27,7 @@ async function run(tc) {
       owner,
       gatewayAdmin,
       platform,
-      manager1,
-      manager2,
-      someERC721Manager,
-      someERC1155Manager,
+      basicERC721Manager,
       seller1,
       buyer1,
       seller2,
@@ -44,48 +38,31 @@ async function run(tc) {
     buyers["buyer1"] = buyer1;
     sellers["seller2"] = seller2;
     buyers["buyer2"] = buyer2;
-    sellers["manager1"] = manager1;
+    sellers["basicERC721Manager"] = basicERC721Manager;
 
-    // Deploy FBT contract.
-    const FunBoxToken = await hre.ethers.getContractFactory("FunBoxToken");
-    fbt = await deployMajorToken(platform.address);
-    await fbt.deployed();
+    // Deploy ERC20 contract.
+    pvs = await deployMajorToken(platform.address);
+    await pvs.deployed();
 
     // Deploy Gateway and Factory contract.
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
 
     // Let managers deploy nft contracts.
-    let nftContract1Address = await factory
-      .connect(manager1)
-      .callStatic.deployBasicERC721("nft-contract-1", "UC1");
-    await factory.connect(manager1).deployBasicERC721("nft-contract-1", "UC1");
-    nftContract1 = await hre.ethers.getContractAt(
+    const name = "erc721-contract";
+    const symbol = "erc721c";
+    const uri = "https://erc721/";
+    const salt =
+      "0x0000000000000000000000000000000000000000000000000000000000002022";
+    let basicERC721Address = await factory
+      .connect(basicERC721Manager)
+      .callStatic.deployBasicERC721(name, symbol, uri, salt);
+    await factory
+      .connect(basicERC721Manager)
+      .deployBasicERC721(name, symbol, uri, salt);
+    basicERC721 = await hre.ethers.getContractAt(
       "BasicERC721",
-      nftContract1Address
+      basicERC721Address
     );
-
-    let nftContract2Address = await factory
-      .connect(manager2)
-      .callStatic.deployBasicERC721("nft-contract-2", "UC2");
-    await factory.connect(manager2).deployBasicERC721("nft-contract-2", "UC2");
-    nftContract2 = await hre.ethers.getContractAt(
-      "BasicERC721",
-      nftContract2Address
-    );
-
-    let SomeERC721Contract = await hre.ethers.getContractFactory("SomeERC721");
-    someERC721Contract = await SomeERC721Contract.connect(
-      someERC721Manager
-    ).deploy("Some NFT", "SNFT");
-    await someERC721Contract.deployed();
-
-    let SomeERC1155Contract = await hre.ethers.getContractFactory(
-      "SomeERC1155"
-    );
-    someERC1155Contract = await SomeERC1155Contract.connect(
-      someERC1155Manager
-    ).deploy("Some URI");
-    await someERC1155Contract.deployed();
 
     // Deploy the marketplace contract.
     const Marketplace = await hre.ethers.getContractFactory("Marketplace");
@@ -93,7 +70,7 @@ async function run(tc) {
     await marketplace.deployed();
 
     // Initialize the marketplace contract.
-    await marketplace.setMainPaymentToken(fbt.address);
+    await marketplace.setMainPaymentToken(pvs.address);
     await marketplace.setServiceFeeRecipient(platform.address);
   }
   async function getOffers({
@@ -128,13 +105,13 @@ async function run(tc) {
     // Prepare Order info
     const order = {
       marketplaceAddress: marketplace.address,
-      targetTokenAddress: nftContract1.address,
+      targetTokenAddress: basicERC721.address,
       targetTokenId: tokenId,
-      paymentTokenAddress: fbt.address,
+      paymentTokenAddress: pvs.address,
       price: price,
       serviceFee: serviceFee,
       royaltyFee: royaltyFee,
-      royaltyFeerecipient: manager1.address,
+      royaltyFeerecipient: basicERC721Manager.address,
     };
 
     const orderBytes = encoder.encode(
@@ -382,7 +359,7 @@ function generateTestCases(N) {
     t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.serviceFee = 5000;
     t.royaltyFee = 0;
-    t.sellerSelector = "manager1";
+    t.sellerSelector = "basicERC721Manager";
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 23) +
       (i + 1) +
