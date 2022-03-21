@@ -299,13 +299,10 @@ function generateTestCases(N) {
       "0x0000000000000000000000000000000000000000000000000000000000000012",
   };
 
-  // Basic offer
-  validBundle.push(basicTest);
-
   // Different price
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = ethers.utils.hexZeroPad(i, 32);
+    t.tokenId = ethers.utils.hexZeroPad(i + 1, 32);
     t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 20) +
@@ -321,7 +318,7 @@ function generateTestCases(N) {
   // Different seller
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = ethers.utils.hexZeroPad(N + i, 32);
+    t.tokenId = ethers.utils.hexZeroPad(N + i + 1, 32);
     t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.sellerSelector = "seller2";
     t.sellerSalt =
@@ -338,7 +335,7 @@ function generateTestCases(N) {
   // Different buyer
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = ethers.utils.hexZeroPad(N * 2 + i, 32);
+    t.tokenId = ethers.utils.hexZeroPad(N * 2 + i + 1, 32);
     t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 22) +
@@ -355,7 +352,7 @@ function generateTestCases(N) {
   // Seller is manager
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.tokenId = ethers.utils.hexZeroPad(N * 3 + i, 32);
+    t.tokenId = ethers.utils.hexZeroPad(N * 3 + i + 1, 32);
     t.price = ethers.utils.hexZeroPad((i + 1) * 1000, 16);
     t.serviceFee = 5000;
     t.royaltyFee = 0;

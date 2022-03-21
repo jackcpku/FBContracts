@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
-import "./interfaces/IPVSTicket.sol";
+import "./IPVSTicket.sol";
 
 contract Vote is Initializable, OwnableUpgradeable {
     using SafeMath for uint256;
