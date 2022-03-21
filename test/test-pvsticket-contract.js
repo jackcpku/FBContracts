@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-const { deployMajorToken, deployStaking } = require("../lib/deploy");
+const { deployMajorToken, deployPVSTicket } = require("../lib/deploy");
 
 describe("Test Staking PVS..........", function () {
   let pvs, sk; // Contract objects
@@ -17,7 +17,7 @@ describe("Test Staking PVS..........", function () {
 
     [owner, u1, burner, minter, u2] = await hre.ethers.getSigners();
     pvs = await deployMajorToken(owner.address);
-    sk = await deployStaking("Ticket", "TKT", pvs.address);
+    sk = await deployPVSTicket(pvs.address);
   });
 
   describe("Dealing with staker", function () {
@@ -26,8 +26,8 @@ describe("Test Staking PVS..........", function () {
     });
 
     it("init", async function () {
-      expect(await sk.name()).to.equal("Ticket");
-      expect(await sk.symbol()).to.equal("TKT");
+      expect(await sk.name()).to.equal("PVSTicket");
+      expect(await sk.symbol()).to.equal("PVST");
       expect(await sk.decimals()).to.equal(18);
       expect(await sk.balanceOf(owner.address)).to.equal(0);
       expect(await sk.totalSupply()).to.equal(0);
@@ -134,8 +134,8 @@ describe("Test Staking PVS..........", function () {
       expect(await sk.allowance(u1.address, u2.address)).to.equal(0);
 
       await expect(sk.transferFrom(u1.address, u2.address, transAmt)).to.be.revertedWith("Ticket transfer is not allowed!");
+
       expect(await sk.balanceOf(u2.address)).to.equal(0);
     });
-
   });
 });

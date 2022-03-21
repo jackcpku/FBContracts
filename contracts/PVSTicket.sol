@@ -12,11 +12,8 @@ import "./interfaces/IPVSTicket.sol";
  * 2. TKT implemented SimpleIERC20 standards, but transfers were restricted, and only whitelisted addresses can mint or burn
  */
 
-contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
+contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-
-    string private _name;
-    string private _symbol;
 
     // the target ERC20 token for staking
     address public pvsAddress;
@@ -54,10 +51,8 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
      *                           Management                              *
      ********************************************************************/
 
-    function initialize(string memory name_, string memory symbol_, address _pvsAddress) public initializer {
+    function initialize(address _pvsAddress) public initializer {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _name = name_;
-        _symbol = symbol_;
         pvsAddress = _pvsAddress;
     }
 
@@ -65,12 +60,12 @@ contract StakingPVSContract is IERC20Upgradeable, IPVSTicket, AccessControlUpgra
         return 18;
     }
 
-    function name() external view returns (string memory) {
-        return _name;
+    function name() external pure returns (string memory) {
+        return "PVSTicket";
     }
 
-    function symbol() external view returns (string memory) {
-        return _symbol;
+    function symbol() external pure returns (string memory) {
+        return "PVST";
     }
 
      /********************************************************************
