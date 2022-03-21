@@ -128,14 +128,12 @@ describe("Test Staking PVS..........", function () {
     it("Test ERC20 override", async function () {
       const transAmt = BigInt(5) * BigInt(10) ** BigInt(18);
       await expect(sk.connect(u1).transfer(u2.address, transAmt)).to.be.revertedWith("Ticket transfer is not allowed!");
-      expect(await sk.connect(u1).transfer(u2.address, transAmt)).to.be.false;
       expect(await sk.balanceOf(u2.address)).to.equal(0);
 
       expect(await sk.connect(u1).approve(u2.address, transAmt)).to.be.false;
       expect(await sk.allowance(u1.address, u2.address)).to.equal(0);
 
       await expect(sk.transferFrom(u1.address, u2.address, transAmt)).to.be.revertedWith("Ticket transfer is not allowed!");
-      expect(await sk.transferFrom(u1.address, u2.address, transAmt)).to.be.false;
 
       expect(await sk.balanceOf(u2.address)).to.equal(0);
     });
