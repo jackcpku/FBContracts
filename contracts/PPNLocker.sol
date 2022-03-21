@@ -92,10 +92,6 @@ contract PPNLocker is IERC721Receiver, Ownable {
         );
 
         for (uint256 _tokenId = _startId; _tokenId <= _endId; _tokenId++) {
-            require(
-                IERC721(ppnAddress).ownerOf(_tokenId) == address(this),
-                "PPNLocker: nft not owned by contract"
-            );
             IERC721(ppnAddress).safeTransferFrom(
                 address(this),
                 _receiver,
