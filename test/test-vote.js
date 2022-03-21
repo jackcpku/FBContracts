@@ -6,7 +6,7 @@ const { calculateCreate2AddressBasicERC721 } = require("../lib/create2.js");
 const {
   deployVote,
   deployMajorToken,
-  deployStaking,
+  deployPVSTicket,
 } = require("../lib/deploy.js");
 
 describe("Test Vote Contract", function () {
@@ -36,7 +36,7 @@ describe("Test Vote Contract", function () {
     await pvs.transfer(user1.address, pvsAmount[1]);
 
     // Set up Staking contract
-    ticket = await deployStaking("Ticket", "TKT", pvs.address);
+    ticket = await deployPVSTicket(pvs.address);
     const minterRole = await ticket.TICKET_MINTER_ROLE();
     await ticket.grantRole(minterRole, owner.address);
     await ticket.mint(user0.address, tktAmount[0]);
