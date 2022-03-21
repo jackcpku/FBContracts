@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../../libraries/DeployBasicERC721.sol";
-import "../../libraries/DeployBasicERC1155.sol";
+import "../libraries/DeployBasicERC721.sol";
+import "../libraries/DeployBasicERC1155.sol";
 import "../interfaces/INFTGateway.sol";
 
 contract NFTFactory is Initializable {
