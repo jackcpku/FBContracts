@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../nft/BasicERC1155.sol";
+import "../BasicERC1155.sol";
 
 library DeployBasicERC1155 {
     function deploy(
