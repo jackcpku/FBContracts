@@ -10,22 +10,30 @@ interface IPVSTicket {
      */
     function burn(address _ticketOwner, uint256 _amount) external;
 
-     /**
+    /**
      * @dev Mint `amount` tickets from the `address(0)` to  _ticketOwner's account.
      */
     function mint(address _ticketOwner, uint256 _amount) external;
 
-     /**
+    /**
      * @dev Emitted when `amount` tickets from (`owner`) were burned by (`burner`).
      *
      * Note that `value` may be zero.
      */
-    event TicketBurned(address indexed owner, address indexed burner, uint256 amount);
+    event TicketBurned(
+        address indexed owner,
+        address indexed burner,
+        uint256 amount
+    );
 
-     /**
+    /**
      * @dev Emitted when `amount` tickets were minted by (`minter`) to (`owner`).
      *
      * Note that `value` may be zero.
      */
-    event TicketMinted(address indexed owner, address indexed minter, uint256 amount);
+    event TicketMinted(
+        address indexed owner,
+        address indexed minter,
+        uint256 amount
+    );
 }

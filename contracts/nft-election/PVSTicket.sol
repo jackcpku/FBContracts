@@ -7,9 +7,10 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "./IPVSTicket.sol";
 
 /**
- * This Contract is designed for staking our platform token:PVS to generate & manage our voting ticket:TKT
- * 1. Generate TKT accroding to the amount of PVS
- * 2. TKT implemented SimpleIERC20 standards, but transfers were restricted, and only whitelisted addresses can mint or burn
+ * This Contract is designed for staking our platform token:PVS to generate & manage our voting ticket:PVST
+ * 1. Generate PVST according to the amount of PVS: The core principle is that a unit amount of PVS staking generates a fixed number of tickets per unit time.
+ *      So it is necessary to calculate the integral of the PVS staking amount over time.
+ * 2. PVST implements the SimpleIERC20 standard, but transfers are strictly limited, and only whitelisted addresses can mint or burn PVST.
  */
 
 contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
@@ -71,12 +72,19 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
      /********************************************************************
      *                          Override IERC20                          *
      ********************************************************************/
-
+    
+    /**
+     * Returns the totalSupply of ticket token at the latest checkpoint 
+     * @notice (Does not include incremental but unminted parts from the latest checkpoint to the present)
+     */
     function totalSupply() external view override returns (uint256) {
         return totalSupplyAtCheckpoint;
     }
 
-    //balance of tkt at last checkpoint, not including 
+    /**
+     * Return the balance of one staker’s ticket at present
+     * @notice including incremental but unminted parts from the latest checkpoint to the present
+     */
     function balanceOf(address _staker) external view override returns (uint256) {
         return tktBalanceAtCheckpoint[_staker] + calculateIncrement(_staker);
     }
@@ -124,16 +132,34 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
     /********************************************************************
      *                          Stake Functions                         *
      ********************************************************************/
+    /**
+     * Generate PVST according to the amount of PVS: The core principle is that a unit amount of PVS staking generates a fixed number of tickets per unit time.
+     * So it is necessary to calculate the integral of the PVS staking amount over time.
+     * For each address, define the concept of a checkpoint cp
+     *   1. Record the time t(cp) of the checkpoint and the integral (ie ticket) v(cp)  at that time
+     *   2. It is required that from the last checkpoint to the current time, the amount of PVS staked by this address is fixed and recorded as s(cp).
+     *   3. Then the current ticket balance of each address `v(t) = v(cp) + ConstFactor * s(cp) * (t - t(cp))`
+     */
 
-    // C * s(cp) * (t - t(cp))
+    /**
+     * Calculate the increment of the staker's ticket from the most recent checkpoint to the present
+     * Increment = C * s(cp) * (t - t(cp))
+     */
     function calculateIncrement(address _staker) public view returns (uint256) {
         uint256 _last = checkpointTime[_staker];
         uint256 timeInterval = block.timestamp - _last;
         return PRODUCT_FACTOR * staked[_staker] * timeInterval;
     }
 
-    //check & update # of TKT at current timestamp
-    //now v(t) = v(cp) + C * s(cp) * (t - t(cp))
+    /**
+     * Check & update # of PVST at current timestamp
+     * When the amount of staking changes, it is necessary to update the checkpoint in time: after staking and before withdrawal
+     *    v(t) = v(cp) + C * s(cp) * (t - t(cp))
+     * 1. calculate increment from the latest checkpoint to the present
+     * 2. add the increment to the ticket balance of the ticketOwner
+     * 3. update the ticketOwner’s last checkpointTime to present
+     * 4. emit Transfer event
+     */
     function updateCheckpoint(address _staker) internal returns (uint256) {
         uint256 increment = calculateIncrement(_staker);
 
