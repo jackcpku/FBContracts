@@ -29,12 +29,12 @@ contract Dividend {
     // Dividend that has been claimed by one PPN
     mapping(uint256 => uint256) public hasClaimed;
 
-    // All pvs(dividend) at the begining of current period
+    // All pvs(dividend) at the beginning of current period
     uint256 public accumulatedPool;
 
     // accumulatedDividends[i] means the accumulated dividends for one PPN during period k where 0 <= k < i.
     // For one PPN released in period j, it can only receive dividends of period k where k >= j,
-    // so at the begining of current period, the accumulated dividends of one PPN released in period j
+    // so at the beginning of current period, the accumulated dividends of one PPN released in period j
     //      = accumulatedDividends[currentPeriod] - accumulatedDividends[j]
     // Note that accumulatedDividends[0] = 0
     uint256[] public accumulatedDividends;
@@ -106,7 +106,7 @@ contract Dividend {
     /**
      * Get the total dividends of one PPN from its released period
      * The accumulated dividends of one PPN 
-     *      = the accumulated dividends at the begining of current period + the dividends accumulated during current period.
+     *      = the accumulated dividends at the beginning of current period + the dividends accumulated during current period.
      *      = (accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod) + currentDividends
      */     
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
