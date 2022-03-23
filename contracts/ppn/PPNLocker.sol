@@ -5,6 +5,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
+/**
+ * Our platform NFT:PPN will minted to the contract and locked first
+ * This contract is designed to help us lock our PPN and then unlock it in batches on a periodic basis.
+ * We will set each lock period’s start time (in Unix timestamp) and unlocked quantity of each period accordingly.
+ */
+
 contract PPNLocker is IERC721Receiver, Ownable {
     // manager of vesting
     address public manager;
@@ -61,6 +67,7 @@ contract PPNLocker is IERC721Receiver, Ownable {
         unlockQuantity = _unlockQuantity;
     }
 
+    // Returns the maximum tokenId of currently unlocked NFTs
     function maxUnlockId() public view returns (uint256) {
         if (block.timestamp < periodStartTime[0]) {
             return 0;
@@ -73,6 +80,7 @@ contract PPNLocker is IERC721Receiver, Ownable {
         return unlockQuantity[unlockQuantity.length - 1];
     }
 
+    // batch claim of NFTs
     function claimBatch(
         uint256 _startId,
         uint256 _endId,
@@ -86,6 +94,7 @@ contract PPNLocker is IERC721Receiver, Ownable {
             _startId > 0 && _startId <= _endId,
             "PPNLocker: _startId is invalid"
         );
+        // check if nft with the maximum tokenId was unlocked
         require(
             _endId <= maxUnlockId(),
             "PPNLocker: nft has not been released"
