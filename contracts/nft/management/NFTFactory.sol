@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../libraries/DeployBasicERC721.sol";
-import "../libraries/DeployBasicERC1155.sol";
 import "../interfaces/INFTGateway.sol";
+import "../BasicERC721.sol";
+import "../BasicERC1155.sol";
 
 contract NFTFactory is Initializable {
     address public gatewayAddress;
@@ -30,12 +30,13 @@ contract NFTFactory is Initializable {
         uint256 _salt
     ) external returns (address deployedAddress) {
         // Deploy the contract and set its gateway.
-        deployedAddress = DeployBasicERC721.deploy(
-            gatewayAddress,
-            _name,
-            _symbol,
-            _baseURI,
-            _salt
+        deployedAddress = address(
+            new BasicERC721{salt: bytes32(_salt)}(
+                _name,
+                _symbol,
+                _baseURI,
+                gatewayAddress
+            )
         );
 
         emit DeployContract(msg.sender, deployedAddress, true);
@@ -52,10 +53,8 @@ contract NFTFactory is Initializable {
         returns (address deployedAddress)
     {
         // Deploy the contract and set its gateway.
-        deployedAddress = DeployBasicERC1155.deploy(
-            gatewayAddress,
-            _uri,
-            _salt
+        deployedAddress = address(
+            new BasicERC1155{salt: bytes32(_salt)}(_uri, gatewayAddress)
         );
 
         emit DeployContract(msg.sender, deployedAddress, false);
