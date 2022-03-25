@@ -31,8 +31,6 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     mapping(address => address) nftPreviousManager;
     mapping(address => uint256) nftManagerGraceTimeStart;
 
-    mapping(bytes => bool) usedSignagure;
-
     event TransferGatewayOwnership(
         address indexed previousGatewayManager,
         address indexed newGatewayManager
