@@ -31,6 +31,11 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     mapping(address => address) nftPreviousManager;
     mapping(address => uint256) nftManagerGraceTimeStart;
 
+    /**
+     * Store whitelist addresses that may operate with NFTs without approval
+     */
+    mapping(address => bool) public override nftOperatorWhitelist;
+
     event TransferGatewayOwnership(
         address indexed previousGatewayManager,
         address indexed newGatewayManager
@@ -42,6 +47,10 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address previousContractManager,
         address indexed newContractManager
     );
+
+    event AddNftOperator(address indexed operator);
+
+    event RemoveNftOperator(address indexed operator);
 
     modifier onlyManagerOf(address _nftContract) {
         require(
@@ -162,6 +171,32 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /********************************************************************
      *                      Admin-only functions                        *
      ********************************************************************/
+
+    /**
+     * Add an nft operator to the whitelist
+     */
+    function addNftOperator(address _operator)
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        nftOperatorWhitelist[_operator] = true;
+
+        emit AddNftOperator(_operator);
+    }
+
+    /**
+     * Remove an nft operator from the whitelist
+     */
+    function removeNftOperator(address _operator)
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        nftOperatorWhitelist[_operator] = false;
+
+        emit RemoveNftOperator(_operator);
+    }
 
     /**
      * Add a manager

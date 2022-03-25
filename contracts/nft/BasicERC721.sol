@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "./management/BaseNFTManagement.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./interfaces/INFTGateway.sol";
 
 contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
     using Strings for uint256;
@@ -52,5 +53,17 @@ contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
 
     function setURI(string calldata newBaseURI) external onlyGateway {
         __baseURI = newBaseURI;
+    }
+
+    function isApprovedForAll(address owner, address operator)
+        public
+        view
+        override
+        returns (bool)
+    {
+        if (INFTGateway(gateway).nftOperatorWhitelist(operator)) {
+            return true;
+        }
+        return super.isApprovedForAll(owner, operator);
     }
 }

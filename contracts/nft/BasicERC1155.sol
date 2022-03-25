@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "./management/BaseNFTManagement.sol";
+import "./interfaces/INFTGateway.sol";
 
 contract BasicERC1155 is
     ERC1155,
@@ -69,5 +70,17 @@ contract BasicERC1155 is
         bytes memory data
     ) internal override(ERC1155, ERC1155Supply) {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    }
+
+    function isApprovedForAll(address account, address operator)
+        public
+        view
+        override
+        returns (bool)
+    {
+        if (INFTGateway(gateway).nftOperatorWhitelist(operator)) {
+            return true;
+        }
+        return super.isApprovedForAll(account, operator);
     }
 }
