@@ -4,8 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "./management/BaseNFTManagement.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
+    using Strings for uint256;
+
     string private __baseURI;
 
     /**
@@ -28,11 +31,16 @@ contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
         super.burn(tokenId);
     }
 
-    function setURI(string calldata newBaseURI) external onlyGateway {
-        __baseURI = newBaseURI;
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
+        return string(abi.encodePacked(__baseURI, tokenId.toHexString(32)));
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return __baseURI;
+    function setURI(string calldata newBaseURI) external onlyGateway {
+        __baseURI = newBaseURI;
     }
 }

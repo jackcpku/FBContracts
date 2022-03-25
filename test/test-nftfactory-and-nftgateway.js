@@ -38,7 +38,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     const deployeeName = "BasicERC721";
     const tokenName = "U2-contract";
     const tokenSymbol = "U2T";
-    const baseURI = "baseURI";
+    const baseURI = "baseURI/";
     const salt = 233;
     const u2ContractAddress = await calculateCreate2AddressBasicERC721(
       from,
@@ -59,6 +59,11 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       u2ContractAddress
     );
     expect(await u2Contract.gateway()).to.equal(gateway.address);
+    expect((await u2Contract.tokenURI(1234)).toLowerCase()).to.equal(
+      `${baseURI}${u2ContractAddress}/${hre.ethers.utils
+        .hexZeroPad("0x4d2", 32)
+        .toString()}`.toLowerCase()
+    );
 
     /******************** Tests ********************/
 
@@ -79,7 +84,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     // u2 sets uri of u2Contract
     await gateway.connect(u2).ERC721_setURI(u2Contract.address, "ipfs://");
-    expect(await u2Contract.tokenURI(333)).to.equal("ipfs://333");
+    expect(await u2Contract.tokenURI(333)).to.equal(
+      "ipfs://0x000000000000000000000000000000000000000000000000000000000000014d"
+    );
   });
 
   it("ERC1155 gateway operations", async function () {
@@ -88,7 +95,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     // calculate u2ContractAddress deployed using create2
     const from = factory.address;
     const deployeeName = "BasicERC1155";
-    const uri = "some uri";
+    const uri = "some uri/";
     const salt = 233;
     const u2ContractAddress = await calculateCreate2AddressBasicERC1155(
       from,
@@ -105,6 +112,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       u2ContractAddress
     );
     expect(await u2Contract.gateway()).to.equal(gateway.address);
+    expect((await u2Contract.uri(0)).toLowerCase()).to.equal(
+      `${uri}${u2ContractAddress}/{id}`.toLowerCase()
+    );
 
     /******************** Tests ********************/
 
