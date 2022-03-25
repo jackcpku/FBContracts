@@ -69,7 +69,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                             Events                               *
      ********************************************************************/
 
-    event OrderMatched(
+    event MatchOrder(
         address indexed contractAddress,
         uint256 indexed tokenId,
         address indexed paymentToken,
@@ -81,7 +81,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes32 buyerMessageHash
     );
 
-    event MessageHashIgnored(
+    event IgnoreMessageHash(
         address indexed operator,
         bytes32 indexed messageHash
     );
@@ -214,7 +214,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         fills[buyer][buyerMessageHash] += fill;
 
         /*  LOGS  */
-        emit OrderMatched(
+        emit MatchOrder(
             order.targetTokenAddress,
             order.targetTokenId,
             order.paymentTokenAddress,
@@ -242,7 +242,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
         cancelled[msg.sender][messageHash] = true;
 
-        emit MessageHashIgnored(msg.sender, messageHash);
+        emit IgnoreMessageHash(msg.sender, messageHash);
     }
 
     /**
