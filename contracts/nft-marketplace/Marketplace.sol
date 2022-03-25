@@ -150,7 +150,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             _sellerMetadata,
             sellerSig
         );
-        require(sellerSigValid, "Seller signature is not valid");
+        require(sellerSigValid, "Marketplace: invalid seller signature");
 
         (bool buyerSigValid, bytes32 buyerMessageHash) = checkSigValidity(
             buyer,
@@ -159,7 +159,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             _buyerMetadata,
             buyerSig
         );
-        require(buyerSigValid, "Buyer signature is not valid");
+        require(buyerSigValid, "Marketplace: invalid buyer signature");
 
         Order memory order = decodeOrder(_order);
         OrderMetadata memory sellerMetadata = decodeOrderMetadata(
@@ -237,7 +237,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     function ignoreMessageHash(bytes32 messageHash) public {
         require(
             cancelled[msg.sender][messageHash] == false,
-            "Order has been revoked"
+            "Marketplace: order has been revoked"
         );
 
         cancelled[msg.sender][messageHash] = true;
@@ -270,49 +270,55 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     ) internal view {
         require(
             order.marketplaceAddress == address(this),
-            "Wrong market address"
+            "Marketplace: wrong market address"
         );
         require(
             paymentTokens[order.paymentTokenAddress] == true,
             "Marketplace: invalid payment method"
         );
 
-        require(sellerMetadata.sellOrBuy == true, "Seller should sell");
-        require(buyerMetadata.sellOrBuy == false, "Buyer should buy");
+        require(
+            sellerMetadata.sellOrBuy == true,
+            "Marketplace: seller should sell"
+        );
+        require(
+            buyerMetadata.sellOrBuy == false,
+            "Marketplace: buyer should buy"
+        );
 
         require(
             !cancelled[seller][sellerMessageHash],
-            "Sell order has been revoked"
+            "Marketplace: sell order has been revoked"
         );
         require(
             !cancelled[buyer][buyerMessageHash],
-            "Buy order has been revoked"
+            "Marketplace: buy order has been revoked"
         );
         require(
             fills[seller][sellerMessageHash] < sellerMetadata.maximumFill,
-            "Sell order has been filled"
+            "Marketplace: sell order has been filled"
         );
         require(
             fills[buyer][buyerMessageHash] < buyerMetadata.maximumFill,
-            "Buy order has been filled"
+            "Marketplace: buy order has been filled"
         );
         require(
             sellerMetadata.listingTime < block.timestamp,
-            "Sell order not in effect"
+            "Marketplace: sell order not in effect"
         );
         require(
             sellerMetadata.expirationTime == 0 ||
                 sellerMetadata.expirationTime > block.timestamp,
-            "Sell order expired"
+            "Marketplace: sell order expired"
         );
         require(
             buyerMetadata.listingTime < block.timestamp,
-            "Buy order not in effect"
+            "Marketplace: buy order not in effect"
         );
         require(
             buyerMetadata.expirationTime == 0 ||
                 buyerMetadata.expirationTime > block.timestamp,
-            "Buy order expired"
+            "Marketplace: buy order expired"
         );
 
         // Check mode-specific parameters
@@ -320,7 +326,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             require(
                 sellerMetadata.maximumFill == 1 &&
                     sellerMetadata.maximumFill == 1,
-                "Invalid maximumFill"
+                "Marketplace: invalid maximumFill"
             );
         }
     }
@@ -366,7 +372,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address buyer
     ) internal {
         if (transactionType == ERC721_FOR_ERC20) {
-            require(fill == 1, "Invalid fill");
+            require(fill == 1, "Marketplace: invalid fill");
             // Check balance requirement
             IERC721 nft = IERC721(order.targetTokenAddress);
 
