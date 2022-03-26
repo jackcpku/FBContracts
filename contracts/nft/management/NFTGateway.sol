@@ -73,6 +73,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      *               Interfaces exposed to nft managers                 *
      ********************************************************************/
 
+    /**
+     * Call `mint` function on a BasicERC721 contract through gateway
+     */
     function ERC721_mint(
         address _nftContract,
         address _recipient,
@@ -81,6 +84,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC721(_nftContract).mint(_recipient, _tokenId);
     }
 
+    /**
+     * Call `mint` function on a BasicERC721 contract through gateway
+     */
     function ERC721_mintBatch(
         address _nftContract,
         address[] calldata _recipient,
@@ -89,6 +95,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC721(_nftContract).mintBatch(_recipient, _tokenId);
     }
 
+    /**
+     * Call `burn` function on a BasicERC721 contract through gateway
+     */
     function ERC721_burn(address _nftContract, uint256 _tokenId)
         external
         override
@@ -97,6 +106,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC721(_nftContract).burn(_tokenId);
     }
 
+    /**
+     * Call `setURI` function on a BasicERC721 contract through gateway
+     */
     function ERC721_setURI(address _nftContract, string calldata _newURI)
         external
         override
@@ -105,6 +117,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC721(_nftContract).setURI(_newURI);
     }
 
+    /**
+     * Call `mint` function on a BasicERC1155 contract through gateway
+     */
     function ERC1155_mint(
         address _nftContract,
         address _account,
@@ -115,6 +130,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC1155(_nftContract).mint(_account, _id, _amount, _data);
     }
 
+    /**
+     * Call `mintBatch` function on a BasicERC1155 contract through gateway
+     */
     function ERC1155_mintBatch(
         address _nftContract,
         address _to,
@@ -125,6 +143,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
     }
 
+    /**
+     * Call `burn` function on a BasicERC1155 contract through gateway
+     */
     function ERC1155_burn(
         address _nftContract,
         address _account,
@@ -134,6 +155,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC1155(_nftContract).burn(_account, _id, _value);
     }
 
+    /**
+     * Call `burnBatch` function on a BasicERC1155 contract through gateway
+     */
     function ERC1155_burnBatch(
         address _nftContract,
         address _account,
@@ -143,6 +167,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC1155(_nftContract).burnBatch(_account, _ids, _values);
     }
 
+    /**
+     * Call `setURI` function on a BasicERC1155 contract through gateway
+     */
     function ERC1155_setURI(address _nftContract, string calldata _newuri)
         external
         override
@@ -157,6 +184,9 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
 
     /**
      * Set the manager of a certain NFT contract.
+     *
+     * Note The previous manager of the nft still has access to management during
+     * the grace period, which spans 1 day.
      */
     function setManagerOf(address _nftContract, address _manager)
         external
