@@ -81,6 +81,14 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         BasicERC721(_nftContract).mint(_recipient, _tokenId);
     }
 
+    function ERC721_mintBatch(
+        address _nftContract,
+        address[] calldata _recipient,
+        uint256[] calldata _tokenId
+    ) external override onlyManagerOf(_nftContract) {
+        BasicERC721(_nftContract).mintBatch(_recipient, _tokenId);
+    }
+
     function ERC721_burn(address _nftContract, uint256 _tokenId)
         external
         override
