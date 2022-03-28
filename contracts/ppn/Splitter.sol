@@ -8,74 +8,84 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Splitter is Ownable {
     using SafeERC20 for IERC20;
 
-    address public manager;
-
     address public pvsAddress;
 
-    address public filterAddress;
+    enum ToAddressType {
+        BURN,
+        PLATFORM,
+        DIVIDEND
+    }
 
-    address public platformAddress;
-
-    uint256 public constant PROPORTION_DENOMINATOR = 10_000;
+    // [burnAddress, platformAddress, dividendAddress]
+    // burnAddress = 0x000000000000000000000000000000000000dEaD;
+    address[] public splitAddress;
 
     uint256[] public splitProportion;
 
-    event Burn(address indexed from, address indexed to, uint256 value);
-    event TransferToPlatform(
+    uint256 public constant PROPORTION_DENOMINATOR = 10_000;
+
+    event Split(
+        ToAddressType toAddressType,
         address indexed from,
         address indexed to,
         uint256 value
     );
-    event TransferToFilter(
-        address indexed from,
-        address indexed to,
-        uint256 value
+
+    event Reset(
+        address indexed operator,
+        address[] indexed Address,
+        uint256[] proportion
     );
 
     constructor(
-        address _manager,
         address _pvsAddress,
-        address _filterAddress,
-        address _platformAddress
+        address[] memory _splitAddress,
+        uint256[] memory _splitProportion
     ) {
-        manager = _manager;
         pvsAddress = _pvsAddress;
-        filterAddress = _filterAddress;
-        platformAddress = _platformAddress;
-        splitProportion = [5_000, 4_650, 350];
+
+        require(
+            _splitAddress.length == _splitProportion.length,
+            "Splitter: address length must equal to proportion length"
+        );
+        splitAddress = _splitAddress;
+        // splitProportion = [5_000, 4_650, 350];
+        splitProportion = _splitProportion;
     }
 
-    function split() external onlyOwner {
+    function split() external {
         uint256 amount = IERC20(pvsAddress).balanceOf(address(this));
+        require(amount > 100, "Splitter: amount to split must > 100");
 
-        IERC20(pvsAddress).safeTransfer(
-            address(0),
-            (amount * splitProportion[0]) / PROPORTION_DENOMINATOR
-        );
-        emit Burn(
-            address(this),
-            address(0),
-            (amount * splitProportion[0]) / PROPORTION_DENOMINATOR
-        );
+        for (uint256 i = 0; i < splitAddress.length; i++) {
+            IERC20(pvsAddress).safeTransfer(
+                splitAddress[i],
+                (amount * splitProportion[i]) / PROPORTION_DENOMINATOR
+            );
+            emit Split(
+                i == 0
+                    ? ToAddressType.BURN
+                    : (
+                        i == 1 ? ToAddressType.PLATFORM : ToAddressType.DIVIDEND
+                    ),
+                address(this),
+                splitAddress[i],
+                (amount * splitProportion[i]) / PROPORTION_DENOMINATOR
+            );
+        }
+    }
 
-        IERC20(pvsAddress).safeTransfer(
-            platformAddress,
-            (amount * splitProportion[1]) / PROPORTION_DENOMINATOR
+    // owner reset addresses / proportions
+    function reset(
+        address[] calldata _splitAddress,
+        uint256[] calldata _splitProportion
+    ) external onlyOwner {
+        require(
+            _splitAddress.length == _splitProportion.length,
+            "Splitter: reset failed"
         );
-        emit TransferToPlatform(
-            address(this),
-            platformAddress,
-            (amount * splitProportion[1]) / PROPORTION_DENOMINATOR
-        );
-
-        IERC20(pvsAddress).safeTransfer(
-            filterAddress,
-            (amount * splitProportion[2]) / PROPORTION_DENOMINATOR
-        );
-        emit TransferToFilter(
-            address(this),
-            filterAddress,
-            (amount * splitProportion[2]) / PROPORTION_DENOMINATOR
-        );
+        splitAddress = _splitAddress;
+        splitProportion = _splitProportion;
+        emit Reset(msg.sender, splitAddress, splitProportion);
     }
 }

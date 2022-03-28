@@ -8,58 +8,48 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Filter is Ownable {
     using SafeERC20 for IERC20;
 
-    address public manager;
-
     address public pvsAddress;
 
     address public dividendAddress;
 
-    uint256 public constant PROPORTION_DENOMINATOR = 10_000;
+    uint256 public constant ALPHA_DENOMINATOR = 10_000;
 
-    uint256 public constant PROPORTION = 300;
+    uint256 public constant ALPHA = 300;
 
     uint256 public lastOut;
 
-    uint256 public currentPeriod;
+    uint256 public totalIn;
 
-    uint256 public periodProfit;
+    uint256 public lastTime;
 
-    event CumulativeProfit(uint256 period, uint256 profit);
-
-    constructor(address _manager, address _pvsAddress) {
-        manager = _manager;
+    constructor(address _pvsAddress, address _dividendAddress) {
         pvsAddress = _pvsAddress;
-        lastOut = 0;
+        dividendAddress = _dividendAddress;
     }
 
-    function updatePeriod(uint256 _newPeriod) external onlyOwner {
+    function filter() external {
+        // Check if the time interval limit is exceeded
         require(
-            _newPeriod == currentPeriod + 1,
-            "Filter: the new period must be exactly one period after the present"
+            block.timestamp >= lastTime + 1 days,
+            "Filter: at most once a day"
         );
-        currentPeriod = _newPeriod;
-        periodProfit = 0;
-    }
+        lastTime = block.timestamp;
 
-    function filter(uint256 newIn) external onlyOwner {
-        uint256 out = (PROPORTION / PROPORTION_DENOMINATOR) *
+        uint256 newIn = IERC20(pvsAddress).balanceOf(address(this)) - totalIn;
+
+        uint256 newOut = (ALPHA / ALPHA_DENOMINATOR) *
             newIn +
-            (1 - PROPORTION / PROPORTION_DENOMINATOR) *
+            (1 - ALPHA / ALPHA_DENOMINATOR) *
             lastOut;
 
-        lastOut = out;
+        lastOut = newOut;
+        totalIn += newIn;
 
-        IERC20(pvsAddress).safeTransfer(dividendAddress, out);
-        
-        periodProfit += out;
-        emit CumulativeProfit(currentPeriod, periodProfit);
+        IERC20(pvsAddress).safeTransfer(dividendAddress, newOut);
     }
 
-    //
-    function claim(address addr) external onlyOwner {
-        IERC20(pvsAddress).safeTransfer(
-            addr,
-            IERC20(pvsAddress).balanceOf(address(this))
-        );
+    // owner reset addresses
+    function reset(address _dividendAddress) external onlyOwner {
+        dividendAddress = _dividendAddress;
     }
 }
