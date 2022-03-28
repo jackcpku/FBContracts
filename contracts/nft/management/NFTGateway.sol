@@ -53,10 +53,11 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
 
     event RemoveNftOperator(address indexed operator);
 
-    modifier onlyManagerOf(address _nftContract) {
+    modifier onlyManagerAndWhitelist(address _nftContract) {
         require(
-            isInManagement(msg.sender, _nftContract),
-            "NFTGateway: caller is not manager of the nft contract"
+            isInManagement(msg.sender, _nftContract) ||
+                nftOperatorWhitelist[_nftContract],
+            "NFTGateway: caller is not manager of the nft contract and is not in whitelist"
         );
         _;
     }
@@ -81,7 +82,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _nftContract,
         address _recipient,
         uint256 _tokenId
-    ) external override onlyManagerOf(_nftContract) {
+    ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC721(_nftContract).mint(_recipient, _tokenId);
     }
 
@@ -92,7 +93,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _nftContract,
         address[] calldata _recipient,
         uint256[] calldata _tokenId
-    ) external override onlyManagerOf(_nftContract) {
+    ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC721(_nftContract).mintBatch(_recipient, _tokenId);
     }
 
@@ -102,7 +103,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     function ERC721_burn(address _nftContract, uint256 _tokenId)
         external
         override
-        onlyManagerOf(_nftContract)
+        onlyManagerAndWhitelist(_nftContract)
     {
         BasicERC721(_nftContract).burn(_tokenId);
     }
@@ -113,7 +114,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     function ERC721_setURI(address _nftContract, string calldata _newURI)
         external
         override
-        onlyManagerOf(_nftContract)
+        onlyManagerAndWhitelist(_nftContract)
     {
         BasicERC721(_nftContract).setURI(_newURI);
     }
@@ -127,7 +128,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256 _id,
         uint256 _amount,
         bytes calldata _data
-    ) external override onlyManagerOf(_nftContract) {
+    ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC1155(_nftContract).mint(_account, _id, _amount, _data);
     }
 
@@ -140,7 +141,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256[] calldata _ids,
         uint256[] calldata _amounts,
         bytes calldata _data
-    ) external override onlyManagerOf(_nftContract) {
+    ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
     }
 
@@ -152,7 +153,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _account,
         uint256 _id,
         uint256 _value
-    ) external override onlyManagerOf(_nftContract) {
+    ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC1155(_nftContract).burn(_account, _id, _value);
     }
 
@@ -164,7 +165,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _account,
         uint256[] calldata _ids,
         uint256[] calldata _values
-    ) external override onlyManagerOf(_nftContract) {
+    ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC1155(_nftContract).burnBatch(_account, _ids, _values);
     }
 
@@ -174,7 +175,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     function ERC1155_setURI(address _nftContract, string calldata _newuri)
         external
         override
-        onlyManagerOf(_nftContract)
+        onlyManagerAndWhitelist(_nftContract)
     {
         BasicERC1155(_nftContract).setURI(_newuri);
     }
