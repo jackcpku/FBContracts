@@ -18,12 +18,27 @@ contract Filter is Ownable {
 
     uint256 public constant PROPORTION = 300;
 
-    uint256 lastOut;
+    uint256 public lastOut;
+
+    uint256 public currentPeriod;
+
+    uint256 public periodProfit;
+
+    event CumulativeProfit(uint256 period, uint256 profit);
 
     constructor(address _manager, address _pvsAddress) {
         manager = _manager;
         pvsAddress = _pvsAddress;
         lastOut = 0;
+    }
+
+    function updatePeriod(uint256 _newPeriod) external onlyOwner {
+        require(
+            _newPeriod == currentPeriod + 1,
+            "Filter: the new period must be exactly one period after the present"
+        );
+        currentPeriod = _newPeriod;
+        periodProfit = 0;
     }
 
     function filter(uint256 newIn) external onlyOwner {
@@ -35,6 +50,9 @@ contract Filter is Ownable {
         lastOut = out;
 
         IERC20(pvsAddress).safeTransfer(dividendAddress, out);
+        
+        periodProfit += out;
+        emit CumulativeProfit(currentPeriod, periodProfit);
     }
 
     //
