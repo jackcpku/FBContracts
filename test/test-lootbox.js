@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { BigNumber } = require("ethers");
 const hre = require("hardhat");
 const {
-  deployLootBox,
+  deploySimpleLootBoxRegistry,
   deployNFTGatewayAndNFTFactory,
 } = require("../lib/deploy.js");
 const {
@@ -13,68 +13,106 @@ const {
 // TODO
 
 describe("Test LootBox Contract", function () {
-  let lootBox, factory, gateway, u2Contract;
+  let lootBox, factory, gateway, basicERC721Contract, basicERC1155Contract;
 
   beforeEach("Deploy contracts", async function () {
     // Reset test environment.
     await hre.network.provider.send("hardhat_reset");
 
-    [
-      owner,
-      gatewayAdmin,
-      newGatewayAdmin,
-      u2,
-      u3,
-      u4,
-      gatewayManager3,
-      u5,
-      u6,
-    ] = await hre.ethers.getSigners();
+    [owner, gatewayAdmin, newGatewayAdmin, nftManager] =
+      await hre.ethers.getSigners();
 
     ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
 
-    lootBox = await deployLootBox();
+    lootBox = await deploySimpleLootBoxRegistry(gateway.address);
 
-    // Deploy ERC721 contract
+    {
+      // Deploy BasicERC721 contract
+      const from = factory.address;
+      const deployeeName = "BasicERC721";
+      const tokenName = "U2-contract";
+      const tokenSymbol = "U2T";
+      const baseURI = "baseURI";
+      const salt = 233;
+      const basicERC721ContractAddress =
+        await calculateCreate2AddressBasicERC721(
+          from,
+          deployeeName,
+          tokenName,
+          tokenSymbol,
+          baseURI,
+          gateway.address,
+          salt
+        );
 
-    const from = factory.address;
-    const deployeeName = "BasicERC721";
-    const tokenName = "U2-contract";
-    const tokenSymbol = "U2T";
-    const baseURI = "baseURI";
-    const salt = 233;
-    const u2ContractAddress = await calculateCreate2AddressBasicERC721(
-      from,
-      deployeeName,
-      tokenName,
-      tokenSymbol,
-      baseURI,
-      gateway.address,
-      salt
-    );
+      // Let u2 deploy the contract.
+      await factory
+        .connect(nftManager)
+        .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt);
+      basicERC721Contract = await hre.ethers.getContractAt(
+        "BasicERC721",
+        basicERC721ContractAddress
+      );
+      expect(await basicERC721Contract.gateway()).to.equal(gateway.address);
+    }
 
-    // Let u2 deploy the contract.
-    await factory
-      .connect(u2)
-      .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt);
-    u2Contract = await hre.ethers.getContractAt(
-      "BasicERC721",
-      u2ContractAddress
-    );
-    expect(await u2Contract.gateway()).to.equal(gateway.address);
+    {
+      const from = factory.address;
+      const deployeeName = "BasicERC1155";
+      const uri = "some uri";
+      const salt = 233;
+      const basicERC1155ContractAddress =
+        await calculateCreate2AddressBasicERC1155(
+          from,
+          deployeeName,
+          uri,
+          gateway.address,
+          salt
+        );
+
+      // Let nftManager deploy the contract.
+      await factory.connect(nftManager).deployBasicERC1155(uri, salt);
+      basicERC1155Contract = await hre.ethers.getContractAt(
+        deployeeName,
+        basicERC1155ContractAddress
+      );
+      expect(await basicERC1155Contract.gateway()).to.equal(gateway.address);
+    }
   });
 
   it.skip("should pass test", async function () {
     this.timeout(100000);
 
-    await lootBox.initialize(u2Contract.address, 1, 2000);
+    const lootBoxSize = 100;
+    const basicERC1155TokenId = 1;
+
+    // 1. Mint some erc1155 tokens
+    gateway
+      .connect(nftManager)
+      .ERC1155_mint(
+        basicERC1155Contract.address,
+        nftManager.address,
+        basicERC1155TokenId,
+        lootBoxSize,
+        "0x"
+      );
+
+    // 2. Config the lootbox
+    await lootBox.configLootBox(
+      basicERC721Contract.address,
+      1,
+      100,
+      basicERC1155Contract.address,
+      1
+    );
 
     let randoms = [];
-    for (let i = 1; i <= 2000; i++) {
-      if (i % 100 == 0) {
-        console.log(`Done ${i} iterations`);
-      }
-      const tx = await lootBox.mintLootBox(u2Contract.address, 0);
+    for (let i = 1; i <= lootBoxSize; i++) {
+      console.log("asdf");
+
+      const tx = await lootBox
+        .connect(nftManager)
+        .unwrapLootBox(basicERC1155Contract.address, basicERC1155TokenId);
       const rc = await tx.wait();
       const event = rc.events.find((event) => event.event === "GetRandomIndex");
       const random = BigNumber.from(event["topics"][2]);
@@ -83,7 +121,7 @@ describe("Test LootBox Contract", function () {
     randoms = randoms.map((x) => x.toNumber());
     randoms = randoms.sort((a, b) => a - b);
 
-    const should_get = [...Array(2000).keys()].map((x) => x + 1);
+    const should_get = [...Array(lootBoxSize).keys()].map((x) => x + 1);
 
     expect(randoms).deep.to.equal(should_get);
 

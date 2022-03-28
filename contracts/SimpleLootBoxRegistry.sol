@@ -39,7 +39,7 @@ contract SimpleLootBoxRegistry is Ownable {
 
     // boxNFT & contentNFT
     function configLootBox(
-        address _contentAddress,
+        address _erc721TokenAddress,
         uint256 _erc721LowerBound,
         uint256 _erc721UpperBound,
         address _erc1155TokenAddress,
@@ -61,7 +61,7 @@ contract SimpleLootBoxRegistry is Ownable {
         ] = (_erc721UpperBound - _erc721LowerBound + 1);
         erc721TokenAddresses[_erc1155TokenAddress][
             _erc1155TokenId
-        ] = _contentAddress;
+        ] = _erc721TokenAddress;
     }
 
     /**
