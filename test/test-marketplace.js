@@ -493,7 +493,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("ell order not in effect");
+      ).to.be.revertedWith("Marketplace: sell order not in effect");
     });
 
     it("Sell order expired - case 2", async function () {
@@ -548,7 +548,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Sell order expired");
+      ).to.be.revertedWith("Marketplace: sell order expired");
     });
 
     it("Buyer balance too low", async function () {
@@ -670,7 +670,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Sell order has been filled");
+      ).to.be.revertedWith("Marketplace: sell order has been filled");
     });
 
     it("Seller cancels order", async function () {
@@ -729,7 +729,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Sell order has been revoked");
+      ).to.be.revertedWith("Marketplace: sell order has been revoked");
     });
 
     it("Buyer cancels order", async function () {
@@ -788,7 +788,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Buy order has been revoked");
+      ).to.be.revertedWith("Marketplace: buy order has been revoked");
     });
 
     it("Seller cancels twice", async function () {
@@ -836,7 +836,7 @@ describe("Test Marketplace Contract", function () {
       await marketplace.connect(seller).ignoreMessageHash(sellerMessageHash);
       await expect(
         marketplace.connect(seller).ignoreMessageHash(sellerMessageHash)
-      ).to.be.revertedWith("Order has been revoked");
+      ).to.be.revertedWith("Marketplace: order has been revoked");
     });
 
     it("Invalid seller signature", async function () {
@@ -891,7 +891,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Seller signature is not valid");
+      ).to.be.revertedWith("Marketplace: invalid seller signature");
     });
 
     it("Invalid buyer signature", async function () {
@@ -946,7 +946,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           sellerSig // Wrong buyer signature
         )
-      ).to.be.revertedWith("Buyer signature is not valid");
+      ).to.be.revertedWith("Marketplace: invalid buyer signature");
     });
 
     it("Invalid fill", async function () {
@@ -1003,7 +1003,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Invalid maximumFill");
+      ).to.be.revertedWith("Marketplace: invalid maximumFill");
     });
 
     it("Seller buys", async function () {
@@ -1059,7 +1059,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Seller should sell");
+      ).to.be.revertedWith("Marketplace: seller should sell");
     });
 
     it("Buyer sells", async function () {
@@ -1115,7 +1115,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Buyer should buy");
+      ).to.be.revertedWith("Marketplace: buyer should buy");
     });
 
     it("Manager <> user transaction", async function () {
@@ -1613,7 +1613,7 @@ describe("Test Marketplace Contract", function () {
           buyerMetadataBytes,
           buyerSig
         )
-      ).to.be.revertedWith("Buy order has been filled");
+      ).to.be.revertedWith("Marketplace: buy order has been filled");
     });
 
     it("Buy twice using different signature", async function () {
