@@ -56,7 +56,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     modifier onlyManagerAndWhitelist(address _nftContract) {
         require(
             isInManagement(msg.sender, _nftContract) ||
-                nftOperatorWhitelist[_nftContract],
+                nftOperatorWhitelist[msg.sender],
             "NFTGateway: caller is not manager of the nft contract and is not in whitelist"
         );
         _;
