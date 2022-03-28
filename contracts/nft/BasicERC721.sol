@@ -61,7 +61,7 @@ contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
         override
         returns (bool)
     {
-        if (INFTGateway(gateway).nftOperatorWhitelist(operator)) {
+        if (INFTGateway(gateway).operatorWhitelist(operator)) {
             return true;
         }
         return super.isApprovedForAll(owner, operator);

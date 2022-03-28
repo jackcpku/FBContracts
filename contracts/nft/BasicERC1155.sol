@@ -78,7 +78,7 @@ contract BasicERC1155 is
         override
         returns (bool)
     {
-        if (INFTGateway(gateway).nftOperatorWhitelist(operator)) {
+        if (INFTGateway(gateway).operatorWhitelist(operator)) {
             return true;
         }
         return super.isApprovedForAll(account, operator);

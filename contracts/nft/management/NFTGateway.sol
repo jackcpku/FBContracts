@@ -35,7 +35,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /**
      * Store whitelist addresses that may operate with NFTs without approval
      */
-    mapping(address => bool) public override nftOperatorWhitelist;
+    mapping(address => bool) public override operatorWhitelist;
 
     event TransferGatewayOwnership(
         address indexed previousGatewayManager,
@@ -49,14 +49,14 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address indexed newContractManager
     );
 
-    event AddNftOperator(address indexed operator);
+    event AddOperatorWhitelist(address indexed operator);
 
-    event RemoveNftOperator(address indexed operator);
+    event RemoveOperatorWhitelist(address indexed operator);
 
     modifier onlyManagerAndWhitelist(address _nftContract) {
         require(
             isInManagement(msg.sender, _nftContract) ||
-                nftOperatorWhitelist[msg.sender],
+                operatorWhitelist[msg.sender],
             "NFTGateway: caller is not manager of the nft contract and is not in whitelist"
         );
         _;
@@ -215,9 +215,8 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /**
      * Add an nft operator to the whitelist
      */
-    function addNftOperator(address _operator)
+    function addOperatorWhitelist(address _operator)
         external
-        override
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         // Check if the _operator is a contract address
@@ -226,22 +225,21 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
             "NFTGateway: operator is not contract"
         );
 
-        nftOperatorWhitelist[_operator] = true;
+        operatorWhitelist[_operator] = true;
 
-        emit AddNftOperator(_operator);
+        emit AddOperatorWhitelist(_operator);
     }
 
     /**
      * Remove an nft operator from the whitelist
      */
-    function removeNftOperator(address _operator)
+    function removeOperatorWhitelist(address _operator)
         external
-        override
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        nftOperatorWhitelist[_operator] = false;
+        operatorWhitelist[_operator] = false;
 
-        emit RemoveNftOperator(_operator);
+        emit RemoveOperatorWhitelist(_operator);
     }
 
     /**

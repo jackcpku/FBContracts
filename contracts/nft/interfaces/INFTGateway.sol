@@ -7,12 +7,5 @@ import "./IERC1155Gateway.sol";
 interface INFTGateway is IERC721Gateway, IERC1155Gateway {
     function setManagerOf(address _nftContract, address _manager) external;
 
-    function addNftOperator(address _operator) external;
-
-    function removeNftOperator(address _operator) external;
-
-    function nftOperatorWhitelist(address _operator)
-        external
-        view
-        returns (bool);
+    function operatorWhitelist(address _operator) external view returns (bool);
 }
