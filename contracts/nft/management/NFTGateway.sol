@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import "../interfaces/INFTGateway.sol";
 import "../interfaces/IBaseNFTManagement.sol";
@@ -55,7 +56,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     modifier onlyManagerOf(address _nftContract) {
         require(
             isInManagement(msg.sender, _nftContract),
-            "Gateway: caller is not manager of the nft contract"
+            "NFTGateway: caller is not manager of the nft contract"
         );
         _;
     }
@@ -218,6 +219,12 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        // Check if the _operator is a contract address
+        require(
+            AddressUpgradeable.isContract(_operator),
+            "NFTGateway: operator is not contract"
+        );
+
         nftOperatorWhitelist[_operator] = true;
 
         emit AddNftOperator(_operator);
@@ -268,7 +275,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     {
         require(
             _newGateway != address(this),
-            "Gateway: new gateway should be different than the current one"
+            "NFTGateway: new gateway should be different than the current one"
         );
 
         nftManager[_nftContract] = address(0);
@@ -286,7 +293,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     {
         require(
             _gatewayAdmin != msg.sender,
-            "Gateway: new gateway admin should be different than the current one"
+            "NFTGateway: new gateway admin should be different than the current one"
         );
 
         emit TransferGatewayOwnership(msg.sender, _gatewayAdmin);

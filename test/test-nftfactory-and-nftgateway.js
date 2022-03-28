@@ -189,7 +189,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
         .connect(gatewayAdmin)
         .transferGatewayOwnership(gatewayAdmin.address)
     ).to.be.revertedWith(
-      "Gateway: new gateway admin should be different than the current one"
+      "NFTGateway: new gateway admin should be different than the current one"
     );
   });
 
@@ -241,7 +241,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
           .connect(gatewayAdmin)
           .ERC721_mint(u2Contract.address, u2.address, 2)
       ).to.be.revertedWith(
-        "Gateway: caller is not manager of the nft contract"
+        "NFTGateway: caller is not manager of the nft contract"
       );
     });
 
@@ -265,7 +265,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
           .connect(gatewayAdmin)
           .setGatewayOf(u2Contract.address, gateway.address)
       ).to.be.revertedWith(
-        "Gateway: new gateway should be different than the current one"
+        "NFTGateway: new gateway should be different than the current one"
       );
 
       // Success: through gateway contract
@@ -303,7 +303,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       await expect(
         gateway.connect(u3).ERC721_mint(u3Contract.address, u3.address, 33)
       ).to.be.revertedWith(
-        "Gateway: caller is not manager of the nft contract"
+        "NFTGateway: caller is not manager of the nft contract"
       );
     });
 
