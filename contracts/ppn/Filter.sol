@@ -27,7 +27,7 @@ contract Filter is Ownable {
         dividendAddress = _dividendAddress;
     }
 
-    function filter() external {
+    function output() external {
         // Check if the time interval limit is exceeded
         require(
             block.timestamp >= lastTime + 1 days,

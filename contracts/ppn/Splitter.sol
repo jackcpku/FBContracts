@@ -48,12 +48,17 @@ contract Splitter is Ownable {
             _splitAddress.length == _splitProportion.length,
             "Splitter: address length must equal to proportion length"
         );
+
+        require(
+            _splitAddress.length == 3,
+            "Splitter: only three addresses allowed"
+        );
         splitAddress = _splitAddress;
         // splitProportion = [5_000, 4_650, 350];
         splitProportion = _splitProportion;
     }
 
-    function split() external {
+    function output() external {
         uint256 amount = IERC20(pvsAddress).balanceOf(address(this));
         require(amount > 100, "Splitter: amount to split must > 100");
 
