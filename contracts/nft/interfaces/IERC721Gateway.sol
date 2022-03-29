@@ -20,7 +20,7 @@ interface IERC721Gateway {
 
     function ERC721_mintBatch(
         address nftContract,
-        address[] calldata recipient,
+        address recipient,
         uint256[] calldata tokenId
     ) external;
 

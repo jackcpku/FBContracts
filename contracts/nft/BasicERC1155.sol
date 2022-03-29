@@ -6,8 +6,10 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "./management/BaseNFTManagement.sol";
 import "./interfaces/INFTGateway.sol";
+import "./interfaces/IBasicERC1155.sol";
 
 contract BasicERC1155 is
+    IBasicERC1155,
     ERC1155,
     ERC1155Burnable,
     ERC1155Supply,
@@ -26,7 +28,7 @@ contract BasicERC1155 is
         uint256 id,
         uint256 amount,
         bytes calldata data
-    ) external onlyGateway {
+    ) external override onlyGateway {
         _mint(account, id, amount, data);
     }
 
@@ -35,11 +37,11 @@ contract BasicERC1155 is
         uint256[] calldata ids,
         uint256[] calldata amounts,
         bytes calldata data
-    ) external onlyGateway {
+    ) external override onlyGateway {
         _mintBatch(to, ids, amounts, data);
     }
 
-    function setURI(string calldata newuri) external onlyGateway {
+    function setURI(string calldata newuri) external override onlyGateway {
         _setURI(newuri);
     }
 
@@ -67,5 +69,4 @@ contract BasicERC1155 is
         }
         return super.isApprovedForAll(account, operator);
     }
-    
 }

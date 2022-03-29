@@ -9,8 +9,8 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "../interfaces/INFTGateway.sol";
 import "../interfaces/IBaseNFTManagement.sol";
 
-import "../BasicERC721.sol";
-import "../BasicERC1155.sol";
+import "../interfaces/IBasicERC721.sol";
+import "../interfaces/IBasicERC1155.sol";
 
 contract NFTGateway is Initializable, AccessControl, INFTGateway {
     /********************************************************************
@@ -83,7 +83,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         address _recipient,
         uint256 _tokenId
     ) external override onlyManagerAndWhitelist(_nftContract) {
-        BasicERC721(_nftContract).mint(_recipient, _tokenId);
+        IBasicERC721(_nftContract).mint(_recipient, _tokenId);
     }
 
     /**
@@ -91,10 +91,10 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
      */
     function ERC721_mintBatch(
         address _nftContract,
-        address[] calldata _recipient,
+        address _recipient,
         uint256[] calldata _tokenId
     ) external override onlyManagerAndWhitelist(_nftContract) {
-        BasicERC721(_nftContract).mintBatch(_recipient, _tokenId);
+        IBasicERC721(_nftContract).mintBatch(_recipient, _tokenId);
     }
 
     /**
@@ -105,7 +105,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyManagerAndWhitelist(_nftContract)
     {
-        BasicERC721(_nftContract).setURI(_newURI);
+        IBasicERC721(_nftContract).setURI(_newURI);
     }
 
     /**
@@ -118,7 +118,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256 _amount,
         bytes calldata _data
     ) external override onlyManagerAndWhitelist(_nftContract) {
-        BasicERC1155(_nftContract).mint(_account, _id, _amount, _data);
+        IBasicERC1155(_nftContract).mint(_account, _id, _amount, _data);
     }
 
     /**
@@ -131,7 +131,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         uint256[] calldata _amounts,
         bytes calldata _data
     ) external override onlyManagerAndWhitelist(_nftContract) {
-        BasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
+        IBasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
     }
 
     /**
@@ -142,7 +142,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         override
         onlyManagerAndWhitelist(_nftContract)
     {
-        BasicERC1155(_nftContract).setURI(_newuri);
+        IBasicERC1155(_nftContract).setURI(_newuri);
     }
 
     /********************************************************************
