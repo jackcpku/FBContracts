@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "./management/BaseNFTManagement.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "./interfaces/INFTGateway.sol";
 
 contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
+    using Strings for uint256;
+
     string private __baseURI;
 
     /**
@@ -24,15 +28,42 @@ contract BasicERC721 is ERC721, ERC721Burnable, BaseNFTManagement {
         _safeMint(to, tokenId);
     }
 
-    function burn(uint256 tokenId) public override onlyGateway {
-        super.burn(tokenId);
+    function mintBatch(address[] calldata to, uint256[] calldata tokenId)
+        external
+        onlyGateway
+    {
+        require(
+            to.length == tokenId.length,
+            "BasicERC721: bad parameter length"
+        );
+
+        for (uint256 i = 0; i < to.length; i++) {
+            _safeMint(to[i], tokenId[i]);
+        }
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
+        return string(abi.encodePacked(__baseURI, tokenId.toHexString(32)));
     }
 
     function setURI(string calldata newBaseURI) external onlyGateway {
         __baseURI = newBaseURI;
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return __baseURI;
+    function isApprovedForAll(address owner, address operator)
+        public
+        view
+        override
+        returns (bool)
+    {
+        if (INFTGateway(gateway).operatorWhitelist(operator)) {
+            return true;
+        }
+        return super.isApprovedForAll(owner, operator);
     }
 }

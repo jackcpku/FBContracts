@@ -72,8 +72,8 @@ module.exports = {
     hardhat: {
     },
     rinkeby: {
-      // url: "https://rinkeby.infura.io/v3/" + process.env.API_KEY_INFURA_RINKEBY,
-      url: "https://eth-rinkeby.alchemyapi.io/v2/" + process.env.API_KEY_ALCHEMY_RINKEBY,
+      url: "https://rinkeby.infura.io/v3/" + process.env.API_KEY_INFURA_RINKEBY,
+      // url: "https://eth-rinkeby.alchemyapi.io/v2/" + process.env.API_KEY_ALCHEMY_RINKEBY,
       accounts: privateKey != "" ? [privateKey] : []
     },
     // mainnet: {
