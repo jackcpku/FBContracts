@@ -33,28 +33,37 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 extendEnvironment((hre) => {
   let token = "";
-  let vesting = "";
   let presale = "";
+  let vesting = "";
+  let nftGateway = "";
+  let nftFactory = "";
   switch (hre.network.name) {
     case "rinkeby":
       // token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
       token = "0x68944779E69686467189fE3e20b0751158103053";       //hzr's pvs
       presale = "0x0B4174812EBDD920B75237F376521057a2b23991";
       vesting = "0xcac23BF1ebD991356930da8762a411a9F233933f";
+      nftGateway = "0x197560a2CB04721079225529aFbc53D65759a13C";
+      nftFactory = "0x1808f367439774c7840a67d1Dfd3f159Ad0F3681";
       break;
     case "mainnet":
       // TODO:
       token = "";
       presale = "";
+      vesting = "";
+      nftGateway = "";
+      nftFactory = "";
       break;
   }
   hre.addrs = {
-    token, vesting, presale
+    token, vesting, presale, nftGateway, nftFactory,
   }
   hre.contracts = {
     token: token == "" ? null : hre.ethers.getContractAt("PlayverseToken", token),
     vesting: vesting == "" ? null : hre.ethers.getContractAt("Vesting", vesting),
     presale: presale == "" ? null : hre.ethers.getContractAt("Presale", presale),
+    nftGateway: nftGateway == "" ? null : hre.ethers.getContractAt("NFTGateway", nftGateway),
+    nftFactory: nftFactory == "" ? null : hre.ethers.getContractAt("NFTFactory", nftFactory),
   }
 })
 
@@ -72,8 +81,8 @@ module.exports = {
     hardhat: {
     },
     rinkeby: {
-      // url: "https://rinkeby.infura.io/v3/" + process.env.API_KEY_INFURA_RINKEBY,
-      url: "https://eth-rinkeby.alchemyapi.io/v2/" + process.env.API_KEY_ALCHEMY_RINKEBY,
+      url: "https://rinkeby.infura.io/v3/" + process.env.API_KEY_INFURA_RINKEBY,
+      // url: "https://eth-rinkeby.alchemyapi.io/v2/" + process.env.API_KEY_ALCHEMY_RINKEBY,
       accounts: privateKey != "" ? [privateKey] : []
     },
     // mainnet: {
