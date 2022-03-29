@@ -41,20 +41,24 @@ extendEnvironment((hre) => {
       token = "0x68944779E69686467189fE3e20b0751158103053";       //hzr's pvs
       presale = "0x0B4174812EBDD920B75237F376521057a2b23991";
       vesting = "0xcac23BF1ebD991356930da8762a411a9F233933f";
+      nftGateway = "0x0aE3e213e7aa970D78ebfE7155A12cD25DE3bDfA";
       break;
     case "mainnet":
       // TODO:
       token = "";
       presale = "";
+      vesting = "";
+      nftGateway = "";
       break;
   }
   hre.addrs = {
-    token, vesting, presale
+    token, vesting, presale, nftGateway
   }
   hre.contracts = {
     token: token == "" ? null : hre.ethers.getContractAt("PlayverseToken", token),
     vesting: vesting == "" ? null : hre.ethers.getContractAt("Vesting", vesting),
     presale: presale == "" ? null : hre.ethers.getContractAt("Presale", presale),
+    nftGateway: nftGateway == "" ? null : hre.ethers.getContractAt("NFTGateway", nftGateway),
   }
 })
 
