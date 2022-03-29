@@ -75,9 +75,8 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     expect(await u2Contract.ownerOf(223)).to.equal(u2.address);
     expect(await u2Contract.ownerOf(333)).to.equal(u3.address);
 
-    // After approving gateway, u2 burns from u2
-    await u2Contract.connect(u2).approve(gateway.address, 223);
-    await gateway.connect(u2).ERC721_burn(u2Contract.address, 223);
+    //  u2 burns from u2
+    await u2Contract.connect(u2).burn(223);
     await expect(u2Contract.ownerOf(223)).to.be.revertedWith(
       "ERC721: owner query for nonexistent token"
     );
@@ -153,24 +152,14 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       erc1155MintAmount
     );
 
-    // After approving gateway, u2 burns from u2
-    await u2Contract.connect(u2).setApprovalForAll(gateway.address, true);
-    await gateway
-      .connect(u2)
-      .ERC1155_burn(u2Contract.address, u2.address, 223, erc1155BurnAmount);
+    // u2 burns from u2
+    await u2Contract.connect(u2).burn(u2.address, 223, erc1155BurnAmount)
     expect(await u2Contract.balanceOf(u2.address, 223)).to.equal(
       erc1155MintAmount - erc1155BurnAmount
     );
 
     // burnBatch
-    await gateway
-      .connect(u2)
-      .ERC1155_burnBatch(
-        u2Contract.address,
-        u2.address,
-        [222, 223],
-        [erc1155BurnAmount, erc1155BurnAmount]
-      );
+    await u2Contract.connect(u2).burnBatch(u2.address, [222, 223], [erc1155BurnAmount, erc1155BurnAmount])
     expect(await u2Contract.balanceOf(u2.address, 222)).to.equal(
       erc1155MintAmount - erc1155BurnAmount
     );

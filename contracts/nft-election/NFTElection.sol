@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import "./IPVSTicket.sol";
 
-contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
+contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     using SafeMath for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -27,7 +27,7 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     // tokenAddress => (tokenId => maxVoted)
     mapping(address => mapping(uint256 => uint256)) public maxVoted;
 
-    // Vote is valid if block.timestamp in [listingTime, expirationTime)
+    // NFTElection is valid if block.timestamp in [listingTime, expirationTime)
     // tokenAddress => start time
     mapping(address => uint256) listingTime;
     // tokenAddress => ddl
@@ -75,7 +75,7 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     );
 
     modifier onlyManager(address _tokenAddress) {
-        require(msg.sender == manager[_tokenAddress], "Vote: not manager");
+        require(msg.sender == manager[_tokenAddress], "NFTElection: not manager");
         _;
     }
 
@@ -132,11 +132,11 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
         require(
             listingTime[_tokenAddress] == 0 &&
                 expirationTime[_tokenAddress] == 0,
-            "Vote: vote can be initialized only once"
+            "NFTElection: vote can be initialized only once"
         );
         require(
             _listingTime < _expirationTime,
-            "Vote: invalid listingTime or expirationTime"
+            "NFTElection: invalid listingTime or expirationTime"
         );
         listingTime[_tokenAddress] = _listingTime;
         expirationTime[_tokenAddress] = _expirationTime;
@@ -176,7 +176,7 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     function withdrawMargin(uint256 _amount) external {
         require(
             marginLocked[msg.sender] + _amount <= margin[msg.sender],
-            "Vote: low margin balance"
+            "NFTElection: low margin balance"
         );
         margin[msg.sender] -= _amount;
 
@@ -187,7 +187,7 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     }
 
     /**
-     * Vote for a certain NFT specified by (_tokenAddress, _tokenId).
+     * NFTElection for a certain NFT specified by (_tokenAddress, _tokenId).
      * @dev Called by voters.
      */
     function vote(
@@ -198,12 +198,12 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
         // Check if vote has started
         require(
             block.timestamp >= listingTime[_tokenAddress],
-            "Vote: the voting process has not started"
+            "NFTElection: the voting process has not started"
         );
         // Check if vote has expired
         require(
             block.timestamp < expirationTime[_tokenAddress],
-            "Vote: the voting process has been finished"
+            "NFTElection: the voting process has been finished"
         );
 
         // Check if vote amount is enough
@@ -212,13 +212,13 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
 
         require(
             totalVoted > maxVoted[_tokenAddress][_tokenId],
-            "Vote: please vote more"
+            "NFTElection: please vote more"
         );
 
         // Check if the NFT has been transferred to this contract
         require(
             IERC721(_tokenAddress).ownerOf(_tokenId) == address(this),
-            "Vote: nft not owned by contract"
+            "NFTElection: nft not owned by contract"
         );
 
         // Burn the tickets
@@ -268,12 +268,12 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
         address[] calldata _tokenAddress,
         uint256[] calldata _tokenId
     ) external {
-        require(_tokenAddress.length == _tokenId.length, "Vote: invalid input");
+        require(_tokenAddress.length == _tokenId.length, "NFTElection: invalid input");
 
         for (uint256 i = 0; i < _tokenAddress.length; i++) {
             require(
                 block.timestamp >= expirationTime[_tokenAddress[i]],
-                "Vote: the voting process has not finished"
+                "NFTElection: the voting process has not finished"
             );
 
             uint256 total = getPrice(_tokenAddress[i], _tokenId[i]);
@@ -282,7 +282,7 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
             address winnerOfToken = winner[_tokenAddress[i]][_tokenId[i]];
             require(
                 winnerOfToken != address(0),
-                "Vote: winner of token is zero address"
+                "NFTElection: winner of token is zero address"
             );
             marginLocked[winnerOfToken] -= total;
             margin[winnerOfToken] -= total;
@@ -314,13 +314,13 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     {
         require(
             block.timestamp >= expirationTime[_tokenAddress],
-            "Vote: the voting process has not finished"
+            "NFTElection: the voting process has not finished"
         );
 
         for (uint256 i = 0; i < _tokenId.length; i++) {
             require(
                 winner[_tokenAddress][_tokenId[i]] == address(0),
-                "Vote: the token has a winner"
+                "NFTElection: the token has a winner"
             );
 
             IERC721(_tokenAddress).safeTransferFrom(
@@ -332,11 +332,11 @@ contract Vote is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
     }
 
     function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
+        address /*operator*/,
+        address /*from*/,
+        uint256 /*tokenId*/,
+        bytes calldata /*data*/
     ) external pure override returns (bytes4) {
-        return Vote.onERC721Received.selector;
+        return NFTElection.onERC721Received.selector;
     }
 }

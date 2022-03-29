@@ -9,7 +9,7 @@ const {
   deployPVSTicket,
 } = require("../lib/deploy.js");
 
-describe("Test Vote Contract", function () {
+describe("Test NFTElection Contract", function () {
   let gateway, factory;
   let vote, ticket, pvs, someERC721Contract;
   let owner, manager0, user0, user1;
@@ -73,7 +73,7 @@ describe("Test Vote Contract", function () {
       .connect(manager0)
       .ERC721_mint(someNFTAddress, manager0.address, specialTokenId);
 
-    // Set up Vote contract
+    // Set up NFTElection contract
     vote = await deployVote(ticket.address, pvs.address);
     await vote.setServiceFeeRecipient(owner.address);
     await vote.setManager(someERC721Contract.address, manager0.address);
@@ -112,7 +112,7 @@ describe("Test Vote Contract", function () {
         currentTimestamp - 1,
         deadlineTimestamp
       )
-    ).to.be.revertedWith("Vote: not manager");
+    ).to.be.revertedWith("NFTElection: not manager");
   });
 
   it("should pass integration test", async function () {
@@ -130,7 +130,7 @@ describe("Test Vote Contract", function () {
           deadlineTimestamp + 1,
           deadlineTimestamp
         )
-    ).to.be.revertedWith("Vote: invalid listingTime or expirationTime");
+    ).to.be.revertedWith("NFTElection: invalid listingTime or expirationTime");
 
     // Manager initializes vote
     await vote
@@ -150,12 +150,12 @@ describe("Test Vote Contract", function () {
           currentTimestamp - 1,
           deadlineTimestamp + 1
         )
-    ).to.be.revertedWith("Vote: vote can be initialized only once");
+    ).to.be.revertedWith("NFTElection: vote can be initialized only once");
 
     // No one is able to vote before listing time
     await expect(
       vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
-    ).to.be.revertedWith("Vote: the voting process has not started");
+    ).to.be.revertedWith("NFTElection: the voting process has not started");
 
     /****************** After Listing Time ******************/
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -165,7 +165,7 @@ describe("Test Vote Contract", function () {
     // No one is able to vote before the nft is transferred to vote contract
     await expect(
       vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
-    ).to.be.revertedWith("Vote: nft not owned by contract");
+    ).to.be.revertedWith("NFTElection: nft not owned by contract");
 
     // Transfer the nfts to vote contract
     await someERC721Contract
@@ -189,7 +189,7 @@ describe("Test Vote Contract", function () {
     await pvs.connect(user1).approve(vote.address, 80);
     await expect(
       vote.connect(user1).vote(someERC721Contract.address, specialTokenId, 10)
-    ).to.be.revertedWith("Vote: please vote more");
+    ).to.be.revertedWith("NFTElection: please vote more");
     // user1 votes more than user0 and succeeds
     await vote
       .connect(user1)
@@ -213,7 +213,7 @@ describe("Test Vote Contract", function () {
       .vote(someERC721Contract.address, specialTokenId, 1);
     // user0 withdraws margin and fails
     await expect(vote.connect(user0).withdrawMargin(80)).to.be.revertedWith(
-      "Vote: low margin balance"
+      "NFTElection: low margin balance"
     );
     // user1 withdraws margin and succeeds
     await vote.connect(user1).withdrawMargin(80);
@@ -222,18 +222,18 @@ describe("Test Vote Contract", function () {
       vote
         .connect(user0)
         .claim([someERC721Contract.address], [specialTokenId, specialTokenId])
-    ).to.be.revertedWith("Vote: invalid input");
+    ).to.be.revertedWith("NFTElection: invalid input");
     // user0 claims before ddl and fails
     await expect(
       vote.connect(user0).claim([someERC721Contract.address], [specialTokenId])
-    ).to.be.revertedWith("Vote: the voting process has not finished");
+    ).to.be.revertedWith("NFTElection: the voting process has not finished");
 
     // manager claims no-winner token before ddl and fails
     await expect(
       vote
         .connect(manager0)
         .claimBack(someERC721Contract.address, [normalTokenId])
-    ).to.be.revertedWith("Vote: the voting process has not finished");
+    ).to.be.revertedWith("NFTElection: the voting process has not finished");
 
     /****************** After Expiration Time ******************/
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -242,7 +242,7 @@ describe("Test Vote Contract", function () {
     // user0 votes after ddl and fails
     await expect(
       vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 1)
-    ).to.be.revertedWith("Vote: the voting process has been finished");
+    ).to.be.revertedWith("NFTElection: the voting process has been finished");
     // user0 claims after the ddl and succeeds
     await vote
       .connect(user0)
@@ -258,6 +258,6 @@ describe("Test Vote Contract", function () {
       vote
         .connect(manager0)
         .claimBack(someERC721Contract.address, [specialTokenId])
-    ).to.be.revertedWith("Vote: the token has a winner");
+    ).to.be.revertedWith("NFTElection: the token has a winner");
   });
 });

@@ -34,31 +34,6 @@ interface IERC1155Gateway {
     ) external;
 
     /**
-     * @dev Burn ERC1155 tokens.
-     * @param account owner of the tokens to be burned
-     * @param id the tokenId to be burned
-     * @param value the amount to be burned
-     */
-    function ERC1155_burn(
-        address nftContract,
-        address account,
-        uint256 id,
-        uint256 value
-    ) external;
-
-    /**
-     * @dev Burn a batch of ERC1155 tokens.
-     *
-     * See {ERC1155_burn}
-     */
-    function ERC1155_burnBatch(
-        address nftContract,
-        address account,
-        uint256[] memory ids,
-        uint256[] memory values
-    ) external;
-
-    /**
      * @dev Sets a new URI for all token types, by relying on the token type ID
      * substitution mechanism
      * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].

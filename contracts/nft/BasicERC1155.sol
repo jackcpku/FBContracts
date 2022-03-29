@@ -39,22 +39,6 @@ contract BasicERC1155 is
         _mintBatch(to, ids, amounts, data);
     }
 
-    function burn(
-        address account,
-        uint256 id,
-        uint256 value
-    ) public override onlyGateway {
-        super.burn(account, id, value);
-    }
-
-    function burnBatch(
-        address account,
-        uint256[] calldata ids,
-        uint256[] calldata values
-    ) public override onlyGateway {
-        super.burnBatch(account, ids, values);
-    }
-
     function setURI(string calldata newuri) external onlyGateway {
         _setURI(newuri);
     }
@@ -83,4 +67,5 @@ contract BasicERC1155 is
         }
         return super.isApprovedForAll(account, operator);
     }
+    
 }

@@ -98,17 +98,6 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
     }
 
     /**
-     * Call `burn` function on a BasicERC721 contract through gateway
-     */
-    function ERC721_burn(address _nftContract, uint256 _tokenId)
-        external
-        override
-        onlyManagerAndWhitelist(_nftContract)
-    {
-        BasicERC721(_nftContract).burn(_tokenId);
-    }
-
-    /**
      * Call `setURI` function on a BasicERC721 contract through gateway
      */
     function ERC721_setURI(address _nftContract, string calldata _newURI)
@@ -143,30 +132,6 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         bytes calldata _data
     ) external override onlyManagerAndWhitelist(_nftContract) {
         BasicERC1155(_nftContract).mintBatch(_to, _ids, _amounts, _data);
-    }
-
-    /**
-     * Call `burn` function on a BasicERC1155 contract through gateway
-     */
-    function ERC1155_burn(
-        address _nftContract,
-        address _account,
-        uint256 _id,
-        uint256 _value
-    ) external override onlyManagerAndWhitelist(_nftContract) {
-        BasicERC1155(_nftContract).burn(_account, _id, _value);
-    }
-
-    /**
-     * Call `burnBatch` function on a BasicERC1155 contract through gateway
-     */
-    function ERC1155_burnBatch(
-        address _nftContract,
-        address _account,
-        uint256[] calldata _ids,
-        uint256[] calldata _values
-    ) external override onlyManagerAndWhitelist(_nftContract) {
-        BasicERC1155(_nftContract).burnBatch(_account, _ids, _values);
     }
 
     /**
