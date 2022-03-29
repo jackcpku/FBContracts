@@ -21,21 +21,21 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     struct OrderMetadata {
         bool sellOrBuy; // true for sell, false for buy
-        uint256 listingTime;
-        uint256 expirationTime;
-        uint256 maximumFill;
-        uint256 salt;
+        uint256 listingTime; // When the order becomes effective
+        uint256 expirationTime; // When the order expires
+        uint256 maximumFill; // Number of **NFTs** the trader wants to transact
+        uint256 salt; // Random salt
     }
 
     struct Order {
-        address marketplaceAddress;
-        address targetTokenAddress;
-        uint256 targetTokenId;
-        address paymentTokenAddress;
-        uint256 price;
-        uint256 serviceFee;
-        uint256 royaltyFee;
-        address royaltyFeeRecipient;
+        address marketplaceAddress; // Address of this contract
+        address targetTokenAddress; // NFT token address
+        uint256 targetTokenId; // The tokenId of the NFT to be transacted
+        address paymentTokenAddress; // The address of the payment token
+        uint256 price; // The price of the NFT, in payment tokens
+        uint256 serviceFee; // Fee to platform
+        uint256 royaltyFee; // Fee to NFT providers
+        address royaltyFeeRecipient; // Address of the NFT provider
     }
 
     /********************************************************************
@@ -61,15 +61,27 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     // Platform address
     address public serviceFeeRecipient;
 
-    // Store order states
+    /**
+     * cancelled records if an order (indexed by the result of getMessageHash)
+     * has been cancelled by its initializer (by calling ignoreMessagehash)
+     */
     mapping(address => mapping(bytes32 => bool)) cancelled;
+
+    /**
+     * fills records how many NFTs has been transacted for a certain order
+     *
+     * Note During a transaction, there are two items in fills to be changed, for
+     * buyer and seller, respectively. For example, if the seller wants to sell
+     * 10 ERC1155 tokens, but the buyer only wants to buy 8 of them, then their
+     * fills will both increase 8 if the transaction succeeds.
+     */
     mapping(address => mapping(bytes32 => uint256)) fills;
 
     /********************************************************************
      *                             Events                               *
      ********************************************************************/
 
-    event OrderMatched(
+    event MatchOrder(
         address indexed contractAddress,
         uint256 indexed tokenId,
         address indexed paymentToken,
@@ -81,7 +93,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes32 buyerMessageHash
     );
 
-    event MessageHashIgnored(
+    event IgnoreMessageHash(
         address indexed operator,
         bytes32 indexed messageHash
     );
@@ -123,6 +135,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         }
     }
 
+    /**
+     * @param _mainPaymentToken is a special payment token.
+     */
     function setMainPaymentToken(address _mainPaymentToken) public onlyOwner {
         mainPaymentToken = _mainPaymentToken;
         paymentTokens[_mainPaymentToken] = true;
@@ -132,6 +147,25 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                         Core functions                           *
      ********************************************************************/
 
+    /**
+     * This is the function exposed to external users. When a buyer wants to match a sell
+     * order, or a seller wants to match a buy order, they call this function. If they
+     * provide their signature, everyone can help match the order on their behalf.
+     *
+     * Note The atomicMatch function is splitted into two functions, atomicMatch and _atomicMatch,
+     * to circumvent solidity's restriction on stack size.
+     *
+     * @param transactionType should either be ERC721_FOR_ERC20 or ERC1155_FOR_ERC20
+     * @param _order information encoded by an Order object, represent the order to be matched
+     * @param seller address of the seller
+     * @param _sellerMetadata information encoded by the seller's OrderMetadata object
+     * @param sellerSig seller's signature of the intention to sell, this parameter is not needed
+     * in case seller is msg.sender
+     * @param buyer address of the buyer
+     * @param _buyerMetadata information encoded by the buyer's OrderMetadata object
+     * @param buyerSig buyer's signature of the intention to buy, this parameter is not needed
+     * in case buyer is msg.sender
+     */
     function atomicMatch(
         bytes32 transactionType,
         bytes memory _order,
@@ -150,7 +184,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             _sellerMetadata,
             sellerSig
         );
-        require(sellerSigValid, "Seller signature is not valid");
+        require(sellerSigValid, "Marketplace: invalid seller signature");
 
         (bool buyerSigValid, bytes32 buyerMessageHash) = checkSigValidity(
             buyer,
@@ -159,8 +193,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             _buyerMetadata,
             buyerSig
         );
-        require(buyerSigValid, "Buyer signature is not valid");
+        require(buyerSigValid, "Marketplace: invalid buyer signature");
 
+        // Decode bytes into structs
         Order memory order = decodeOrder(_order);
         OrderMetadata memory sellerMetadata = decodeOrderMetadata(
             _sellerMetadata
@@ -214,7 +249,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         fills[buyer][buyerMessageHash] += fill;
 
         /*  LOGS  */
-        emit OrderMatched(
+        emit MatchOrder(
             order.targetTokenAddress,
             order.targetTokenId,
             order.paymentTokenAddress,
@@ -237,12 +272,12 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     function ignoreMessageHash(bytes32 messageHash) public {
         require(
             cancelled[msg.sender][messageHash] == false,
-            "Order has been revoked"
+            "Marketplace: order has been revoked"
         );
 
         cancelled[msg.sender][messageHash] = true;
 
-        emit MessageHashIgnored(msg.sender, messageHash);
+        emit IgnoreMessageHash(msg.sender, messageHash);
     }
 
     /**
@@ -258,6 +293,9 @@ contract Marketplace is Initializable, OwnableUpgradeable {
      *                        Helper functions                          *
      ********************************************************************/
 
+    /**
+     * Check the validity of order metadata.
+     */
     function checkMetaInfo(
         bytes32 transactionType,
         Order memory order,
@@ -270,49 +308,55 @@ contract Marketplace is Initializable, OwnableUpgradeable {
     ) internal view {
         require(
             order.marketplaceAddress == address(this),
-            "Wrong market address"
+            "Marketplace: wrong market address"
         );
         require(
             paymentTokens[order.paymentTokenAddress] == true,
             "Marketplace: invalid payment method"
         );
 
-        require(sellerMetadata.sellOrBuy == true, "Seller should sell");
-        require(buyerMetadata.sellOrBuy == false, "Buyer should buy");
+        require(
+            sellerMetadata.sellOrBuy == true,
+            "Marketplace: seller should sell"
+        );
+        require(
+            buyerMetadata.sellOrBuy == false,
+            "Marketplace: buyer should buy"
+        );
 
         require(
             !cancelled[seller][sellerMessageHash],
-            "Sell order has been revoked"
+            "Marketplace: sell order has been revoked"
         );
         require(
             !cancelled[buyer][buyerMessageHash],
-            "Buy order has been revoked"
+            "Marketplace: buy order has been revoked"
         );
         require(
             fills[seller][sellerMessageHash] < sellerMetadata.maximumFill,
-            "Sell order has been filled"
+            "Marketplace: sell order has been filled"
         );
         require(
             fills[buyer][buyerMessageHash] < buyerMetadata.maximumFill,
-            "Buy order has been filled"
+            "Marketplace: buy order has been filled"
         );
         require(
             sellerMetadata.listingTime < block.timestamp,
-            "Sell order not in effect"
+            "Marketplace: sell order not in effect"
         );
         require(
             sellerMetadata.expirationTime == 0 ||
                 sellerMetadata.expirationTime > block.timestamp,
-            "Sell order expired"
+            "Marketplace: sell order expired"
         );
         require(
             buyerMetadata.listingTime < block.timestamp,
-            "Buy order not in effect"
+            "Marketplace: buy order not in effect"
         );
         require(
             buyerMetadata.expirationTime == 0 ||
                 buyerMetadata.expirationTime > block.timestamp,
-            "Buy order expired"
+            "Marketplace: buy order expired"
         );
 
         // Check mode-specific parameters
@@ -320,11 +364,17 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             require(
                 sellerMetadata.maximumFill == 1 &&
                     sellerMetadata.maximumFill == 1,
-                "Invalid maximumFill"
+                "Marketplace: invalid maximumFill"
             );
         }
     }
 
+    /**
+     * Authority check
+     * The signature of an address `x` is valid if
+     * 1. `msg.sender` is `x`, or
+     * 2. the signature is signed with `x`'s private key
+     */
     function checkSigValidity(
         address x,
         bytes32 transactionType,
@@ -358,6 +408,15 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         return keccak256(abi.encodePacked(transactionType, order, metadata));
     }
 
+    /**
+     * Execute the transfers of ERC721 and ERC1155 tokens.
+     *
+     * @param transactionType either ERC721_FOR_ERC20 or ERC1155_FOR_ERC20
+     * @param order the order to be executed
+     * @param fill the number of NFTs to be transferred
+     * @param seller the source address of the transfer
+     * @param buyer the destination address of the transfer
+     */
     function executeTransferNFT(
         bytes32 transactionType,
         Order memory order,
@@ -366,7 +425,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         address buyer
     ) internal {
         if (transactionType == ERC721_FOR_ERC20) {
-            require(fill == 1, "Invalid fill");
+            require(fill == 1, "Marketplace: invalid fill");
             // Check balance requirement
             IERC721 nft = IERC721(order.targetTokenAddress);
 
@@ -381,6 +440,15 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         }
     }
 
+    /**
+     * Execute the transfers of ERC20 tokens.
+     *
+     * @param order the order to be executed
+     * @param fill the number of NFTs to be transacted, hence, the number of ERC20 tokens
+     * to be transferred is `order.price * fill`
+     * @param seller the destination address of the transfer
+     * @param buyer the source address of the transfer
+     */
     function executeTransferERC20(
         Order memory order,
         uint256 fill,
@@ -451,6 +519,15 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         );
     }
 
+    /**
+     * Execute the actual token transfers
+     *
+     * @param transactionType either ERC721_FOR_ERC20 or ERC1155_FOR_ERC20
+     * @param order the order to be executed
+     * @param fill the number of NFTs to be transferred
+     * @param seller the source address of the transfer
+     * @param buyer the destination address of the transfer
+     */
     function executeTransfers(
         bytes32 transactionType,
         Order memory order,
