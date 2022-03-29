@@ -10,12 +10,6 @@ contract Splitter is Ownable {
 
     address public pvsAddress;
 
-    enum ToAddressType {
-        BURN,
-        PLATFORM,
-        DIVIDEND
-    }
-
     // [burnAddress, platformAddress, dividendAddress]
     // burnAddress = 0x000000000000000000000000000000000000dEaD;
     address[] public splitAddress;
@@ -25,17 +19,13 @@ contract Splitter is Ownable {
     uint256 public constant PROPORTION_DENOMINATOR = 10_000;
 
     event Split(
-        ToAddressType toAddressType,
-        address indexed from,
-        address indexed to,
-        uint256 value
-    );
-
-    event Reset(
         address indexed operator,
-        address[] indexed Address,
+        uint256 amount,
+        address[] to,
         uint256[] proportion
     );
+
+    event Reset(address indexed operator, address[] to, uint256[] proportion);
 
     constructor(
         address _pvsAddress,
@@ -48,11 +38,6 @@ contract Splitter is Ownable {
             _splitAddress.length == _splitProportion.length,
             "Splitter: address length must equal to proportion length"
         );
-
-        require(
-            _splitAddress.length == 3,
-            "Splitter: only three addresses allowed"
-        );
         splitAddress = _splitAddress;
         // splitProportion = [5_000, 4_650, 350];
         splitProportion = _splitProportion;
@@ -60,24 +45,15 @@ contract Splitter is Ownable {
 
     function output() external {
         uint256 amount = IERC20(pvsAddress).balanceOf(address(this));
-        require(amount > 100, "Splitter: amount to split must > 100");
+        require(amount > PROPORTION_DENOMINATOR, "Splitter: amount too low");
 
         for (uint256 i = 0; i < splitAddress.length; i++) {
             IERC20(pvsAddress).safeTransfer(
                 splitAddress[i],
                 (amount * splitProportion[i]) / PROPORTION_DENOMINATOR
             );
-            emit Split(
-                i == 0
-                    ? ToAddressType.BURN
-                    : (
-                        i == 1 ? ToAddressType.PLATFORM : ToAddressType.DIVIDEND
-                    ),
-                address(this),
-                splitAddress[i],
-                (amount * splitProportion[i]) / PROPORTION_DENOMINATOR
-            );
         }
+        emit Split(msg.sender, amount, splitAddress, splitProportion);
     }
 
     // owner reset addresses / proportions

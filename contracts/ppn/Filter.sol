@@ -10,21 +10,26 @@ contract Filter is Ownable {
 
     address public pvsAddress;
 
-    address public dividendAddress;
+    address public outputAddress;
 
     uint256 public constant ALPHA_DENOMINATOR = 10_000;
 
-    uint256 public constant ALPHA = 300;
+    uint256 public alpha;
 
     uint256 public lastOut;
 
-    uint256 public totalIn;
+    uint256 public lastBalance;
 
     uint256 public lastTime;
 
-    constructor(address _pvsAddress, address _dividendAddress) {
+    constructor(
+        address _pvsAddress,
+        address _outputAddress,
+        uint256 _alpha
+    ) {
         pvsAddress = _pvsAddress;
-        dividendAddress = _dividendAddress;
+        outputAddress = _outputAddress;
+        alpha = _alpha;
     }
 
     function output() external {
@@ -35,21 +40,30 @@ contract Filter is Ownable {
         );
         lastTime = block.timestamp;
 
-        uint256 newIn = IERC20(pvsAddress).balanceOf(address(this)) - totalIn;
+        uint256 currentBalance = IERC20(pvsAddress).balanceOf(address(this));
+        uint256 newIn = currentBalance - lastBalance;
 
-        uint256 newOut = (ALPHA / ALPHA_DENOMINATOR) *
+        uint256 newOut = (alpha *
             newIn +
-            (1 - ALPHA / ALPHA_DENOMINATOR) *
-            lastOut;
+            (ALPHA_DENOMINATOR - alpha) *
+            lastOut) / ALPHA_DENOMINATOR;
+
+        if (newOut > currentBalance) {
+            newOut = currentBalance;
+        }
 
         lastOut = newOut;
-        totalIn += newIn;
 
-        IERC20(pvsAddress).safeTransfer(dividendAddress, newOut);
+        IERC20(pvsAddress).safeTransfer(outputAddress, newOut);
+
+        lastBalance = currentBalance - newOut;
     }
 
-    // owner reset addresses
-    function reset(address _dividendAddress) external onlyOwner {
-        dividendAddress = _dividendAddress;
+    function setOutputAddress(address _outputAddress) external onlyOwner {
+        outputAddress = _outputAddress;
+    }
+
+    function setAlpha(uint256 _alpha) external onlyOwner {
+        alpha = _alpha;
     }
 }
