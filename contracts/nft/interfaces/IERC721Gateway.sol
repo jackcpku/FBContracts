@@ -18,6 +18,12 @@ interface IERC721Gateway {
         uint256 tokenId
     ) external;
 
+    function ERC721_mintBatch(
+        address nftContract,
+        address[] calldata recipient,
+        uint256[] calldata tokenId
+    ) external;
+
     /**
      * @dev Burn an ERC721 token.
      * @notice Only gateway contract can burn.
