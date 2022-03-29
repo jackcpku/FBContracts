@@ -57,6 +57,7 @@ describe("Test LootBox Contract", function () {
     }
 
     {
+      // Deploy BasicERC1155 contract
       const from = factory.address;
       const deployeeName = "BasicERC1155";
       const uri = "some uri";
@@ -80,11 +81,13 @@ describe("Test LootBox Contract", function () {
     }
   });
 
-  it.skip("should pass test", async function () {
-    this.timeout(100000);
+  it("should pass integration test", async function () {
+    this.timeout(30 * 1000);
 
     const lootBoxSize = 100;
     const basicERC1155TokenId = 1;
+    const lowerBound = 1;
+    const upperBound = 100;
 
     // 1. Mint some erc1155 tokens
     gateway
@@ -97,19 +100,26 @@ describe("Test LootBox Contract", function () {
         "0x"
       );
 
-    // 2. Config the lootbox
+    // 2. Add lootbox to the whitelist
+    await gateway.connect(gatewayAdmin).addOperatorWhitelist(lootBox.address);
+
+    // 3. Config the lootbox
     await lootBox.configLootBox(
       basicERC721Contract.address,
-      1,
-      100,
+      lowerBound,
+      upperBound,
       basicERC1155Contract.address,
-      1
+      basicERC1155TokenId
     );
 
     let randoms = [];
     for (let i = 1; i <= lootBoxSize; i++) {
-      console.log("asdf");
+      // 4. LootBox gambler approves the lootbox of spending
+      await basicERC1155Contract
+        .connect(nftManager)
+        .setApprovalForAll(lootBox.address, true);
 
+      // 5. LootBox gambler unwraps the lootbox
       const tx = await lootBox
         .connect(nftManager)
         .unwrapLootBox(basicERC1155Contract.address, basicERC1155TokenId);
@@ -124,13 +134,5 @@ describe("Test LootBox Contract", function () {
     const should_get = [...Array(lootBoxSize).keys()].map((x) => x + 1);
 
     expect(randoms).deep.to.equal(should_get);
-
-    // This should emit "Full" event.
-    const tx = await lootBox.getRandom();
-    const rc = await tx.wait();
-    const event = rc.events.find((event) => event.event === "Full");
-    expect(event["args"]["sender"]).to.equal(
-      (await hre.ethers.getSigner()).address
-    );
   });
 });

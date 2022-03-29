@@ -4,6 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./nft/interfaces/INFTGateway.sol";
 
+interface IERC1155BurnSingle {
+    function burn(
+        address account,
+        uint256 id,
+        uint256 value
+    ) external;
+}
+
 contract SimpleLootBoxRegistry is Ownable {
     address nftGateway;
 
@@ -74,8 +82,7 @@ contract SimpleLootBoxRegistry is Ownable {
         randomTokenId = _getRandom(_erc1155TokenAddress, _erc1155TokenId);
         if (randomTokenId == 0) return 0;
 
-        INFTGateway(nftGateway).ERC1155_burn(
-            _erc1155TokenAddress,
+        IERC1155BurnSingle(_erc1155TokenAddress).burn(
             msg.sender,
             _erc1155TokenId,
             1
