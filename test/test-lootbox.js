@@ -124,7 +124,7 @@ describe("Test LootBox Contract", function () {
         .connect(nftManager)
         .unwrapLootBox(basicERC1155Contract.address, basicERC1155TokenId);
       const rc = await tx.wait();
-      const event = rc.events.find((event) => event.event === "GetRandomIndex");
+      const event = rc.events.find((event) => event.event === "UnwrapLootBox");
       const random = BigNumber.from(event["topics"][2]);
       randoms = [...randoms, random];
     }

@@ -37,9 +37,20 @@ contract SimpleLootBoxRegistry is Ownable {
      */
     mapping(address => mapping(uint256 => address)) erc721TokenAddresses;
 
-    event GetRandomIndex(address indexed tokenAddress, uint256 indexed tokenId);
+    event ConfigLootBox(
+        address indexed erc1155TokenAddress,
+        uint256 indexed erc1155TokenId,
+        address indexed erc721TokenAddress,
+        uint256 erc721LowerBound,
+        uint256 erc721UpperBound
+    );
 
-    event Full(address indexed sender);
+    event UnwrapLootBox(
+        address erc1155TokenAddress,
+        uint256 erc1155TokenId,
+        address indexed erc721TokenAddress,
+        uint256 indexed erc721TokenId
+    );
 
     constructor(address _nftGateway) {
         nftGateway = _nftGateway;
@@ -55,7 +66,7 @@ contract SimpleLootBoxRegistry is Ownable {
     ) external onlyOwner {
         require(
             erc721Sizes[_erc1155TokenAddress][_erc1155TokenId] == 0,
-            "SimpleLootBoxRegistry: erc1155 already initialized"
+            "SimpleLootBoxRegistry: erc1155 already used"
         );
 
         trees[_erc1155TokenAddress][_erc1155TokenId] = new bool[](
@@ -70,6 +81,14 @@ contract SimpleLootBoxRegistry is Ownable {
         erc721TokenAddresses[_erc1155TokenAddress][
             _erc1155TokenId
         ] = _erc721TokenAddress;
+
+        emit ConfigLootBox(
+            _erc1155TokenAddress,
+            _erc1155TokenId,
+            _erc721TokenAddress,
+            _erc721LowerBound,
+            _erc721UpperBound
+        );
     }
 
     /**
@@ -94,6 +113,13 @@ contract SimpleLootBoxRegistry is Ownable {
             msg.sender,
             randomTokenId
         );
+
+        emit UnwrapLootBox(
+            _erc1155TokenAddress,
+            _erc1155TokenId,
+            erc721TokenAddresses[_erc1155TokenAddress][_erc1155TokenId],
+            randomTokenId
+        );
     }
 
     /**
@@ -106,7 +132,7 @@ contract SimpleLootBoxRegistry is Ownable {
         returns (uint256 result)
     {
         if (trees[_erc1155TokenAddress][_erc1155TokenId][0]) {
-            emit Full(msg.sender);
+            // No lootbox left.
             return 0;
         }
 
@@ -163,8 +189,6 @@ contract SimpleLootBoxRegistry is Ownable {
             1 -
             erc721Sizes[_erc1155TokenAddress][_erc1155TokenId] +
             erc721LowerBounds[_erc1155TokenAddress][_erc1155TokenId];
-
-        emit GetRandomIndex(_erc1155TokenAddress, result);
 
         // Traverse back to root
         while (
