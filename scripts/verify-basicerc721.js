@@ -3,12 +3,12 @@ const { multisigWalletAddr } = require('./params');
 
 const main = async () => {
     await hre.run("verify:verify", {
-        address: "0x0c23Ff838A1206b6a040B9bFD2Be277D9fb1baC7",
+        address: "0x82B44024F68BcDA197CF8D58aed88eDAD3d393C4",
         constructorArguments: [
-            "ERC721NFT",
-            "ENFT",
-            "https://api.playvrs.net/nft/meta/",
-            "0x0aE3e213e7aa970D78ebfE7155A12cD25DE3bDfA"
+            "NFT721",
+            "N721",
+            "https://api.playvrs.net/nft/meta/rinkeby/",
+            "0x197560a2CB04721079225529aFbc53D65759a13C"
         ],
         contract: "contracts/nft/BasicERC721.sol:BasicERC721"
     });

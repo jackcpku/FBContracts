@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./nft/interfaces/INFTGateway.sol";
+import "./interfaces/INFTGateway.sol";
 
 interface IERC1155BurnSingle {
     function burn(

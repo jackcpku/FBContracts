@@ -2,10 +2,10 @@ const hre = require("hardhat");
 
 const main = async () => {
     await hre.run("verify:verify", {
-        address: "0x16F741FA1e93F7E88742dCfF69c35954AB131b2F",
+        address: "0xbb198Bdb33D9D582a16C13c9e1E1406e497B6Ac9",
         constructorArguments: [
-            "https://api.playvrs.net/nft/meta/",
-            "0x0aE3e213e7aa970D78ebfE7155A12cD25DE3bDfA"
+            "https://api.playvrs.net/nft/meta/rinkeby/",
+            "0x197560a2CB04721079225529aFbc53D65759a13C"
         ],
         contract: "contracts/nft/BasicERC1155.sol:BasicERC1155"
     });
