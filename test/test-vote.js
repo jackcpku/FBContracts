@@ -4,7 +4,7 @@ const { deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
 const { calculateCreate2AddressBasicERC721 } = require("../lib/create2.js");
 
 const {
-  deployVote,
+  deployElection,
   deployMajorToken,
   deployPVSTicket,
 } = require("../lib/deploy.js");
@@ -74,19 +74,19 @@ describe("Test NFTElection Contract", function () {
       .ERC721_mint(someNFTAddress, manager0.address, specialTokenId);
 
     // Set up NFTElection contract
-    vote = await deployVote(ticket.address, pvs.address);
+    vote = await deployElection(ticket.address, pvs.address);
     await vote.setServiceFeeRecipient(owner.address);
     await vote.setManager(someERC721Contract.address, manager0.address);
     await vote
       .connect(manager0)
-      ["setPrice(address,uint256)"](someERC721Contract.address, fallbackPrice);
+    ["setPrice(address,uint256)"](someERC721Contract.address, fallbackPrice);
     await vote
       .connect(manager0)
-      ["setPrice(address,uint256,uint256)"](
-        someERC721Contract.address,
-        specialTokenId,
-        specialPrice
-      );
+    ["setPrice(address,uint256,uint256)"](
+      someERC721Contract.address,
+      specialTokenId,
+      specialPrice
+    );
 
     // Complex dependencies
     const burnerRole = await ticket.TICKET_BURNER_ROLE();
