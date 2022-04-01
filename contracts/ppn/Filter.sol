@@ -22,6 +22,15 @@ contract Filter is Ownable {
 
     uint256 public lastTime;
 
+    event Filtered(
+        address indexed operator,
+        uint256 alpha,
+        address to,
+        uint256 newIn,
+        uint256 newOut,
+        uint256 lastBalance
+    );
+
     constructor(
         address _pvsAddress,
         address _outputAddress,
@@ -55,6 +64,15 @@ contract Filter is Ownable {
         lastOut = newOut;
 
         IERC20(pvsAddress).safeTransfer(outputAddress, newOut);
+
+        emit Filtered(
+            msg.sender,
+            alpha,
+            outputAddress,
+            newIn,
+            newOut,
+            lastBalance
+        );
 
         lastBalance = currentBalance - newOut;
     }

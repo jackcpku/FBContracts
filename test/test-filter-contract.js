@@ -6,7 +6,17 @@ const { deployMajorToken, deployFilter } = require("../lib/deploy.js");
 
 describe("Test Filter Contract", function () {
   let filter, pvs;
-  const pvsAmount = [10000, 100];
+  const pvsAmount = [10_000_000, 2_000];
+
+  const ALPHA_DENOMINATOR = 10_000;
+  const outputAddressOne = "0xcd3B766CCDd6AE721141F452C550Ca635964ce71";
+  const outputAddressTwo = "0xCD3b766CcDd6AE721141F452C550Ca635964CE72";
+  const alpha = 300;
+
+  const oneHour = 60 * 60;
+  const oneDay = 24 * oneHour;
+  const sevenDays = 7 * oneDay;
+  const times = [oneHour, oneDay, sevenDays];
 
   beforeEach("init", async function () {
     // Reset test environment.
@@ -15,13 +25,55 @@ describe("Test Filter Contract", function () {
 
     // Set up PVS contract
     pvs = await deployMajorToken(owner.address);
-    await pvs.transfer(owner.address, pvsAmount[0]);
 
     // Set up filter contract
-    
+    filter = await deployFilter(pvs.address, outputAddressOne, alpha);
+
+    await pvs.connect(owner).transfer(filter.address, pvsAmount[0]);
+    await filter.connect(owner).setOutputAddress(outputAddressTwo);
+    await filter.connect(owner).setAlpha(alpha);
   });
-  //
-  it("should pass init test", async function () {
-    // ToDo
+
+  it("should pass filter test", async function () {
+    const onceFilter = await filter.output();
+    // operator, alpha, to, newIn, newOut, lastBalance;
+    expect(onceFilter)
+      .to.emit(filter, "Filtered")
+      .withArgs(
+        owner.address,
+        alpha,
+        outputAddressTwo,
+        pvsAmount[0],
+        (alpha * pvsAmount[0]) / ALPHA_DENOMINATOR,
+        0
+      );
+
+    await expect(filter.output()).to.be.revertedWith(
+      "Filter: at most once a day"
+    );
+
+    const block = await hre.ethers.provider.getBlock("latest");
+    await hre.network.provider.send("evm_setNextBlockTimestamp", [
+      block.timestamp + times[2],
+    ]);
+
+    const lastOut = (alpha * pvsAmount[0]) / ALPHA_DENOMINATOR;
+    const lastBalance = pvsAmount[0] - lastOut;
+
+    //second filter
+    await pvs.connect(owner).transfer(filter.address, pvsAmount[1]);
+    const secondFilter = await filter.output();
+
+    // (alpha * newIn + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR
+    expect(secondFilter)
+      .to.emit(filter, "Filtered")
+      .withArgs(
+        owner.address,
+        alpha,
+        outputAddressTwo,
+        pvsAmount[1],
+        (alpha * pvsAmount[1] + (ALPHA_DENOMINATOR - alpha) * lastOut ) / ALPHA_DENOMINATOR,
+        lastBalance
+      );
   });
 });
