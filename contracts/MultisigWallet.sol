@@ -13,16 +13,17 @@ contract MultisigWallet {
 
     mapping(address => bool) signers;
 
+    mapping(bytes32 => bool) done;
+
     modifier onlyMultisigWalletSigner(bytes32 _messageId) {
         require(signers[msg.sender], "MultisigWallet: not a signer");
 
-        if (
-            !approvedInfo[_messageId][msg.sender] && approvedNum[_messageId] < m
-        ) {
+        if (!approvedInfo[_messageId][msg.sender] && !done[_messageId]) {
             approvedInfo[_messageId][msg.sender] = true;
             approvedNum[_messageId] += 1;
 
             if (approvedNum[_messageId] >= m) {
+                done[_messageId] = true;
                 _;
             }
         }
@@ -36,7 +37,8 @@ contract MultisigWallet {
         m = _m;
         n = _n;
 
-        require(_signers.length == _n, "MultisigWallet: bad parameters");
+        require(m <= n, "MultisigWallet: m should not be greater than n");
+        require(_signers.length == n, "MultisigWallet: bad parameters");
 
         for (uint256 i = 0; i < _n; i++) {
             signers[_signers[i]] = true;

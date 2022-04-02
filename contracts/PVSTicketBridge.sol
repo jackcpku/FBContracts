@@ -13,6 +13,8 @@ interface IMintableBurnable {
 contract PVSTicketBridge is Ownable, MultisigWallet {
     address ticketAddress;
 
+    address payable nativeTokenReceiver;
+
     uint256 minSend;
     uint256 maxSend;
 
@@ -46,6 +48,20 @@ contract PVSTicketBridge is Ownable, MultisigWallet {
         uint256 n,
         address[] memory signers
     ) Ownable() MultisigWallet(m, n, signers) {}
+
+    function setDstChainGasAmount(uint64 _dstChainId, uint256 _gasAmount)
+        external
+        onlyOwner
+    {
+        dstChainGasAmount[_dstChainId] = _gasAmount;
+    }
+
+    function setNativeTokenReceiver(address payable _nativeTokenReceiver)
+        external
+        onlyOwner
+    {
+        nativeTokenReceiver = _nativeTokenReceiver;
+    }
 
     function setSendThreshold(uint256 _minSend, uint256 _maxSend)
         external
@@ -92,7 +108,14 @@ contract PVSTicketBridge is Ownable, MultisigWallet {
         uint256 _amount,
         uint64 _dstChainId,
         uint64 _nonce
-    ) external {
+    ) external payable {
+        require(
+            block.timestamp > lastSendTimestamp[msg.sender] + 12 hours,
+            "PVSTicketBridge: wait a minute"
+        );
+
+        lastSendTimestamp[msg.sender] = block.timestamp;
+
         bytes32 transferId = _checkTransfer(
             _receiver,
             _amount,
@@ -101,6 +124,11 @@ contract PVSTicketBridge is Ownable, MultisigWallet {
         );
 
         IMintableBurnable(ticketAddress).burn(msg.sender, _amount);
+
+        if (dstChainGasAmount[_dstChainId] > 0) {
+            (bool sent, ) = nativeTokenReceiver.call{value: msg.value}("");
+            require(sent, "PVSTicketBridge: failed to send tokens");
+        }
 
         emit SendOut(
             transferId,
