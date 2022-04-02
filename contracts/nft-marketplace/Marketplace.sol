@@ -470,21 +470,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         );
 
         // Calculate ERC20 fees
-        uint256 fee2service;
-        uint256 fee2cp;
-        if (
-            order.royaltyFee == 0 &&
-            order.serviceFee > BASE / 10 &&
-            order.paymentTokenAddress == mainPaymentToken
-        ) {
-            // Case where the NFT creator's initial sell
-            fee2cp = 0;
-            fee2service = (totalCost * order.serviceFee) / BASE;
-        } else {
-            // Case where users sell to each other
-            fee2cp = (totalCost * order.royaltyFee) / BASE;
-            fee2service = (totalCost * order.serviceFee) / BASE;
-        }
+        uint256 fee2service = (totalCost * order.serviceFee) / BASE;
+        uint256 fee2cp = (totalCost * order.royaltyFee) / BASE;
 
         // Transfer ERC20 to multiple addresses
         if (fee2service > 0) {
