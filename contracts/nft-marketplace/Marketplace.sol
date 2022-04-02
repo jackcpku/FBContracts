@@ -48,7 +48,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     // Fee related magic numbers
     uint256 public constant BASE = 10000;
-    uint256 public constant BURN = BASE / 2;
 
     /********************************************************************
      *                         State variables                          *
@@ -472,7 +471,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
         // Calculate ERC20 fees
         uint256 fee2service;
-        uint256 fee2burn;
         uint256 fee2cp;
         if (
             order.royaltyFee == 0 &&
@@ -481,12 +479,10 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         ) {
             // Case where the NFT creator's initial sell
             fee2cp = 0;
-            fee2burn = (totalCost * order.serviceFee * BURN) / (BASE * BASE);
-            fee2service = (totalCost * order.serviceFee) / BASE - fee2burn;
+            fee2service = (totalCost * order.serviceFee) / BASE;
         } else {
             // Case where users sell to each other
             fee2cp = (totalCost * order.royaltyFee) / BASE;
-            fee2burn = 0;
             fee2service = (totalCost * order.serviceFee) / BASE;
         }
 
@@ -496,13 +492,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 buyer,
                 serviceFeeRecipient,
                 fee2service
-            );
-        }
-        if (fee2burn > 0) {
-            paymentContract.safeTransferFrom(
-                buyer,
-                0x000000000000000000000000000000000000dEaD,
-                fee2burn
             );
         }
         if (fee2cp > 0) {
@@ -515,7 +504,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         paymentContract.safeTransferFrom(
             buyer,
             seller,
-            totalCost - fee2service - fee2burn - fee2cp
+            totalCost - fee2service - fee2cp
         );
     }
 
