@@ -99,7 +99,7 @@ contract SimpleLootBoxRegistry is Ownable {
         uint256 _erc1155TokenId
     ) external returns (uint256 randomTokenId) {
         randomTokenId = _getRandom(_erc1155TokenAddress, _erc1155TokenId);
-        if (randomTokenId == 0) return 0;
+        require(randomTokenId != 0, "SimpleLootBoxRegistry: no lootbox left");
 
         IERC1155BurnSingle(_erc1155TokenAddress).burn(
             msg.sender,
