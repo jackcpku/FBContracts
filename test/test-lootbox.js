@@ -113,12 +113,13 @@ describe("Test LootBox Contract", function () {
     );
 
     let randoms = [];
-    for (let i = 1; i <= lootBoxSize; i++) {
-      // 4. LootBox gambler approves the lootbox of spending
-      await basicERC1155Contract
-        .connect(nftManager)
-        .setApprovalForAll(lootBox.address, true);
 
+    // 4. LootBox gambler approves the lootbox of spending
+    await basicERC1155Contract
+      .connect(nftManager)
+      .setApprovalForAll(lootBox.address, true);
+
+    for (let i = 1; i <= lootBoxSize; i++) {
       // 5. LootBox gambler unwraps the lootbox
       const tx = await lootBox
         .connect(nftManager)
@@ -134,5 +135,15 @@ describe("Test LootBox Contract", function () {
     const should_get = [...Array(lootBoxSize).keys()].map((x) => x + 1);
 
     expect(randoms).deep.to.equal(should_get);
+
+    // 6. At this time, all loot boxes have been unwrapped.
+    await basicERC1155Contract
+      .connect(nftManager)
+      .setApprovalForAll(lootBox.address, true);
+    await expect(
+      lootBox
+        .connect(nftManager)
+        .unwrapLootBox(basicERC1155Contract.address, basicERC1155TokenId)
+    ).to.be.revertedWith("SimpleLootBoxRegistry: no lootbox left");
   });
 });
