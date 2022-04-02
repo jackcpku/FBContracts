@@ -87,7 +87,7 @@ describe("Test LootBox Contract", function () {
     const lootBoxSize = 100;
     const basicERC1155TokenId = 1;
     const lowerBound = 1;
-    const upperBound = 100;
+    const upperBound = lootBoxSize;
 
     // 1. Mint some erc1155 tokens
     gateway
@@ -113,6 +113,7 @@ describe("Test LootBox Contract", function () {
     );
 
     let randoms = [];
+    let gasesUsed = [];
 
     // 4. LootBox gambler approves the lootbox of spending
     await basicERC1155Contract
@@ -128,6 +129,7 @@ describe("Test LootBox Contract", function () {
       const event = rc.events.find((event) => event.event === "UnwrapLootBox");
       const random = BigNumber.from(event["topics"][2]);
       randoms = [...randoms, random];
+      gasesUsed = [...gasesUsed, rc.gasUsed];
     }
     randoms = randoms.map((x) => x.toNumber());
     randoms = randoms.sort((a, b) => a - b);
@@ -135,6 +137,9 @@ describe("Test LootBox Contract", function () {
     const should_get = [...Array(lootBoxSize).keys()].map((x) => x + 1);
 
     expect(randoms).deep.to.equal(should_get);
+
+    gasesUsed = gasesUsed.map((gas) => gas.toString());
+    // console.log({ gasesUsed });
 
     // 6. At this time, all loot boxes have been unwrapped.
     await basicERC1155Contract
