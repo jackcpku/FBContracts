@@ -13,11 +13,14 @@ describe("Test NFT Dividend..........", function () {
   const p2pvs = BigInt(400000);
   const p3pvs = BigInt(60000);
 
-  const p1Amt = BigInt(2000);
-  const p2Amt = BigInt(2000);
-  const p3Amt = BigInt(2000);
+  const NFT_PER_PERIOD = 6000;
+  const p1Amt = BigInt(NFT_PER_PERIOD);
+  const p2Amt = BigInt(NFT_PER_PERIOD);
+  const p3Amt = BigInt(NFT_PER_PERIOD);
 
   const u2nftId = 222;
+  const nftInP2 = 6001;
+  const nftInP3 = 12001;
 
   let nftContractAddress;
 
@@ -53,7 +56,7 @@ describe("Test NFT Dividend..........", function () {
 
   it("Test Period 1 :", async function () {
     expect(await dd.totalDividend(1)).to.equal(0);
-    await expect(dd.totalDividend(2001)).to.be.revertedWith(
+    await expect(dd.totalDividend(nftInP2)).to.be.revertedWith(
       "Dividend: tokenId exceeded limit"
     );
     //add p1pvs to pool[1]
@@ -85,7 +88,7 @@ describe("Test NFT Dividend..........", function () {
       p1pvs / p1Amt + p2pvs / (p1Amt + p2Amt)
     );
 
-    expect(await dd.totalDividend(2001)).to.equal(p2pvs / (p1Amt + p2Amt));
+    expect(await dd.totalDividend(nftInP2)).to.equal(p2pvs / (p1Amt + p2Amt));
   });
 
   it("Test Period 3 :", async function () {
@@ -113,11 +116,11 @@ describe("Test NFT Dividend..........", function () {
       p1pvs / p1Amt + p2pvs / (p1Amt + p2Amt) + p3pvs / (p1Amt + p2Amt + p3Amt)
     );
 
-    expect(await dd.totalDividend(2002)).to.equal(
+    expect(await dd.totalDividend(nftInP2)).to.equal(
       p2pvs / (p1Amt + p2Amt) + p3pvs / (p1Amt + p2Amt + p3Amt)
     );
 
-    expect(await dd.totalDividend(5000)).to.equal(
+    expect(await dd.totalDividend(nftInP3)).to.equal(
       p3pvs / (p1Amt + p2Amt + p3Amt)
     );
   });
@@ -166,8 +169,8 @@ describe("Test NFT Dividend..........", function () {
 
     //claim Batch
     const u2nftId1 = 100,
-      u2nftId2 = 2200,
-      u2nftId3 = 4500;
+      u2nftId2 = 6200,
+      u2nftId3 = 12500;
     await gateway
       .connect(u2)
       .ERC721_mint(nftContractAddress, u2.address, u2nftId1);

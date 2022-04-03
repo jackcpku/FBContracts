@@ -43,7 +43,7 @@ contract Dividend {
     uint256[] public periodStartTime;
 
     // fixed amount of release in each period
-    uint256 public constant NFT_AMOUNT_RELASED_PER_PERIOD = 2_000;
+    uint256 public constant NFT_AMOUNT_RELASED_PER_PERIOD = 6_000;
 
     event UpdatePeriod(
         address indexed operator,

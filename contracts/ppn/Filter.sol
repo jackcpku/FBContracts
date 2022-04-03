@@ -44,7 +44,7 @@ contract Filter is Ownable {
     function output() external {
         // Check if the time interval limit is exceeded
         require(
-            block.timestamp >= lastTime + 1 days,
+            block.timestamp >= lastTime + 23 hours,
             "Filter: at most once a day"
         );
         lastTime = block.timestamp;
