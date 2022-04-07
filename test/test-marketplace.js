@@ -95,7 +95,7 @@ describe("Test Marketplace Contract", function () {
     await marketplace.deployed();
 
     // Initialize the marketplace contract.
-    await marketplace.setMainPaymentToken(fbt.address);
+    await marketplace.addPaymentTokens([fbt.address]);
     await marketplace.setServiceFeeRecipient(platform.address);
   });
 
