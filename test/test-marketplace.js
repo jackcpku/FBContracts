@@ -1173,18 +1173,15 @@ describe("Test Marketplace Contract", function () {
       /**
        * Checks
        */
-      const burnFee = (price * order.serviceFee) / BASE / 2;
-      const platFormFee = (price * order.serviceFee) / BASE - burnFee;
+      const platFormFee = (price * order.serviceFee) / BASE;
       const managerFee = 0;
 
       expect(await fbt.balanceOf(buyer.address)).to.equal(0);
-      expect(
-        await fbt.balanceOf("0x000000000000000000000000000000000000dEaD")
-      ).to.equal(burnFee);
+
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
       expect(await fbt.balanceOf(manager1.address)).to.equal(0);
       expect(await fbt.balanceOf(seller.address)).to.equal(
-        price - burnFee - platFormFee - managerFee
+        price - platFormFee - managerFee
       );
     });
   });
