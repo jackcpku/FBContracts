@@ -55,7 +55,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     // Supported payment ERC20 tokens
     mapping(address => bool) public paymentTokens;
-    address mainPaymentToken;
 
     // Platform address
     address public serviceFeeRecipient;
@@ -132,14 +131,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         for (uint256 i = 0; i < _removedPaymentTokens.length; i++) {
             paymentTokens[_removedPaymentTokens[i]] = false;
         }
-    }
-
-    /**
-     * @param _mainPaymentToken is a special payment token.
-     */
-    function setMainPaymentToken(address _mainPaymentToken) public onlyOwner {
-        mainPaymentToken = _mainPaymentToken;
-        paymentTokens[_mainPaymentToken] = true;
     }
 
     /********************************************************************
