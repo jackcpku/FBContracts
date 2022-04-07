@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MultisigWallet.sol";
 
 interface IMintableBurnable {
@@ -10,7 +9,7 @@ interface IMintableBurnable {
     function burn(address from, uint256 amount) external;
 }
 
-contract PVSTicketBridge is Ownable, MultisigWallet {
+contract PVSTicketBridge is MultisigWallet {
     address ticketAddress;
 
     address payable nativeTokenReceiver;
@@ -47,7 +46,7 @@ contract PVSTicketBridge is Ownable, MultisigWallet {
         uint256 m,
         uint256 n,
         address[] memory signers
-    ) Ownable() MultisigWallet(m, n, signers) {}
+    ) MultisigWallet(m, n, signers) {}
 
     function setDstChainGasAmount(uint64 _dstChainId, uint256 _gasAmount)
         external

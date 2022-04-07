@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract MultisigWallet {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MultisigWallet is Ownable {
     // m out of n parties are needed for a certain transaction
     uint256 m;
     uint256 n;
 
     bytes32 messageId;
+
     mapping(bytes32 => uint256) approvedNum;
 
     mapping(bytes32 => mapping(address => bool)) approvedInfo;
@@ -42,6 +45,45 @@ contract MultisigWallet {
 
         for (uint256 i = 0; i < _n; i++) {
             signers[_signers[i]] = true;
+        }
+    }
+
+    function setM(uint256 _m) external onlyOwner {
+        require(_m <= n, "MultisigWallet: m should not be greater than n");
+        m = _m;
+    }
+
+    function updateSigners(
+        uint256 _newm,
+        uint256 _newn,
+        address[] memory _newSigners,
+        uint256 _oldn,
+        address[] memory _oldSigners
+    ) external onlyOwner {
+        _removeOldSigners(_oldn, _oldSigners);
+
+        m = _newm;
+        n = _newn;
+
+        require(m <= n, "MultisigWallet: m should not be greater than n");
+        require(_newSigners.length == n, "MultisigWallet: bad parameters");
+
+        for (uint256 i = 0; i < n; i++) {
+            signers[_newSigners[i]] = true;
+        }
+    }
+
+    function _removeOldSigners(uint256 _oldn, address[] memory _oldSigners)
+        internal
+    {
+        require(_oldn == _oldSigners.length, "MultisigWallet: wrong oldn");
+
+        for (uint256 i = 0; i < _oldn; i++) {
+            require(
+                signers[_oldSigners[i]] == true,
+                "MultisigWallet: old signer does not exist"
+            );
+            signers[_oldSigners[i]] = false;
         }
     }
 }
