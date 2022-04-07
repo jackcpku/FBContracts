@@ -96,6 +96,12 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes32 indexed messageHash
     );
 
+    event SetServiceFeeRecipient(address indexed serviceFeeRecipient);
+
+    event AddPaymentToken(address indexed paymentToken);
+
+    event RemovePaymentToken(address indexed paymentToken);
+
     function initialize() public initializer {
         __Ownable_init();
     }
@@ -109,6 +115,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         onlyOwner
     {
         serviceFeeRecipient = _serviceFeeRecipient;
+
+        emit SetServiceFeeRecipient(serviceFeeRecipient);
     }
 
     function addPaymentTokens(address[] calldata _paymentTokens)
@@ -121,6 +129,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             }
 
             paymentTokens[_paymentTokens[i]] = true;
+
+            emit AddPaymentToken(_paymentTokens[i]);
         }
     }
 
@@ -129,7 +139,13 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i = 0; i < _removedPaymentTokens.length; i++) {
+            if (paymentTokens[_removedPaymentTokens[i]] == false) {
+                continue;
+            }
+
             paymentTokens[_removedPaymentTokens[i]] = false;
+
+            emit RemovePaymentToken(_removedPaymentTokens[i]);
         }
     }
 
