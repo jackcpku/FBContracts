@@ -5,8 +5,7 @@ const hre = require("hardhat");
 const multisigWalletAddr = () => {
     switch (hre.network.name) {
         case "rinkeby":
-            // return "0xe407BB6578E003FF30659a265F771576f4eDc636";      //declan
-            return "0x6F272C3b23Fc0525b6696aF4405434c3c10C7c26"         //hzr
+            return "0x69c6549f5BF0Aaa1fb99DFcf8e21E5B9c90C3436";
         case "mainnet":
             // TODO: Mainnet Multisig Wallet
             return "";
@@ -67,6 +66,19 @@ const vestingStageProportions = () => {
     }
 }
 
+/********** marketplace **********/
+const marketServiceFeeRecipient = () => {
+    // To be confirmed
+    switch (hre.network.name) {
+        case "rinkeby":
+            return multisigWalletAddr();
+        case "mainnet":
+            // TODO
+            return "";
+    }
+}
+
+
 /*********** export **************/
 
 module.exports = {
@@ -76,5 +88,6 @@ module.exports = {
     vestingManagerAddr,
     vestingStart,
     vestingStages,
-    vestingStageProportions
+    vestingStageProportions,
+    marketServiceFeeRecipient,
 }

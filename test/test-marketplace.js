@@ -5,6 +5,7 @@ const hre = require("hardhat");
 const {
   deployMajorToken,
   deployNFTGatewayAndNFTFactory,
+  deployMarketplace,
 } = require("../lib/deploy.js");
 
 const {
@@ -89,14 +90,8 @@ describe("Test Marketplace Contract", function () {
       nftContract2Address
     );
 
-    // Deploy the marketplace contract.
-    const Marketplace = await hre.ethers.getContractFactory("Marketplace");
-    marketplace = await hre.upgrades.deployProxy(Marketplace, []);
-    await marketplace.deployed();
+    [marketplace] = await deployMarketplace(fbt.address, platform.address);
 
-    // Initialize the marketplace contract.
-    await marketplace.addPaymentTokens([fbt.address]);
-    await marketplace.setServiceFeeRecipient(platform.address);
   });
 
   describe("ERC721 <> ERC20", async () => {
