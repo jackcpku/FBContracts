@@ -57,10 +57,9 @@ contract MultisigWallet is Ownable {
         uint256 _newm,
         uint256 _newn,
         address[] memory _newSigners,
-        uint256 _oldn,
         address[] memory _oldSigners
     ) external onlyOwner {
-        _removeOldSigners(_oldn, _oldSigners);
+        _removeOldSigners(_oldSigners);
 
         m = _newm;
         n = _newn;
@@ -73,12 +72,13 @@ contract MultisigWallet is Ownable {
         }
     }
 
-    function _removeOldSigners(uint256 _oldn, address[] memory _oldSigners)
-        internal
-    {
-        require(_oldn == _oldSigners.length, "MultisigWallet: wrong oldn");
+    function _removeOldSigners(address[] memory _oldSigners) internal {
+        require(
+            _oldSigners.length == n,
+            "MultisigWallet: wrong oldSigners length"
+        );
 
-        for (uint256 i = 0; i < _oldn; i++) {
+        for (uint256 i = 0; i < n; i++) {
             require(
                 signers[_oldSigners[i]] == true,
                 "MultisigWallet: old signer does not exist"
