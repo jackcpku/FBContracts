@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./MultisigWallet.sol";
+import "./MultisigGuardian.sol";
 
 interface IMintableBurnable {
     function mint(address to, uint256 amount) external;
@@ -9,7 +9,7 @@ interface IMintableBurnable {
     function burn(address from, uint256 amount) external;
 }
 
-contract PVSTicketBridge is MultisigWallet {
+contract PVSTicketBridge is MultisigGuardian {
     address ticketAddress;
 
     address payable nativeTokenReceiver;
@@ -46,7 +46,7 @@ contract PVSTicketBridge is MultisigWallet {
         uint256 m,
         uint256 n,
         address[] memory signers
-    ) MultisigWallet(m, n, signers) {}
+    ) MultisigGuardian(m, n, signers) {}
 
     function setDstChainGasAmount(uint64 _dstChainId, uint256 _gasAmount)
         external
@@ -98,7 +98,7 @@ contract PVSTicketBridge is MultisigWallet {
         bytes32 _transferId,
         address _receiver,
         uint256 _amount
-    ) internal onlyMultisigWalletSigner(_transferId) {
+    ) internal onlyMultisig(_transferId) {
         IMintableBurnable(ticketAddress).mint(_receiver, _amount);
     }
 
