@@ -37,6 +37,7 @@ extendEnvironment((hre) => {
   let vesting = "";
   let nftGateway = "";
   let nftFactory = "";
+  let marketplace = "";
   switch (hre.network.name) {
     case "rinkeby":
       // token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
