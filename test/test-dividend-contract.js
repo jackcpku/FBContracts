@@ -166,11 +166,11 @@ describe("Test NFT Dividend..........", function () {
       "Dividend: you are not the owner of the nft"
     );
 
-    const u2nftIdAmount = await dd.remainDividend(u2nftId);
+    const u2nftIdAmount = await dd.remainingDividend(u2nftId);
     expect(await dd.connect(u2).claim([u2nftId]))
       .to.emit(dd, "Claim")
       .withArgs(u2.address, u2nftId, u2nftIdAmount);
-    expect(await dd.connect(u2).remainDividend(u2nftId)).to.equal(0);
+    expect(await dd.connect(u2).remainingDividend(u2nftId)).to.equal(0);
     // await expect(dd.connect(u2).claim([u2nftId])).to.be.revertedWith(
     //   "Dividend: your dividend amount is less than the service fee"
     // );
@@ -190,9 +190,9 @@ describe("Test NFT Dividend..........", function () {
       .connect(u2)
       .ERC721_mint(nftContractAddress, u2.address, u2nftId3);
 
-    const u2nftIdAmount1 = await dd.remainDividend(u2nftId1);
-    const u2nftIdAmount2 = await dd.remainDividend(u2nftId2);
-    const u2nftIdAmount3 = await dd.remainDividend(u2nftId3);
+    const u2nftIdAmount1 = await dd.remainingDividend(u2nftId1);
+    const u2nftIdAmount2 = await dd.remainingDividend(u2nftId2);
+    const u2nftIdAmount3 = await dd.remainingDividend(u2nftId3);
     // console.log(u2nftIdAmount1);
     // console.log(u2nftIdAmount2);
     // console.log(u2nftIdAmount3);

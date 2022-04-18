@@ -152,7 +152,7 @@ contract Dividend {
     }
 
     // for one PPN remain dividends = total dividends - dividends has been claimed
-    function remainDividend(uint256 _tokenId) public view returns (uint256) {
+    function remainingDividend(uint256 _tokenId) public view returns (uint256) {
         return totalDividend(_tokenId) - hasClaimed[_tokenId];
     }
 
