@@ -22,7 +22,7 @@ contract Filter is Ownable {
 
     uint256 public lastTime;
 
-    event Filtered(
+    event FilterEmit(
         address indexed operator,
         uint256 alpha,
         address to,
@@ -65,7 +65,7 @@ contract Filter is Ownable {
 
         IERC20(pvsAddress).safeTransfer(outputAddress, newOut);
 
-        emit Filtered(
+        emit FilterEmit(
             msg.sender,
             alpha,
             outputAddress,

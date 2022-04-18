@@ -38,7 +38,7 @@ describe("Test Filter Contract", function () {
     const onceFilter = await filter.output();
     // operator, alpha, to, newIn, newOut, lastBalance;
     expect(onceFilter)
-      .to.emit(filter, "Filtered")
+      .to.emit(filter, "FilterEmit")
       .withArgs(
         owner.address,
         alpha,
@@ -66,7 +66,7 @@ describe("Test Filter Contract", function () {
 
     // (alpha * newIn + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR
     expect(secondFilter)
-      .to.emit(filter, "Filtered")
+      .to.emit(filter, "FilterEmit")
       .withArgs(
         owner.address,
         alpha,
