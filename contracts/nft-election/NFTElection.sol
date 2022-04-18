@@ -11,7 +11,11 @@ import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import "./IPVSTicket.sol";
 
-contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgradeable {
+contract NFTElection is
+    Initializable,
+    OwnableUpgradeable,
+    IERC721ReceiverUpgradeable
+{
     using SafeMath for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -31,6 +35,7 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
     // tokenAddress => start time
     mapping(address => uint256) listingTime;
     // tokenAddress => ddl
+    // expirationTime records the initial ddl set by the manager
     mapping(address => uint256) expirationTime;
 
     // cp of the nft
@@ -54,6 +59,15 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
     // Winner of a certain NFT
     mapping(address => mapping(uint256 => address)) winner;
 
+    // Voting during [ddl - `saleEndDuration`, ddl) will extend DDL by `saleExtendDuration`
+    // DDL can be extended no longer than `saleExtendDurationMax`
+    uint256 constant saleEndDuration = 1 days;
+    uint256 constant saleExtendDuration = 1 days;
+    uint256 constant saleExtendDurationMax = 7 days;
+    // extendedExpirationTime keeps track of the extended duration (delta)
+    // of a ddl for each token
+    mapping(address => mapping(uint256 => uint256)) extendedExpirationTime;
+
     event SetManager(
         address operator,
         address indexed tokenAddress,
@@ -74,8 +88,16 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
         uint256 amount
     );
 
+    event ExtendExpirationTime(
+        address indexed tokenAddress,
+        uint256 indexed tokenId
+    );
+
     modifier onlyManager(address _tokenAddress) {
-        require(msg.sender == manager[_tokenAddress], "NFTElection: not manager");
+        require(
+            msg.sender == manager[_tokenAddress],
+            "NFTElection: not manager"
+        );
         _;
     }
 
@@ -195,6 +217,8 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
         uint256 _tokenId,
         uint256 _amount
     ) external {
+        /******** CHECKS ********/
+
         // Check if vote has started
         require(
             block.timestamp >= listingTime[_tokenAddress],
@@ -202,7 +226,9 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
         );
         // Check if vote has expired
         require(
-            block.timestamp < expirationTime[_tokenAddress],
+            block.timestamp <
+                expirationTime[_tokenAddress] +
+                    extendedExpirationTime[_tokenAddress][_tokenId],
             "NFTElection: the voting process has been finished"
         );
 
@@ -221,6 +247,8 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
             "NFTElection: nft not owned by contract"
         );
 
+        /******** EFFECTS ********/
+
         // Burn the tickets
         IPVSTicket(ticketAddress).burn(msg.sender, _amount);
 
@@ -228,33 +256,51 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
         if (msg.sender == winner[_tokenAddress][_tokenId]) {
             hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
             maxVoted[_tokenAddress][_tokenId] = totalVoted;
-            return;
+        } else {
+            uint256 tokenPrice = getPrice(_tokenAddress, _tokenId);
+
+            // Update marginLocked
+            marginLocked[msg.sender] += tokenPrice;
+
+            // If margin is not enough
+            if (margin[msg.sender] < marginLocked[msg.sender]) {
+                IERC20Upgradeable(paymentTokenAddress).safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    marginLocked[msg.sender] - margin[msg.sender]
+                );
+                margin[msg.sender] = marginLocked[msg.sender];
+            }
+
+            // Voted successfully, update states
+            address prevWinner = winner[_tokenAddress][_tokenId];
+            winner[_tokenAddress][_tokenId] = msg.sender;
+            hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
+            maxVoted[_tokenAddress][_tokenId] = totalVoted;
+
+            if (prevWinner != address(0)) {
+                marginLocked[prevWinner] -= tokenPrice;
+            }
+
+            // Extend the ddl if
+            // 0. the current voting person is not the previous winner, and
+            // 1. current timestamp is within the `saleEndDuration`, and
+            // 2. extendedExpirationTime does not achieve the constraint value
+            if (
+                block.timestamp + saleEndDuration >=
+                expirationTime[_tokenAddress] +
+                    extendedExpirationTime[_tokenAddress][_tokenId] &&
+                extendedExpirationTime[_tokenAddress][_tokenId] <
+                saleExtendDurationMax
+            ) {
+                extendedExpirationTime[_tokenAddress][
+                    _tokenId
+                ] += saleExtendDuration;
+                emit ExtendExpirationTime(_tokenAddress, _tokenId);
+            }
         }
 
-        uint256 tokenPrice = getPrice(_tokenAddress, _tokenId);
-
-        // Update marginLocked
-        marginLocked[msg.sender] += tokenPrice;
-
-        // If margin is not enough
-        if (margin[msg.sender] < marginLocked[msg.sender]) {
-            IERC20Upgradeable(paymentTokenAddress).safeTransferFrom(
-                msg.sender,
-                address(this),
-                marginLocked[msg.sender] - margin[msg.sender]
-            );
-            margin[msg.sender] = marginLocked[msg.sender];
-        }
-
-        // Voted successfully, update states
-        address prevWinner = winner[_tokenAddress][_tokenId];
-        winner[_tokenAddress][_tokenId] = msg.sender;
-        hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
-        maxVoted[_tokenAddress][_tokenId] = totalVoted;
-
-        if (prevWinner != address(0)) {
-            marginLocked[prevWinner] -= tokenPrice;
-        }
+        /******** EVENTS ********/
 
         emit VoteToken(msg.sender, _tokenAddress, _tokenId, _amount);
     }
@@ -268,7 +314,10 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
         address[] calldata _tokenAddress,
         uint256[] calldata _tokenId
     ) external {
-        require(_tokenAddress.length == _tokenId.length, "NFTElection: invalid input");
+        require(
+            _tokenAddress.length == _tokenId.length,
+            "NFTElection: invalid input"
+        );
 
         for (uint256 i = 0; i < _tokenAddress.length; i++) {
             require(
@@ -312,12 +361,13 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
         external
         onlyManager(_tokenAddress)
     {
-        require(
-            block.timestamp >= expirationTime[_tokenAddress],
-            "NFTElection: the voting process has not finished"
-        );
-
         for (uint256 i = 0; i < _tokenId.length; i++) {
+            require(
+                block.timestamp >=
+                    expirationTime[_tokenAddress] +
+                        extendedExpirationTime[_tokenAddress][_tokenId[i]],
+                "NFTElection: the voting process has not finished"
+            );
             require(
                 winner[_tokenAddress][_tokenId[i]] == address(0),
                 "NFTElection: the token has a winner"
@@ -332,9 +382,9 @@ contract NFTElection is Initializable, OwnableUpgradeable, IERC721ReceiverUpgrad
     }
 
     function onERC721Received(
-        address /*operator*/,
-        address /*from*/,
-        uint256 /*tokenId*/,
+        address, /*operator*/
+        address, /*from*/
+        uint256, /*tokenId*/
         bytes calldata /*data*/
     ) external pure override returns (bytes4) {
         return NFTElection.onERC721Received.selector;
