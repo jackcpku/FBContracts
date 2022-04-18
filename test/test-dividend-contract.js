@@ -35,7 +35,7 @@ describe("Test NFT Dividend..........", function () {
     startTime + sevenDays,
   ];
 
-  const serviceFee = 100;
+  // const serviceFee = 100;
 
   beforeEach("contracts deployed.", async function () {
     await hre.network.provider.send("hardhat_reset");
@@ -51,13 +51,7 @@ describe("Test NFT Dividend..........", function () {
       .connect(u2)
       .callStatic.deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
 
-    dd = await deployDividend(
-      pvs.address,
-      nftContractAddress,
-      serviceFee,
-      feeRecipient.address,
-      periodStartTime
-    );
+    dd = await deployDividend(pvs.address, nftContractAddress, periodStartTime);
 
     //set start time for our blockchian
     await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime]);
@@ -134,75 +128,6 @@ describe("Test NFT Dividend..........", function () {
     );
   });
 
-  // it("Test claim", async function () {
-  //   //add p1pvs to pool[1]
-  //   await pvs.transfer(dd.address, p1pvs);
-  //   // Speed up the clock to the second period
-  //   await hre.network.provider.send("evm_setNextBlockTimestamp", [
-  //     startTime + periodStartTime[1],
-  //   ]);
-  //   //period 2 begin
-  //   await dd.updatePeriod(1);
-  //   //add p2pvs to pool[2]
-  //   await pvs.transfer(dd.address, p2pvs);
-  //   // Speed up the clock to the second period
-  //   await hre.network.provider.send("evm_setNextBlockTimestamp", [
-  //     startTime + periodStartTime[2],
-  //   ]);
-  //   //period 3 begin
-  //   await dd.updatePeriod(2);
-  //   await pvs.transfer(dd.address, p3pvs);
-
-  //   // Let u2 deploy the contract.
-  //   let u2Contract = await hre.ethers.getContractAt(
-  //     "BasicERC721",
-  //     nftContractAddress
-  //   );
-  //   // Let u2 deploy the contract.
-  //   await factory
-  //     .connect(u2)
-  //     .deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
-  //   await gateway
-  //     .connect(u2)
-  //     .ERC721_mint(nftContractAddress, u2.address, u2nftId);
-  //   expect(await u2Contract.ownerOf(u2nftId)).to.equal(u2.address);
-
-  //   //claim
-  //   await expect(dd.connect(u1).claim(u2nftId)).to.be.revertedWith(
-  //     "Dividend: you are not the owner of the nft"
-  //   );
-  //   expect(await dd.connect(u2).claim(u2nftId))
-  //     .to.emit(dd, "Claim")
-  //     .withArgs(u2.address, u2nftId, await dd.totalDividend(u2nftId));
-  //   expect(await dd.connect(u2).remainDividend(u2nftId)).to.equal(0);
-
-  //   //claim Batch
-  //   const u2nftId1 = 100,
-  //     u2nftId2 = 6200,
-  //     u2nftId3 = 12500;
-  //   await gateway
-  //     .connect(u2)
-  //     .ERC721_mint(nftContractAddress, u2.address, u2nftId1);
-  //   await gateway
-  //     .connect(u2)
-  //     .ERC721_mint(nftContractAddress, u2.address, u2nftId2);
-  //   await gateway
-  //     .connect(u2)
-  //     .ERC721_mint(nftContractAddress, u2.address, u2nftId3);
-  //   const claimBatchEvent = await dd
-  //     .connect(u2)
-  //     .claimBatch([u2nftId1, u2nftId2, u2nftId3]);
-  //   expect(claimBatchEvent)
-  //     .to.emit(dd, "Claim")
-  //     .withArgs(u2.address, u2nftId1, await dd.totalDividend(u2nftId1));
-  //   expect(claimBatchEvent)
-  //     .to.emit(dd, "Claim")
-  //     .withArgs(u2.address, u2nftId2, await dd.totalDividend(u2nftId2));
-  //   expect(claimBatchEvent)
-  //     .to.emit(dd, "Claim")
-  //     .withArgs(u2.address, u2nftId3, await dd.totalDividend(u2nftId3));
-  // });
-
   it("Test claim with fee", async function () {
     //add p1pvs to pool[1]
     await pvs.transfer(dd.address, p1pvs);
@@ -244,18 +169,12 @@ describe("Test NFT Dividend..........", function () {
     const u2nftIdAmount = await dd.remainDividend(u2nftId);
     expect(await dd.connect(u2).claim([u2nftId]))
       .to.emit(dd, "Claim")
-      .withArgs(
-        u2.address,
-        [u2nftId],
-        [u2nftIdAmount],
-        u2nftIdAmount,
-        serviceFee
-      );
+      .withArgs(u2.address, u2nftId, u2nftIdAmount);
     expect(await dd.connect(u2).remainDividend(u2nftId)).to.equal(0);
-    await expect(dd.connect(u2).claim([u2nftId])).to.be.revertedWith(
-      "Dividend: your dividend amount is less than the service fee"
-    );
-    expect(await pvs.balanceOf(feeRecipient.address)).to.equal(serviceFee);
+    // await expect(dd.connect(u2).claim([u2nftId])).to.be.revertedWith(
+    //   "Dividend: your dividend amount is less than the service fee"
+    // );
+    // expect(await pvs.balanceOf(feeRecipient.address)).to.equal(serviceFee);
 
     // claim Batch
     const u2nftId1 = 100,
@@ -274,26 +193,24 @@ describe("Test NFT Dividend..........", function () {
     const u2nftIdAmount1 = await dd.remainDividend(u2nftId1);
     const u2nftIdAmount2 = await dd.remainDividend(u2nftId2);
     const u2nftIdAmount3 = await dd.remainDividend(u2nftId3);
-    console.log(u2nftIdAmount1);
-    console.log(u2nftIdAmount2);
-    console.log(u2nftIdAmount3);
+    // console.log(u2nftIdAmount1);
+    // console.log(u2nftIdAmount2);
+    // console.log(u2nftIdAmount3);
 
-    const claimEvent = await dd
+    const claimEvents = await dd
       .connect(u2)
       .claim([u2nftId1, u2nftId2, u2nftId3]);
 
-    expect(claimEvent)
+    expect(claimEvents)
       .to.emit(dd, "Claim")
-      .withArgs(
-        u2.address,
-        [u2nftId1, u2nftId2, u2nftId3],
-        [u2nftIdAmount1, u2nftIdAmount2, u2nftIdAmount3],
-        BigInt(u2nftIdAmount1) +
-          BigInt(u2nftIdAmount2) +
-          BigInt(u2nftIdAmount3),
-        serviceFee
-      );
+      .withArgs(u2.address, u2nftId1, u2nftIdAmount1);
+    expect(claimEvents)
+      .to.emit(dd, "Claim")
+      .withArgs(u2.address, u2nftId2, u2nftIdAmount2);
+    expect(claimEvents)
+      .to.emit(dd, "Claim")
+      .withArgs(u2.address, u2nftId3, u2nftIdAmount3);
 
-    expect(await pvs.balanceOf(feeRecipient.address)).to.equal(2 * serviceFee);
+    // expect(await pvs.balanceOf(feeRecipient.address)).to.equal(2 * serviceFee);
   });
 });

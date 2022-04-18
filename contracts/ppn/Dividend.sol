@@ -45,12 +45,6 @@ contract Dividend {
     // fixed amount of release in each period
     uint256 public constant NFT_AMOUNT_RELASED_PER_PERIOD = 6_000;
 
-    // claim fee
-    uint256 public serviceFee;
-
-    // recipient of claim fee
-    address public serviceFeeRecipient;
-
     event UpdatePeriod(
         address indexed operator,
         uint256 newPeriod,
@@ -59,24 +53,18 @@ contract Dividend {
 
     event Claim(
         address indexed receiver,
-        uint256[] tokenIds,
-        uint256[] amounts,
-        uint256 totalAmount,
-        uint256 serviceFee
+        uint256 indexed tokenId,
+        uint256 amount
     );
 
     constructor(
         address _pvsAddress,
         address _ppnAddress,
-        uint256 _serviceFee,
-        address _serviceFeeRecipient,
         uint256[] memory _periodStartTime
     ) {
         pvsAddress = _pvsAddress;
         ppnAddress = _ppnAddress;
         periodStartTime = _periodStartTime;
-        serviceFee = _serviceFee;
-        serviceFeeRecipient = _serviceFeeRecipient;
         accumulatedDividends.push(0);
     }
 
@@ -143,11 +131,9 @@ contract Dividend {
             currentDividends;
     }
 
-    // claim batch with fee
+    // claim batch 
     function claim(uint256[] calldata _tokenIds) external {
         uint256 totalAmount;
-        uint256[] memory amounts = new uint256[](_tokenIds.length);
-
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             uint256 _tokenId = _tokenIds[i];
             require(
@@ -155,21 +141,14 @@ contract Dividend {
                 "Dividend: you are not the owner of the nft"
             );
             uint256 amount = totalDividend(_tokenId) - hasClaimed[_tokenId];
-            amounts[i] = amount;
             hasClaimed[_tokenId] += amount;
-            totalClaimed += amount;
 
+            emit Claim(msg.sender, _tokenId, amount);
+
+            totalClaimed += amount;
             totalAmount += amount;
         }
-        require(
-            totalAmount > serviceFee,
-            "Dividend: your dividend amount is less than the service fee"
-        );
-
-        IERC20(pvsAddress).safeTransfer(msg.sender, totalAmount - serviceFee);
-        IERC20(pvsAddress).safeTransfer(serviceFeeRecipient, serviceFee);
-
-        emit Claim(msg.sender, _tokenIds, amounts, totalAmount, serviceFee);
+        IERC20(pvsAddress).safeTransfer(msg.sender, totalAmount);
     }
 
     // for one PPN remain dividends = total dividends - dividends has been claimed
