@@ -131,7 +131,7 @@ contract Dividend {
             currentDividends;
     }
 
-    // claim batch 
+    // claim batch
     function claim(uint256[] calldata _tokenIds) external {
         uint256 totalAmount;
         for (uint256 i = 0; i < _tokenIds.length; i++) {
@@ -144,10 +144,9 @@ contract Dividend {
             hasClaimed[_tokenId] += amount;
 
             emit Claim(msg.sender, _tokenId, amount);
-
-            totalClaimed += amount;
             totalAmount += amount;
         }
+        totalClaimed += totalAmount;
         IERC20(pvsAddress).safeTransfer(msg.sender, totalAmount);
     }
 
