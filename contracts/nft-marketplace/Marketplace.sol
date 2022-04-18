@@ -48,7 +48,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     // Fee related magic numbers
     uint256 public constant BASE = 10000;
-    uint256 public constant BURN = BASE / 2;
 
     /********************************************************************
      *                         State variables                          *
@@ -56,7 +55,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
 
     // Supported payment ERC20 tokens
     mapping(address => bool) public paymentTokens;
-    address mainPaymentToken;
 
     // Platform address
     address public serviceFeeRecipient;
@@ -98,6 +96,12 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         bytes32 indexed messageHash
     );
 
+    event SetServiceFeeRecipient(address indexed serviceFeeRecipient);
+
+    event AddPaymentToken(address indexed paymentToken);
+
+    event RemovePaymentToken(address indexed paymentToken);
+
     function initialize() public initializer {
         __Ownable_init();
     }
@@ -111,6 +115,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         onlyOwner
     {
         serviceFeeRecipient = _serviceFeeRecipient;
+
+        emit SetServiceFeeRecipient(serviceFeeRecipient);
     }
 
     function addPaymentTokens(address[] calldata _paymentTokens)
@@ -123,6 +129,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
             }
 
             paymentTokens[_paymentTokens[i]] = true;
+
+            emit AddPaymentToken(_paymentTokens[i]);
         }
     }
 
@@ -131,16 +139,14 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i = 0; i < _removedPaymentTokens.length; i++) {
-            paymentTokens[_removedPaymentTokens[i]] = false;
-        }
-    }
+            if (paymentTokens[_removedPaymentTokens[i]] == false) {
+                continue;
+            }
 
-    /**
-     * @param _mainPaymentToken is a special payment token.
-     */
-    function setMainPaymentToken(address _mainPaymentToken) public onlyOwner {
-        mainPaymentToken = _mainPaymentToken;
-        paymentTokens[_mainPaymentToken] = true;
+            paymentTokens[_removedPaymentTokens[i]] = false;
+
+            emit RemovePaymentToken(_removedPaymentTokens[i]);
+        }
     }
 
     /********************************************************************
@@ -471,24 +477,8 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         );
 
         // Calculate ERC20 fees
-        uint256 fee2service;
-        uint256 fee2burn;
-        uint256 fee2cp;
-        if (
-            order.royaltyFee == 0 &&
-            order.serviceFee > BASE / 10 &&
-            order.paymentTokenAddress == mainPaymentToken
-        ) {
-            // Case where the NFT creator's initial sell
-            fee2cp = 0;
-            fee2burn = (totalCost * order.serviceFee * BURN) / (BASE * BASE);
-            fee2service = (totalCost * order.serviceFee) / BASE - fee2burn;
-        } else {
-            // Case where users sell to each other
-            fee2cp = (totalCost * order.royaltyFee) / BASE;
-            fee2burn = 0;
-            fee2service = (totalCost * order.serviceFee) / BASE;
-        }
+        uint256 fee2service = (totalCost * order.serviceFee) / BASE;
+        uint256 fee2cp = (totalCost * order.royaltyFee) / BASE;
 
         // Transfer ERC20 to multiple addresses
         if (fee2service > 0) {
@@ -496,13 +486,6 @@ contract Marketplace is Initializable, OwnableUpgradeable {
                 buyer,
                 serviceFeeRecipient,
                 fee2service
-            );
-        }
-        if (fee2burn > 0) {
-            paymentContract.safeTransferFrom(
-                buyer,
-                0x000000000000000000000000000000000000dEaD,
-                fee2burn
             );
         }
         if (fee2cp > 0) {
@@ -515,7 +498,7 @@ contract Marketplace is Initializable, OwnableUpgradeable {
         paymentContract.safeTransferFrom(
             buyer,
             seller,
-            totalCost - fee2service - fee2burn - fee2cp
+            totalCost - fee2service - fee2cp
         );
     }
 

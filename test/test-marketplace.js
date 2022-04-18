@@ -5,6 +5,7 @@ const hre = require("hardhat");
 const {
   deployMajorToken,
   deployNFTGatewayAndNFTFactory,
+  deployMarketplace,
 } = require("../lib/deploy.js");
 
 const {
@@ -89,14 +90,8 @@ describe("Test Marketplace Contract", function () {
       nftContract2Address
     );
 
-    // Deploy the marketplace contract.
-    const Marketplace = await hre.ethers.getContractFactory("Marketplace");
-    marketplace = await hre.upgrades.deployProxy(Marketplace, []);
-    await marketplace.deployed();
+    [marketplace] = await deployMarketplace(fbt.address, platform.address);
 
-    // Initialize the marketplace contract.
-    await marketplace.setMainPaymentToken(fbt.address);
-    await marketplace.setServiceFeeRecipient(platform.address);
   });
 
   describe("ERC721 <> ERC20", async () => {
@@ -1173,18 +1168,15 @@ describe("Test Marketplace Contract", function () {
       /**
        * Checks
        */
-      const burnFee = (price * order.serviceFee) / BASE / 2;
-      const platFormFee = (price * order.serviceFee) / BASE - burnFee;
+      const platFormFee = (price * order.serviceFee) / BASE;
       const managerFee = 0;
 
       expect(await fbt.balanceOf(buyer.address)).to.equal(0);
-      expect(
-        await fbt.balanceOf("0x000000000000000000000000000000000000dEaD")
-      ).to.equal(burnFee);
+
       expect(await fbt.balanceOf(platform.address)).to.equal(platFormFee);
       expect(await fbt.balanceOf(manager1.address)).to.equal(0);
       expect(await fbt.balanceOf(seller.address)).to.equal(
-        price - burnFee - platFormFee - managerFee
+        price - platFormFee - managerFee
       );
     });
   });
