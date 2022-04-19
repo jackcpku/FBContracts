@@ -22,6 +22,15 @@ contract Filter is Ownable {
 
     uint256 public lastTime;
 
+    event FilterEmit(
+        address indexed operator,
+        uint256 alpha,
+        address to,
+        uint256 newIn,
+        uint256 newOut,
+        uint256 lastBalance
+    );
+
     constructor(
         address _pvsAddress,
         address _outputAddress,
@@ -35,7 +44,7 @@ contract Filter is Ownable {
     function output() external {
         // Check if the time interval limit is exceeded
         require(
-            block.timestamp >= lastTime + 1 days,
+            block.timestamp >= lastTime + 23 hours,
             "Filter: at most once a day"
         );
         lastTime = block.timestamp;
@@ -55,6 +64,15 @@ contract Filter is Ownable {
         lastOut = newOut;
 
         IERC20(pvsAddress).safeTransfer(outputAddress, newOut);
+
+        emit FilterEmit(
+            msg.sender,
+            alpha,
+            outputAddress,
+            newIn,
+            newOut,
+            lastBalance
+        );
 
         lastBalance = currentBalance - newOut;
     }

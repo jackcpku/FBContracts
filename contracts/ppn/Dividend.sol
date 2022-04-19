@@ -43,7 +43,7 @@ contract Dividend {
     uint256[] public periodStartTime;
 
     // fixed amount of release in each period
-    uint256 public constant NFT_AMOUNT_RELASED_PER_PERIOD = 2_000;
+    uint256 public constant NFT_AMOUNT_RELASED_PER_PERIOD = 6_000;
 
     event UpdatePeriod(
         address indexed operator,
@@ -51,7 +51,11 @@ contract Dividend {
         uint256 totalAmount
     );
 
-    event Claim(address indexed receiver, uint256 tokenId, uint256 amount);
+    event Claim(
+        address indexed receiver,
+        uint256 indexed tokenId,
+        uint256 amount
+    );
 
     constructor(
         address _pvsAddress,
@@ -65,7 +69,7 @@ contract Dividend {
     }
 
     /**
-     * Update period 
+     * Update period
      */
     function updatePeriod(uint256 _newPeriod) external {
         require(
@@ -77,14 +81,18 @@ contract Dividend {
             "Dividend: the next period has not yet begun"
         );
         // 1. At the beginning of _newPeriod, the dividend pool of the previous period is calculated and locked according to the real-time pvs balance.
-        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool;
-        
+        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) +
+            totalClaimed -
+            accumulatedPool;
+
         // 2. calculate: accumulatedDividends[_newPeriod] = accumulated dividends for one PPN during period k where 0 <= k < _newPeriod.
-        accumulatedDividends.push(accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount());
-        
-        // 3. accumulate pvs pool 
+        accumulatedDividends.push(
+            accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount()
+        );
+
+        // 3. accumulate pvs pool
         accumulatedPool += lastPool;
-        
+
         // 4. update period
         currentPeriod = _newPeriod;
 
@@ -105,41 +113,45 @@ contract Dividend {
 
     /**
      * Get the total dividends of one PPN from its released period
-     * The accumulated dividends of one PPN 
+     * The accumulated dividends of one PPN
      *      = the accumulated dividends at the beginning of current period + the dividends accumulated during current period.
      *      = (accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod) + currentDividends
-     */     
+     */
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
         // get the nft's released period
         uint256 releasedPeriod = getPeriod(_tokenId);
-        uint256 currentDividends = (IERC20(pvsAddress).balanceOf(address(this)) + totalClaimed - accumulatedPool) / releasedPPNAmount();
-        return accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod] + currentDividends;
-    }
-
-    // claim remaining dividends for one PPN
-    function claim(uint256 _tokenId) public {
-        require(
-            IERC721(ppnAddress).ownerOf(_tokenId) == msg.sender,
-            "Dividend: Can't claim dividend because you are not the owner of the nft"
-        );
-
-        uint256 amount = totalDividend(_tokenId) - hasClaimed[_tokenId];
-        IERC20(pvsAddress).safeTransfer(msg.sender, amount);
-        hasClaimed[_tokenId] += amount;
-        totalClaimed += amount;
-
-        emit Claim(msg.sender, _tokenId, amount);
+        uint256 currentDividends = (IERC20(pvsAddress).balanceOf(
+            address(this)
+        ) +
+            totalClaimed -
+            accumulatedPool) / releasedPPNAmount();
+        return
+            accumulatedDividends[currentPeriod] -
+            accumulatedDividends[releasedPeriod] +
+            currentDividends;
     }
 
     // claim batch
-    function claimBatch(uint256[] calldata _tokenIds) external {
+    function claim(uint256[] calldata _tokenIds) external {
+        uint256 totalAmount;
         for (uint256 i = 0; i < _tokenIds.length; i++) {
-            claim(_tokenIds[i]);
+            uint256 _tokenId = _tokenIds[i];
+            require(
+                IERC721(ppnAddress).ownerOf(_tokenId) == msg.sender,
+                "Dividend: you are not the owner of the nft"
+            );
+            uint256 amount = totalDividend(_tokenId) - hasClaimed[_tokenId];
+            hasClaimed[_tokenId] += amount;
+
+            emit Claim(msg.sender, _tokenId, amount);
+            totalAmount += amount;
         }
+        totalClaimed += totalAmount;
+        IERC20(pvsAddress).safeTransfer(msg.sender, totalAmount);
     }
 
-    // for one PPN remain dividends = total dividends - dividends has been claimed 
-    function remainDividend(uint256 _tokenId) public view returns (uint256) {
+    // for one PPN remain dividends = total dividends - dividends has been claimed
+    function remainingDividend(uint256 _tokenId) public view returns (uint256) {
         return totalDividend(_tokenId) - hasClaimed[_tokenId];
     }
 
