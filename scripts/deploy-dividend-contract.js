@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const prompt = require("prompt");
 
 const { deployDividend, deploySplitter, deployFilter } = require("../lib/deploy");
-const { dividendPeriodStartTimes } = require("./params");
+const { dividendPeriodStartTimes, filterAlpha, splitterAddresses, splitterProportions } = require("./params");
 
 const main = async () => {
   console.info("Network: " + hre.network.name);
@@ -28,14 +28,14 @@ const main = async () => {
     filter = await deployFilter(
         hre.addrs.token,
         dividend.address,
-        300
+        filterAlpha()
     )
     console.info("Filter Contract Deployed: " + filter.address);
 
     splitter = await deploySplitter(
         hre.addrs.token,       
-        ["0x000000000000000000000000000000000000dEaD", "0xB239DE6DF4967511f5cb1938E44cfc9968d5c9D7", filter.address],      //[burnAddress, platformAddress, filterAddress]
-        [5_000, 4_650, 350]                        //splitProportion
+        splitterAddresses(filter.address),
+        splitterProportions()
     )
     console.info("Splitter Contract Deployed: " + splitter.address);
   } else {

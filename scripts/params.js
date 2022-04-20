@@ -41,6 +41,39 @@ const dividendPeriodStartTimes = (now) => {
     }
 }
 
+/*********** filter ***************/
+
+const filterAlpha = () => {
+    switch (hre.network.name) {
+        case "rinkeby":
+            return 300;
+        case "mainnet":
+            // TODO
+            return 0;
+    }
+}
+
+/*********** splitter *************/
+
+const splitterAddresses = (filterAddress) => {
+    switch (hre.network.name) {
+        case "rinkeby":
+            // [burnAddress, platformAddress, filterAddress]
+            return ["0x000000000000000000000000000000000000dEaD", "0xB239DE6DF4967511f5cb1938E44cfc9968d5c9D7", filterAddress];
+        case "mainnet":
+            // TODO
+            return ['', '', ''];
+    }
+}
+const splitterProportions = () => {
+    switch (hre.network.name) {
+        case "rinkeby":
+            return [5_000, 4_650, 350];
+        case "mainnet":
+            // TODO
+            return [0, 0, 0];
+    }
+}
 
 /*********** vesting **************/
 
@@ -105,4 +138,7 @@ module.exports = {
     vestingStageProportions,
     marketServiceFeeRecipient,
     dividendPeriodStartTimes,
+    filterAlpha,
+    splitterAddresses,
+    splitterProportions
 }
