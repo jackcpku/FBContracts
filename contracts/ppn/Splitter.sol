@@ -10,7 +10,7 @@ contract Splitter is Ownable {
 
     address public pvsAddress;
 
-    // [burnAddress, platformAddress, dividendAddress]
+    // [burnAddress, platformAddress, filterAddress]
     // burnAddress = 0x000000000000000000000000000000000000dEaD;
     address[] public splitAddress;
 

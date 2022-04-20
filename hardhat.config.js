@@ -39,6 +39,9 @@ extendEnvironment((hre) => {
   let nftFactory = "";
   let marketplace = "";
   let ppn = "";
+  let dividend = "";
+  let filter = "";
+  let splitter = "";
   switch (hre.network.name) {
     case "rinkeby":
       // token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
@@ -48,7 +51,10 @@ extendEnvironment((hre) => {
       nftGateway = "0x197560a2CB04721079225529aFbc53D65759a13C";
       nftFactory = "0x1808f367439774c7840a67d1Dfd3f159Ad0F3681";
       marketplace = "0x328bA41a29550AdD31C26c3dc9B8604ab048f5E8";
-      ppn = "0x6c09f68f461B45A2897830b68fFf8B0f513781c5"
+      ppn = "0x6c09f68f461B45A2897830b68fFf8B0f513781c5";
+      dividend = "0xdc9f0506DcD1ADE416666C31D63a8347A9024126";
+      filter = "0x397201246C756BDac02B0dcCF9f603564cE27aeb";
+      splitter = "0xeC47c43324F8F95cfB98D56e9ae5fcfe926266a9";
       break;
     case "mainnet":
       // TODO:
@@ -59,10 +65,13 @@ extendEnvironment((hre) => {
       nftFactory = "";
       marketplace = "";
       ppn = "";
+      dividend = "";
+      filter = "";
+      splitter = "";
       break;
   }
   hre.addrs = {
-    token, vesting, presale, nftGateway, nftFactory, marketplace, ppn
+    token, vesting, presale, nftGateway, nftFactory, marketplace, ppn, dividend, filter, splitter
   }
   hre.contracts = {
     token: token == "" ? null : hre.ethers.getContractAt("PlayverseToken", token),
@@ -71,6 +80,9 @@ extendEnvironment((hre) => {
     nftGateway: nftGateway == "" ? null : hre.ethers.getContractAt("NFTGateway", nftGateway),
     nftFactory: nftFactory == "" ? null : hre.ethers.getContractAt("NFTFactory", nftFactory),
     marketplace: marketplace == "" ? null : hre.ethers.getContractAt("Marketplace", marketplace),
+    dividend: dividend == "" ? null : hre.ethers.getContractAt("Dividend", dividend),
+    filter: filter == "" ? null : hre.ethers.getContractAt("Filter", filter),
+    splitter: splitter == "" ? null : hre.ethers.getContractAt("Splitter", splitter),
   }
 })
 

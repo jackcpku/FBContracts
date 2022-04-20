@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 const prompt = require("prompt");
 
-const { deployDividend } = require("../lib/deploy");
+const { deployDividend, deploySplitter, deployFilter } = require("../lib/deploy");
 const { dividendPeriodStartTimes } = require("./params");
 
 const main = async () => {
@@ -24,6 +24,20 @@ const main = async () => {
       periodStartTimes
     );
     console.info("Dividend Contract Deployed: " + dividend.address);
+    
+    filter = await deployFilter(
+        hre.addrs.token,
+        dividend.address,
+        300
+    )
+    console.info("Filter Contract Deployed: " + filter.address);
+
+    splitter = await deploySplitter(
+        hre.addrs.token,       
+        ["0x000000000000000000000000000000000000dEaD", "0xB239DE6DF4967511f5cb1938E44cfc9968d5c9D7", filter.address],      //[burnAddress, platformAddress, filterAddress]
+        [5_000, 4_650, 350]                        //splitProportion
+    )
+    console.info("Splitter Contract Deployed: " + splitter.address);
   } else {
     console.error("Not confirmed, abort!");
   }
