@@ -163,4 +163,28 @@ contract Dividend {
     function releasedPPNAmount() internal view returns (uint256) {
         return NFT_AMOUNT_RELASED_PER_PERIOD * (currentPeriod + 1);
     }
+
+    function remainingDividends(uint256[] calldata _tokenIds)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 totalAmount;
+        for (uint256 i = 0; i < _tokenIds.length; i++) {
+            totalAmount += remainingDividend(_tokenIds[i]);
+        }
+        return totalAmount;
+    }
+
+    function totalDividends(uint256[] calldata _tokenIds)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 totalAmount;
+        for (uint256 i = 0; i < _tokenIds.length; i++) {
+            totalAmount += totalDividend(_tokenIds[i]);
+        }
+        return totalAmount;
+    }
 }

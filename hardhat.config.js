@@ -54,9 +54,9 @@ extendEnvironment((hre) => {
       simpleLootBoxRegistry = "0xE97480B8efBCCdB7ec6D8C81987541E493E4843A";
       marketplace = "0x328bA41a29550AdD31C26c3dc9B8604ab048f5E8";
       ppn = "0x6c09f68f461B45A2897830b68fFf8B0f513781c5";
-      dividend = "0xdc9f0506DcD1ADE416666C31D63a8347A9024126";
-      filter = "0x397201246C756BDac02B0dcCF9f603564cE27aeb";
-      splitter = "0xeC47c43324F8F95cfB98D56e9ae5fcfe926266a9";
+      dividend = "0x3794FF2FE141D7745cCAd2E80B7f83f57aA1678c";
+      filter = "0x97fC6770E6295092903184C7248166D3bD680344";
+      splitter = "0x202BEe89FFc1F96b07BBF17E52b6F154d8587b2D";
       break;
     case "mainnet":
       // TODO:
