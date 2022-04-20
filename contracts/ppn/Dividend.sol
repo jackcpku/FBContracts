@@ -29,6 +29,9 @@ contract Dividend {
     // Dividend that has been claimed by one PPN
     mapping(uint256 => uint256) public hasClaimed;
 
+    // Dividend that has been claimed by one address
+    mapping(address => uint256) public addressClaimed;
+
     // All pvs(dividend) at the beginning of current period
     uint256 public accumulatedPool;
 
@@ -147,6 +150,7 @@ contract Dividend {
             totalAmount += amount;
         }
         totalClaimed += totalAmount;
+        addressClaimed[msg.sender] += totalAmount;
         IERC20(pvsAddress).safeTransfer(msg.sender, totalAmount);
     }
 

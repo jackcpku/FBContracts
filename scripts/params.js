@@ -28,6 +28,20 @@ const presaleAllowedStableCoins = () => {
     }
 }
 
+/*********** dividend **************/
+
+const dividendPeriodStartTimes = (now) => {
+    const startTimes = (days) => days.map(d => d * 24 * 60 * 60 + now);
+    switch (hre.network.name) {
+        case "rinkeby":
+            return startTimes([0, 1, 1, 3, 7, 10, 30, 90]);
+        case "mainnet":
+            // TODO
+            return [];
+    }
+}
+
+
 /*********** vesting **************/
 
 const vestingManagerAddr = () => {
@@ -90,4 +104,5 @@ module.exports = {
     vestingStages,
     vestingStageProportions,
     marketServiceFeeRecipient,
+    dividendPeriodStartTimes,
 }
