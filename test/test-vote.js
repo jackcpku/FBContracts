@@ -79,14 +79,14 @@ describe("Test NFTElection Contract", function () {
     await vote.setManager(someERC721Contract.address, manager0.address);
     await vote
       .connect(manager0)
-    ["setPrice(address,uint256)"](someERC721Contract.address, fallbackPrice);
+      ["setPrice(address,uint256)"](someERC721Contract.address, fallbackPrice);
     await vote
       .connect(manager0)
-    ["setPrice(address,uint256,uint256)"](
-      someERC721Contract.address,
-      specialTokenId,
-      specialPrice
-    );
+      ["setPrice(address,uint256,uint256)"](
+        someERC721Contract.address,
+        specialTokenId,
+        specialPrice
+      );
 
     // Complex dependencies
     const burnerRole = await ticket.TICKET_BURNER_ROLE();
@@ -259,5 +259,70 @@ describe("Test NFTElection Contract", function () {
         .connect(manager0)
         .claimBack(someERC721Contract.address, [specialTokenId])
     ).to.be.revertedWith("NFTElection: the token has a winner");
+  });
+
+  it("should pass ddl-extending test", async function () {
+    /****************** Before Listing Time ******************/
+    await hre.network.provider.send("evm_setNextBlockTimestamp", [
+      currentTimestamp - 100,
+    ]);
+
+    // Manager initializes vote
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    // Transfer the nfts to vote contract
+    await someERC721Contract
+      .connect(manager0)
+      .transferFrom(manager0.address, vote.address, specialTokenId);
+    await someERC721Contract
+      .connect(manager0)
+      .transferFrom(manager0.address, vote.address, normalTokenId);
+
+    /****************** After Listing Time ******************/
+    await hre.network.provider.send("evm_setNextBlockTimestamp", [
+      currentTimestamp,
+    ]);
+
+    // user0 approves vote of spending pvs
+    await pvs.connect(user0).approve(vote.address, 80);
+    // user1 approves vote of spending pvs
+    await pvs.connect(user1).approve(vote.address, 80);
+
+    for (let day = 0; day < 7; day++) {
+      // An hour before the current ddl
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [
+        deadlineTimestamp + day * 86400 - 3600,
+      ]);
+
+      // If the voter is the previous winner, the ddl will not
+      // be extended. Hence change the voter each time.
+      let user = day % 2 ? user0 : user1;
+
+      expect(
+        await vote
+          .connect(user)
+          .vote(someERC721Contract.address, specialTokenId, 10 + day)
+      )
+        .to.emit(vote, "ExtendExpirationTime")
+        .withArgs(someERC721Contract.address, specialTokenId);
+    }
+
+    // When the final ddl arrives
+    await hre.network.provider.send("evm_setNextBlockTimestamp", [
+      deadlineTimestamp + 7 * 86400,
+    ]);
+
+    // user0 votes 0 and fails
+    await expect(
+      vote
+        .connect(user0)
+        .vote(someERC721Contract.address, specialTokenId, 10 + 7)
+    ).to.be.revertedWith("NFTElection: the voting process has been finished");
   });
 });
