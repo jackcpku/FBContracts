@@ -226,9 +226,7 @@ contract NFTElection is
         );
         // Check if vote has expired
         require(
-            block.timestamp <
-                expirationTime[_tokenAddress] +
-                    extendedExpirationTime[_tokenAddress][_tokenId],
+            block.timestamp < actualExpirationTime(_tokenAddress, _tokenId),
             "NFTElection: the voting process has been finished"
         );
 
@@ -288,8 +286,7 @@ contract NFTElection is
             // 2. extendedExpirationTime does not achieve the constraint value
             if (
                 block.timestamp + saleEndDuration >=
-                expirationTime[_tokenAddress] +
-                    extendedExpirationTime[_tokenAddress][_tokenId] &&
+                actualExpirationTime(_tokenAddress, _tokenId) &&
                 extendedExpirationTime[_tokenAddress][_tokenId] <
                 saleExtendDurationMax
             ) {
@@ -379,6 +376,19 @@ contract NFTElection is
                 _tokenId[i]
             );
         }
+    }
+
+    /**
+     * Returns the actual expiration time.
+     */
+    function actualExpirationTime(address _tokenAddress, uint256 _tokenId)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            expirationTime[_tokenAddress] +
+            extendedExpirationTime[_tokenAddress][_tokenId];
     }
 
     function onERC721Received(
