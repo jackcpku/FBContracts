@@ -24,19 +24,30 @@ contract NFTElection is
 
     address public serviceFeeRecipient;
 
-    // tokenAddress => (tokenId => (voter => amount))
-    mapping(address => mapping(uint256 => mapping(address => uint256)))
-        public hasVoted;
+    uint256 currentElectionId;
 
-    // tokenAddress => (tokenId => maxVoted)
-    mapping(address => mapping(uint256 => uint256)) public maxVoted;
+    // electionId => election information
+    mapping(uint256 => ElectionInfo) public electionInfo;
 
-    // NFTElection is valid if block.timestamp in [listingTime, expirationTime)
-    // tokenAddress => start time
-    mapping(address => uint256) listingTime;
-    // tokenAddress => ddl
-    // expirationTime records the initial ddl set by the manager
-    mapping(address => uint256) expirationTime;
+    struct ElectionInfo {
+        address tokenAddress;
+        uint256 tokenIdLowerBound;
+        uint256 tokenIdUpperBound;
+        uint256 listingTime;
+        uint256 expirationTime;
+        uint256 fallbackPrice;
+        // tokenId => price
+        mapping(uint256 => uint256) price;
+        // tokenId => voter => amount
+        mapping(uint256 => mapping(address => uint256)) hasVoted;
+        // tokenId => maxVoted
+        mapping(uint256 => uint256) maxVoted;
+        // tokenId => winner
+        mapping(uint256 => address) winner;
+        // tokenId => extendedExpirationTime
+        // extendedExpirationTime keeps track of the extended duration (delta) of a ddl for each token
+        mapping(uint256 => uint256) extendedExpirationTime;
+    }
 
     // cp of the nft
     mapping(address => address) manager;
@@ -44,29 +55,17 @@ contract NFTElection is
     // PVS address
     address paymentTokenAddress;
 
-    // tokenAddress => price
-    mapping(address => uint256) fallbackPrice;
-
-    // tokenAddress => (tokenId => price)
-    mapping(address => mapping(uint256 => uint256)) price;
-
     // Total margin of a voter, voter => amount
     mapping(address => uint256) margin;
 
     // Minimum PVS margin amount
     mapping(address => uint256) marginLocked;
 
-    // Winner of a certain NFT
-    mapping(address => mapping(uint256 => address)) winner;
-
     // Voting during [ddl - `saleEndDuration`, ddl) will extend DDL by `saleExtendDuration`
     // DDL can be extended no longer than `saleExtendDurationMax`
     uint256 constant saleEndDuration = 1 days;
     uint256 constant saleExtendDuration = 1 days;
     uint256 constant saleExtendDurationMax = 7 days;
-    // extendedExpirationTime keeps track of the extended duration (delta)
-    // of a ddl for each token
-    mapping(address => mapping(uint256 => uint256)) extendedExpirationTime;
 
     event SetManager(
         address operator,
@@ -75,21 +74,26 @@ contract NFTElection is
     );
 
     event InitializeVote(
-        address manager,
+        address indexed manager,
+        uint256 indexed electionId,
         address indexed tokenAddress,
-        uint256 indexed listingTime,
-        uint256 indexed expirationTime
+        uint256 tokenIdLowerBound,
+        uint256 tokenIdUpperBound,
+        uint256 listingTime,
+        uint256 expirationTime
     );
 
     event VoteToken(
         address indexed voter,
-        address indexed tokenAddress,
+        uint256 indexed electionId,
+        address tokenAddress,
         uint256 indexed tokenId,
         uint256 amount
     );
 
     event ExtendExpirationTime(
-        address indexed tokenAddress,
+        uint256 indexed electionId,
+        address tokenAddress,
         uint256 indexed tokenId
     );
 
@@ -97,6 +101,18 @@ contract NFTElection is
         require(
             msg.sender == manager[_tokenAddress],
             "NFTElection: not manager"
+        );
+        _;
+    }
+
+    modifier requireTokenIdInElectionRange(
+        uint256 _electionId,
+        uint256 _tokenId
+    ) {
+        require(
+            electionInfo[_electionId].tokenIdLowerBound <= _tokenId &&
+                _tokenId <= electionInfo[_electionId].tokenIdUpperBound,
+            "NFTElection: tokenId is not in election range"
         );
         _;
     }
@@ -126,21 +142,25 @@ contract NFTElection is
 
     // Called by managers.
     // Set the same price for every NFTs of the same tokenAddress.
-    function setPrice(address _tokenAddress, uint256 _price)
+    function setPrice(uint256 _electionId, uint256 _price)
         public
-        onlyManager(_tokenAddress)
+        onlyManager(electionInfo[_electionId].tokenAddress)
     {
-        fallbackPrice[_tokenAddress] = _price;
+        electionInfo[_electionId].fallbackPrice = _price;
     }
 
     // Called by managers.
     // Set the price of a single NFT.
     function setPrice(
-        address _tokenAddress,
+        uint256 _electionId,
         uint256 _tokenId,
         uint256 _price
-    ) public onlyManager(_tokenAddress) {
-        price[_tokenAddress][_tokenId] = _price;
+    )
+        public
+        onlyManager(electionInfo[_electionId].tokenAddress)
+        requireTokenIdInElectionRange(_electionId, _tokenId)
+    {
+        electionInfo[_electionId].price[_tokenId] = _price;
     }
 
     /**
@@ -148,27 +168,37 @@ contract NFTElection is
      */
     function initializeVote(
         address _tokenAddress,
+        uint256 _tokenIdLowerBound,
+        uint256 _tokenIdUpperBound,
         uint256 _listingTime,
         uint256 _expirationTime
     ) public onlyManager(_tokenAddress) {
         require(
-            listingTime[_tokenAddress] == 0 &&
-                expirationTime[_tokenAddress] == 0,
-            "NFTElection: vote can be initialized only once"
-        );
-        require(
             _listingTime < _expirationTime,
             "NFTElection: invalid listingTime or expirationTime"
         );
-        listingTime[_tokenAddress] = _listingTime;
-        expirationTime[_tokenAddress] = _expirationTime;
+
+        // TODO check if lower bound & uppwer bound are valid
+
+        ElectionInfo storage info = electionInfo[currentElectionId];
+
+        info.tokenAddress = _tokenAddress;
+        info.tokenIdLowerBound = _tokenIdLowerBound;
+        info.tokenIdUpperBound = _tokenIdUpperBound;
+        info.listingTime = _listingTime;
+        info.expirationTime = _expirationTime;
 
         emit InitializeVote(
             msg.sender,
+            currentElectionId,
             _tokenAddress,
+            _tokenIdLowerBound,
+            _tokenIdUpperBound,
             _listingTime,
             _expirationTime
         );
+
+        currentElectionId++;
     }
 
     /**
@@ -176,16 +206,18 @@ contract NFTElection is
      * @dev If the NFT has a specified price in `price`, return that price,
      * else return the whole collection's fallback price.
      */
-    function getPrice(address _tokenAddress, uint256 _tokenId)
+    function getPrice(uint256 _electionId, uint256 _tokenId)
         public
         view
+        requireTokenIdInElectionRange(_electionId, _tokenId)
         returns (uint256)
     {
-        uint256 singleItemPrice = price[_tokenAddress][_tokenId];
+        // TODO add a function checking if tokenid is in the correct range
+        uint256 singleItemPrice = electionInfo[_electionId].price[_tokenId];
         if (singleItemPrice > 0) {
             return singleItemPrice;
         } else {
-            return fallbackPrice[_tokenAddress];
+            return electionInfo[_electionId].fallbackPrice;
         }
     }
 
@@ -213,35 +245,38 @@ contract NFTElection is
      * @dev Called by voters.
      */
     function vote(
-        address _tokenAddress,
+        uint256 _electionId,
         uint256 _tokenId,
         uint256 _amount
     ) external {
         /******** CHECKS ********/
 
+        address tokenAddress = electionInfo[_electionId].tokenAddress;
+
         // Check if vote has started
         require(
-            block.timestamp >= listingTime[_tokenAddress],
+            block.timestamp >= electionInfo[_electionId].listingTime,
             "NFTElection: the voting process has not started"
         );
         // Check if vote has expired
         require(
-            block.timestamp < actualExpirationTime(_tokenAddress, _tokenId),
+            block.timestamp < actualExpirationTime(_electionId, _tokenId),
             "NFTElection: the voting process has been finished"
         );
 
         // Check if vote amount is enough
-        uint256 totalVoted = hasVoted[_tokenAddress][_tokenId][msg.sender] +
-            _amount;
+        uint256 totalVoted = electionInfo[_electionId].hasVoted[_tokenId][
+            msg.sender
+        ] + _amount;
 
         require(
-            totalVoted > maxVoted[_tokenAddress][_tokenId],
+            totalVoted > electionInfo[_electionId].maxVoted[_tokenId],
             "NFTElection: please vote more"
         );
 
         // Check if the NFT has been transferred to this contract
         require(
-            IERC721(_tokenAddress).ownerOf(_tokenId) == address(this),
+            IERC721(tokenAddress).ownerOf(_tokenId) == address(this),
             "NFTElection: nft not owned by contract"
         );
 
@@ -251,11 +286,13 @@ contract NFTElection is
         IPVSTicket(ticketAddress).burn(msg.sender, _amount);
 
         // Special case: if voter was already the winner
-        if (msg.sender == winner[_tokenAddress][_tokenId]) {
-            hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
-            maxVoted[_tokenAddress][_tokenId] = totalVoted;
+        if (msg.sender == electionInfo[_electionId].winner[_tokenId]) {
+            electionInfo[_electionId].hasVoted[_tokenId][
+                msg.sender
+            ] = totalVoted;
+            electionInfo[_electionId].maxVoted[_tokenId] = totalVoted;
         } else {
-            uint256 tokenPrice = getPrice(_tokenAddress, _tokenId);
+            uint256 tokenPrice = getPrice(_electionId, _tokenId);
 
             // Update marginLocked
             marginLocked[msg.sender] += tokenPrice;
@@ -271,10 +308,12 @@ contract NFTElection is
             }
 
             // Voted successfully, update states
-            address prevWinner = winner[_tokenAddress][_tokenId];
-            winner[_tokenAddress][_tokenId] = msg.sender;
-            hasVoted[_tokenAddress][_tokenId][msg.sender] = totalVoted;
-            maxVoted[_tokenAddress][_tokenId] = totalVoted;
+            address prevWinner = electionInfo[_electionId].winner[_tokenId];
+            electionInfo[_electionId].winner[_tokenId] = msg.sender;
+            electionInfo[_electionId].hasVoted[_tokenId][
+                msg.sender
+            ] = totalVoted;
+            electionInfo[_electionId].maxVoted[_tokenId] = totalVoted;
 
             if (prevWinner != address(0)) {
                 marginLocked[prevWinner] -= tokenPrice;
@@ -286,20 +325,26 @@ contract NFTElection is
             // 2. extendedExpirationTime does not achieve the constraint value
             if (
                 block.timestamp + saleEndDuration >=
-                actualExpirationTime(_tokenAddress, _tokenId) &&
-                extendedExpirationTime[_tokenAddress][_tokenId] <
+                actualExpirationTime(_electionId, _tokenId) &&
+                electionInfo[_electionId].extendedExpirationTime[_tokenId] <
                 saleExtendDurationMax
             ) {
-                extendedExpirationTime[_tokenAddress][
-                    _tokenId
-                ] += saleExtendDuration;
-                emit ExtendExpirationTime(_tokenAddress, _tokenId);
+                electionInfo[_electionId].extendedExpirationTime[
+                        _tokenId
+                    ] += saleExtendDuration;
+                emit ExtendExpirationTime(_electionId, tokenAddress, _tokenId);
             }
         }
 
         /******** EVENTS ********/
 
-        emit VoteToken(msg.sender, _tokenAddress, _tokenId, _amount);
+        emit VoteToken(
+            msg.sender,
+            _electionId,
+            tokenAddress,
+            _tokenId,
+            _amount
+        );
     }
 
     /**
@@ -307,25 +352,27 @@ contract NFTElection is
      *
      * @dev Can be called by anyone.
      */
-    function claim(
-        address[] calldata _tokenAddress,
-        uint256[] calldata _tokenId
-    ) external {
+    function claim(uint256[] calldata _electionId, uint256[] calldata _tokenId)
+        external
+    {
         require(
-            _tokenAddress.length == _tokenId.length,
+            _electionId.length == _tokenId.length,
             "NFTElection: invalid input"
         );
 
-        for (uint256 i = 0; i < _tokenAddress.length; i++) {
+        for (uint256 i = 0; i < _electionId.length; i++) {
             require(
-                block.timestamp >= expirationTime[_tokenAddress[i]],
+                block.timestamp >=
+                    actualExpirationTime(_electionId[i], _tokenId[i]),
                 "NFTElection: the voting process has not finished"
             );
 
-            uint256 total = getPrice(_tokenAddress[i], _tokenId[i]);
+            uint256 total = getPrice(_electionId[i], _tokenId[i]);
             uint256 fee = total / 2;
 
-            address winnerOfToken = winner[_tokenAddress[i]][_tokenId[i]];
+            address winnerOfToken = electionInfo[_electionId[i]].winner[
+                _tokenId[i]
+            ];
             require(
                 winnerOfToken != address(0),
                 "NFTElection: winner of token is zero address"
@@ -338,15 +385,15 @@ contract NFTElection is
                 fee
             );
             IERC20Upgradeable(paymentTokenAddress).safeTransfer(
-                manager[_tokenAddress[i]],
+                manager[electionInfo[_electionId[i]].tokenAddress],
                 total - fee
             );
 
-            IERC721(_tokenAddress[i]).safeTransferFrom(
-                address(this),
-                winnerOfToken,
-                _tokenId[i]
-            );
+            IERC721(electionInfo[_electionId[i]].tokenAddress).safeTransferFrom(
+                    address(this),
+                    winnerOfToken,
+                    _tokenId[i]
+                );
         }
     }
 
@@ -354,23 +401,22 @@ contract NFTElection is
      * After the sale has expired, if there is no winner for a specific token,
      * the manager is able to claim back that token.
      */
-    function claimBack(address _tokenAddress, uint256[] calldata _tokenId)
+    function claimBack(uint256 _electionId, uint256[] calldata _tokenId)
         external
-        onlyManager(_tokenAddress)
+        onlyManager(electionInfo[_electionId].tokenAddress)
     {
         for (uint256 i = 0; i < _tokenId.length; i++) {
             require(
                 block.timestamp >=
-                    expirationTime[_tokenAddress] +
-                        extendedExpirationTime[_tokenAddress][_tokenId[i]],
+                    actualExpirationTime(_electionId, _tokenId[i]),
                 "NFTElection: the voting process has not finished"
             );
             require(
-                winner[_tokenAddress][_tokenId[i]] == address(0),
+                electionInfo[_electionId].winner[_tokenId[i]] == address(0),
                 "NFTElection: the token has a winner"
             );
 
-            IERC721(_tokenAddress).safeTransferFrom(
+            IERC721(electionInfo[_electionId].tokenAddress).safeTransferFrom(
                 address(this),
                 msg.sender,
                 _tokenId[i]
@@ -381,14 +427,14 @@ contract NFTElection is
     /**
      * Returns the actual expiration time.
      */
-    function actualExpirationTime(address _tokenAddress, uint256 _tokenId)
+    function actualExpirationTime(uint256 _electionId, uint256 _tokenId)
         public
         view
         returns (uint256)
     {
         return
-            expirationTime[_tokenAddress] +
-            extendedExpirationTime[_tokenAddress][_tokenId];
+            electionInfo[_electionId].expirationTime +
+            electionInfo[_electionId].extendedExpirationTime[_tokenId];
     }
 
     function onERC721Received(
