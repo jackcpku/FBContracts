@@ -67,6 +67,9 @@ contract NFTElection is
     uint256 constant saleExtendDuration = 1 days;
     uint256 constant saleExtendDurationMax = 7 days;
 
+    // Record the used [tokenIdLowerBound, tokenidUpperBound] ranges of an address
+    mapping(address => uint256[2][]) usedRanges;
+
     event SetManager(
         address operator,
         address indexed tokenAddress,
@@ -178,7 +181,12 @@ contract NFTElection is
             "NFTElection: invalid listingTime or expirationTime"
         );
 
-        // TODO check if lower bound & uppwer bound are valid
+        // Check if lower bound & uppwer bound are valid
+        _requireValidTokenIdBounds(
+            _tokenAddress,
+            _tokenIdLowerBound,
+            _tokenIdUpperBound
+        );
 
         ElectionInfo storage info = electionInfo[currentElectionId];
 
@@ -187,6 +195,10 @@ contract NFTElection is
         info.tokenIdUpperBound = _tokenIdUpperBound;
         info.listingTime = _listingTime;
         info.expirationTime = _expirationTime;
+
+        usedRanges[_tokenAddress].push(
+            [_tokenIdLowerBound, _tokenIdUpperBound]
+        );
 
         emit InitializeVote(
             msg.sender,
@@ -212,7 +224,13 @@ contract NFTElection is
         requireTokenIdInElectionRange(_electionId, _tokenId)
         returns (uint256)
     {
-        // TODO add a function checking if tokenid is in the correct range
+        // Check if tokenId is in the correct range
+        require(
+            electionInfo[_electionId].tokenIdLowerBound <= _tokenId &&
+                _tokenId <= electionInfo[_electionId].tokenIdUpperBound,
+            "NFTElection: tokenId is not in valid range"
+        );
+
         uint256 singleItemPrice = electionInfo[_electionId].price[_tokenId];
         if (singleItemPrice > 0) {
             return singleItemPrice;
@@ -435,6 +453,24 @@ contract NFTElection is
         return
             electionInfo[_electionId].expirationTime +
             electionInfo[_electionId].extendedExpirationTime[_tokenId];
+    }
+
+    function _requireValidTokenIdBounds(
+        address _tokenAddress,
+        uint256 _tokenIdLowerBound,
+        uint256 _tokenIdUpperBound
+    ) internal view {
+        require(
+            _tokenIdLowerBound <= _tokenIdUpperBound,
+            "NFTElection: NFTElection: invalid tokenIdBounds in initialization"
+        );
+        for (uint256 i = 0; i < usedRanges[_tokenAddress].length; i++) {
+            require(
+                _tokenIdLowerBound > usedRanges[_tokenAddress][i][1] ||
+                    _tokenIdUpperBound < usedRanges[_tokenAddress][i][0],
+                "NFTElection: invalid tokenIdBounds in initialization"
+            );
+        }
     }
 
     function onERC721Received(

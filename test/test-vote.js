@@ -307,4 +307,92 @@ describe("Test NFTElection Contract", function () {
       vote.connect(user0).vote(electionId, specialTokenId, 10 + 7)
     ).to.be.revertedWith("NFTElection: the voting process has been finished");
   });
+
+  it("should pass range test", async function () {
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        tokenIdLowerBound,
+        tokenIdUpperBound,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          tokenIdLowerBound,
+          tokenIdUpperBound,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          (tokenIdLowerBound + tokenIdUpperBound + 1) / 2,
+          (tokenIdLowerBound + tokenIdUpperBound + 1) / 2,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          1,
+          10000,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        tokenIdUpperBound + 1,
+        tokenIdUpperBound + 1,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        tokenIdUpperBound + 100,
+        tokenIdUpperBound + 150,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          tokenIdUpperBound + 125,
+          tokenIdUpperBound + 175,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+  });
 });
