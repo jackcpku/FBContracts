@@ -101,13 +101,15 @@ describe("Test NFTElection Contract", function () {
 
   it("should fail initializing vote if not manager", async function () {
     await expect(
-      vote.initializeVote(
-        someERC721Contract.address,
-        tokenIdLowerBound,
-        tokenIdUpperBound,
-        currentTimestamp - 1,
-        deadlineTimestamp
-      )
+      vote
+        .connect(user0)
+        .initializeVote(
+          someERC721Contract.address,
+          tokenIdLowerBound,
+          tokenIdUpperBound,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
     ).to.be.revertedWith("NFTElection: not manager");
   });
 

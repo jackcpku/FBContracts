@@ -47,6 +47,9 @@ contract NFTElection is
         // tokenId => extendedExpirationTime
         // extendedExpirationTime keeps track of the extended duration (delta) of a ddl for each token
         mapping(uint256 => uint256) extendedExpirationTime;
+        // Whether has been voted by any voter, the manager is allowed to cancel the election only if `voted` is `false`.
+        bool voted;
+        bool cancelled;
     }
 
     // cp of the nft
@@ -102,7 +105,7 @@ contract NFTElection is
 
     modifier onlyManager(address _tokenAddress) {
         require(
-            msg.sender == manager[_tokenAddress],
+            msg.sender == manager[_tokenAddress] || msg.sender == owner(),
             "NFTElection: not manager"
         );
         _;
@@ -116,6 +119,14 @@ contract NFTElection is
             electionInfo[_electionId].tokenIdLowerBound <= _tokenId &&
                 _tokenId <= electionInfo[_electionId].tokenIdUpperBound,
             "NFTElection: tokenId is not in election range"
+        );
+        _;
+    }
+
+    modifier notCancelled(uint256 _electionId) {
+        require(
+            !electionInfo[_electionId].cancelled,
+            "NFTElection: election has been cancelled"
         );
         _;
     }
@@ -148,6 +159,7 @@ contract NFTElection is
     function setPrice(uint256 _electionId, uint256 _price)
         public
         onlyManager(electionInfo[_electionId].tokenAddress)
+        notCancelled(_electionId)
     {
         electionInfo[_electionId].fallbackPrice = _price;
     }
@@ -161,6 +173,7 @@ contract NFTElection is
     )
         public
         onlyManager(electionInfo[_electionId].tokenAddress)
+        notCancelled(_electionId)
         requireTokenIdInElectionRange(_electionId, _tokenId)
     {
         electionInfo[_electionId].price[_tokenId] = _price;
@@ -213,6 +226,43 @@ contract NFTElection is
         currentElectionId++;
     }
 
+    function cancelVote(uint256 _electionId)
+        external
+        onlyManager(electionInfo[_electionId].tokenAddress)
+        notCancelled(_electionId)
+    {
+        require(
+            !electionInfo[_electionId].voted,
+            "NFTElection: the election has started"
+        );
+
+        // Remove from usedRange
+        uint256 usedRangesLength = usedRanges[
+            electionInfo[_electionId].tokenAddress
+        ].length;
+        for (uint256 i = 0; i < usedRangesLength; i++) {
+            if (
+                usedRanges[electionInfo[_electionId].tokenAddress][i][0] ==
+                electionInfo[_electionId].tokenIdLowerBound
+            ) {
+                if (i != usedRangesLength - 1) {
+                    // Swap with the last item in the array
+                    usedRanges[electionInfo[_electionId].tokenAddress][
+                        i
+                    ] = usedRanges[electionInfo[_electionId].tokenAddress][
+                        usedRangesLength - 1
+                    ];
+                }
+                // Remove the last item
+                usedRanges[electionInfo[_electionId].tokenAddress].pop();
+
+                electionInfo[_electionId].cancelled = true;
+
+                return;
+            }
+        }
+    }
+
     /**
      * Get the price of a single NFT.
      * @dev If the NFT has a specified price in `price`, return that price,
@@ -221,6 +271,7 @@ contract NFTElection is
     function getPrice(uint256 _electionId, uint256 _tokenId)
         public
         view
+        notCancelled(_electionId)
         requireTokenIdInElectionRange(_electionId, _tokenId)
         returns (uint256)
     {
@@ -266,7 +317,7 @@ contract NFTElection is
         uint256 _electionId,
         uint256 _tokenId,
         uint256 _amount
-    ) external {
+    ) external notCancelled(_electionId) {
         /******** CHECKS ********/
 
         address tokenAddress = electionInfo[_electionId].tokenAddress;
@@ -352,6 +403,10 @@ contract NFTElection is
                     ] += saleExtendDuration;
                 emit ExtendExpirationTime(_electionId, tokenAddress, _tokenId);
             }
+        }
+
+        if (!electionInfo[_electionId].voted) {
+            electionInfo[_electionId].voted = true;
         }
 
         /******** EVENTS ********/
@@ -448,6 +503,7 @@ contract NFTElection is
     function actualExpirationTime(uint256 _electionId, uint256 _tokenId)
         public
         view
+        notCancelled(_electionId)
         returns (uint256)
     {
         return
