@@ -47,16 +47,16 @@ extendEnvironment((hre) => {
     case "rinkeby":
       // token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
       token = "0x68944779E69686467189fE3e20b0751158103053";       //hzr's pvs
-      presale = "0x0B4174812EBDD920B75237F376521057a2b23991";
+      presale = "0x5e317Bb79918C3451150E7cabf0706937952Fd52";
       vesting = "0xcac23BF1ebD991356930da8762a411a9F233933f";
       nftGateway = "0x197560a2CB04721079225529aFbc53D65759a13C";
       nftFactory = "0x1808f367439774c7840a67d1Dfd3f159Ad0F3681";
       simpleLootBoxRegistry = "0xE97480B8efBCCdB7ec6D8C81987541E493E4843A";
       marketplace = "0x328bA41a29550AdD31C26c3dc9B8604ab048f5E8";
-      ppn = "0x6c09f68f461B45A2897830b68fFf8B0f513781c5";
-      dividend = "0x3794FF2FE141D7745cCAd2E80B7f83f57aA1678c";
-      filter = "0x97fC6770E6295092903184C7248166D3bD680344";
-      splitter = "0x202BEe89FFc1F96b07BBF17E52b6F154d8587b2D";
+      ppn = "0x97746889eF539182f5c2FbAb41D7099ba7ca4385";
+      dividend = "0x390F6d56Ce91eE2eD7EA51073f51f0412b3e2343";
+      filter = "0x184304b268f1dFB41Ee116AcCdE3ce6976544019";
+      splitter = "0xF734F4e7b512252B4882B474D0Ea1F8651Aa50Bb";
       break;
     case "mainnet":
       // TODO:
