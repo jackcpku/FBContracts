@@ -32,20 +32,6 @@ contract RewardOracle {
             revert("RewardOracle: not implemented");
         }
 
-        revert("RewardOracle: bad staked token address");
-    }
-
-    function totalRewardPerSecond(address _stakedTokenAddress)
-        external
-        view
-        returns (uint256)
-    {
-        if (_stakedTokenAddress == pvsAddress) {
-            return totalRewardPerSecondWhenStakingPVS;
-        } else if (_stakedTokenAddress == pvsethLPAddress) {
-            revert("RewardOracle: not implemented");
-        }
-
-        revert("RewardOracle: bad staked token address");
+        return 0;
     }
 }

@@ -18,6 +18,8 @@ contract FixedDeposit {
 
     address public stakingTokenAddress;
 
+    uint256 public totalRewardPerSecond;
+
     uint256 public accumulatedRewardPerWeight;
 
     uint256 public totalWeight;
@@ -52,9 +54,14 @@ contract FixedDeposit {
         uint256 indexed duration
     );
 
-    constructor(address _stakingTokenAddress, address _rewardOracleAddress) {
+    constructor(
+        address _stakingTokenAddress,
+        address _rewardOracleAddress,
+        uint256 _totalRewardPerSecond
+    ) {
         stakingTokenAddress = _stakingTokenAddress;
         rewardOracleAddress = _rewardOracleAddress;
+        totalRewardPerSecond = _totalRewardPerSecond;
     }
 
     function stake(
@@ -205,9 +212,7 @@ contract FixedDeposit {
         if (totalWeight > 0) {
             accumulatedRewardPerWeight +=
                 ((block.timestamp - lastUpdateTimestamp) *
-                    IRewardOracle(rewardOracleAddress).totalRewardPerSecond(
-                        stakingTokenAddress
-                    )) /
+                    totalRewardPerSecond) /
                 totalWeight;
         }
     }
