@@ -26,7 +26,6 @@ contract PVSStake {
     }
 
     struct StakerInfo {
-        uint256 amount;
         uint256 checkpointReward;
         uint256 checkpointRewardPerWeight;
         uint256 weight;
