@@ -6,11 +6,17 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-contract PVSStake {
+import "./IRewardOracle.sol";
+import "./nft-election/IPVSTicket.sol";
+
+contract FixedDeposit {
     using SafeMath for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    uint256 public totalRewardPerSecond;
+    address public rewardOracleAddress;
+    address public pvstAddress;
+
+    address public stakingTokenAddress;
 
     uint256 public accumulatedRewardPerWeight;
 
@@ -31,7 +37,6 @@ contract PVSStake {
         uint256 weight;
         SingleStake[] stakes;
     }
-    address public pvsAddress;
 
     mapping(address => StakerInfo) public stakers;
 
@@ -47,9 +52,9 @@ contract PVSStake {
         uint256 indexed duration
     );
 
-    constructor(address _pvsAddress, uint256 _totalRewardPerSecond) {
-        pvsAddress = _pvsAddress;
-        totalRewardPerSecond = _totalRewardPerSecond;
+    constructor(address _stakingTokenAddress, address _rewardOracleAddress) {
+        stakingTokenAddress = _stakingTokenAddress;
+        rewardOracleAddress = _rewardOracleAddress;
     }
 
     function stake(
@@ -60,6 +65,16 @@ contract PVSStake {
         /******** CHECKS ********/
 
         /******** EFFECTS ********/
+
+        // Immediately mint some PVST to reward staker
+        IPVSTicket(pvstAddress).mint(
+            _staker,
+            IRewardOracle(rewardOracleAddress).immediatePVSTReward(
+                stakingTokenAddress,
+                _amount,
+                _duration
+            )
+        );
 
         _updateCheckpoint(_staker);
 
@@ -80,7 +95,7 @@ contract PVSStake {
         );
 
         // Transfer tokens
-        IERC20Upgradeable(pvsAddress).safeTransferFrom(
+        IERC20Upgradeable(stakingTokenAddress).safeTransferFrom(
             _staker,
             address(this),
             _amount
@@ -97,7 +112,10 @@ contract PVSStake {
         bool _claimReward
     ) external {
         /******** CHECKS ********/
-        require(_checkUnstake(_staker, _index), "PVSStake: failed to unstake");
+        require(
+            _checkUnstake(_staker, _index),
+            "FixedDeposit: failed to unstake"
+        );
 
         /******** EFFECTS ********/
         _updateCheckpoint(_staker);
@@ -121,7 +139,7 @@ contract PVSStake {
         }
 
         // Transfer tokens
-        IERC20Upgradeable(pvsAddress).safeTransferFrom(
+        IERC20Upgradeable(stakingTokenAddress).safeTransferFrom(
             address(this),
             _staker,
             withdrawAmount
@@ -187,7 +205,9 @@ contract PVSStake {
         if (totalWeight > 0) {
             accumulatedRewardPerWeight +=
                 ((block.timestamp - lastUpdateTimestamp) *
-                    totalRewardPerSecond) /
+                    IRewardOracle(rewardOracleAddress).totalRewardPerSecond(
+                        stakingTokenAddress
+                    )) /
                 totalWeight;
         }
     }

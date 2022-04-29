@@ -16,6 +16,11 @@ interface IPVSTicket {
     function mint(address _ticketOwner, uint256 _amount) external;
 
     /**
+     * @dev Used to calculate rewarding PVST's given staking amount and duration
+     */
+    function PRODUCT_FACTOR() external pure returns (uint256 _factor);
+
+    /**
      * @dev Emitted when `amount` tickets from (`owner`) were burned by (`burner`).
      *
      * Note that `value` may be zero.

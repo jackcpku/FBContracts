@@ -26,7 +26,7 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
     uint256 public totalSupplyAtCheckpoint;
 
     //factor
-    uint256 public constant PRODUCT_FACTOR = 10_000; 
+    uint256 public override constant PRODUCT_FACTOR = 10_000; 
 
     // last checkpoint time
     mapping (address => uint256) public checkpointTime;	
