@@ -142,6 +142,14 @@ contract PVSStake {
         }
     }
 
+    function pendingRewards(address _staker) external view returns (uint256) {
+        StakerInfo storage info = stakers[_staker];
+        return
+            info.checkpointReward +
+            (accumulatedRewardPerWeight - info.checkpointRewardPerWeight) *
+            info.weight;
+    }
+
     function _checkUnstake(address _staker, uint256 _index)
         internal
         view
