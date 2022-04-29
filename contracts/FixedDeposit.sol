@@ -24,6 +24,8 @@ contract FixedDeposit {
 
     uint256 public totalWeight;
 
+    uint256 public rewardEndTimestamp;
+
     uint256 lastUpdateTimestamp;
 
     struct SingleStake {
@@ -57,11 +59,13 @@ contract FixedDeposit {
     constructor(
         address _stakingTokenAddress,
         address _rewardOracleAddress,
-        uint256 _totalRewardPerSecond
+        uint256 _totalRewardPerSecond,
+        uint256 _rewardDuration
     ) {
         stakingTokenAddress = _stakingTokenAddress;
         rewardOracleAddress = _rewardOracleAddress;
         totalRewardPerSecond = _totalRewardPerSecond;
+        rewardEndTimestamp = block.timestamp + _rewardDuration;
     }
 
     function stake(
@@ -70,6 +74,10 @@ contract FixedDeposit {
         uint256 _duration
     ) external {
         /******** CHECKS ********/
+        require(
+            block.timestamp < rewardEndTimestamp,
+            "FixedDeposit: staking period has ended"
+        );
 
         /******** EFFECTS ********/
 
@@ -197,23 +205,35 @@ contract FixedDeposit {
         // Get the reference to staker's info
         StakerInfo storage info = stakers[_staker];
 
+        // Update per-user information
         uint256 addedReward = (accumulatedRewardPerWeight -
             info.checkpointRewardPerWeight) * info.weight;
 
         info.checkpointReward += addedReward;
         info.checkpointRewardPerWeight = accumulatedRewardPerWeight;
 
-        _updateAccumulatedRewardPerWeight();
+        // Update global states
+        if (lastUpdateTimestamp < rewardEndTimestamp) {
+            _updateAccumulatedRewardPerWeight();
 
-        lastUpdateTimestamp = block.timestamp;
+            lastUpdateTimestamp = _stakingTime();
+        }
     }
 
     function _updateAccumulatedRewardPerWeight() internal {
         if (totalWeight > 0) {
             accumulatedRewardPerWeight +=
-                ((block.timestamp - lastUpdateTimestamp) *
+                ((_stakingTime() - lastUpdateTimestamp) *
                     totalRewardPerSecond) /
                 totalWeight;
+        }
+    }
+
+    function _stakingTime() internal view returns (uint256) {
+        if (block.timestamp < rewardEndTimestamp) {
+            return block.timestamp;
+        } else {
+            return rewardEndTimestamp;
         }
     }
 
