@@ -110,7 +110,7 @@ contract PVSStake {
 
         uint256 removeWeight = _stakeWeight(duration, withdrawAmount);
 
-        stakers[_staker].weight -= removeWeight;
+        info.weight -= removeWeight;
         totalWeight -= removeWeight;
 
         info.stakes[_index].unstaked = true;
@@ -170,11 +170,18 @@ contract PVSStake {
         info.checkpointReward += addedReward;
         info.checkpointRewardPerWeight = accumulatedRewardPerWeight;
 
-        accumulatedRewardPerWeight +=
-            ((block.timestamp - lastUpdateTimestamp) * totalRewardPerSecond) /
-            totalWeight;
+        _updateAccumulatedRewardPerWeight();
 
         lastUpdateTimestamp = block.timestamp;
+    }
+
+    function _updateAccumulatedRewardPerWeight() internal {
+        if (totalWeight > 0) {
+            accumulatedRewardPerWeight +=
+                ((block.timestamp - lastUpdateTimestamp) *
+                    totalRewardPerSecond) /
+                totalWeight;
+        }
     }
 
     function _stakeWeight(uint256 _duration, uint256 _amount)
