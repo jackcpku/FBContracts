@@ -8,6 +8,7 @@ const {
   deployMajorToken,
   deployPVSTicket,
 } = require("../lib/deploy.js");
+const { BigNumber } = require("ethers");
 
 describe("Test NFTElection Contract", function () {
   let gateway, factory;
@@ -20,6 +21,9 @@ describe("Test NFTElection Contract", function () {
   const specialPrice = 80;
   const specialTokenId = 1;
   const normalTokenId = 2;
+
+  const tokenIdLowerBound = 1;
+  const tokenIdUpperBound = 100;
 
   const currentTimestamp = 9_000_000_000;
   const deadlineTimestamp = 10_000_000_000;
@@ -77,41 +81,35 @@ describe("Test NFTElection Contract", function () {
     vote = await deployElection(ticket.address, pvs.address);
     await vote.setServiceFeeRecipient(owner.address);
     await vote.setManager(someERC721Contract.address, manager0.address);
-    await vote
-      .connect(manager0)
-      ["setPrice(address,uint256)"](someERC721Contract.address, fallbackPrice);
-    await vote
-      .connect(manager0)
-      ["setPrice(address,uint256,uint256)"](
-        someERC721Contract.address,
-        specialTokenId,
-        specialPrice
-      );
 
     // Complex dependencies
     const burnerRole = await ticket.TICKET_BURNER_ROLE();
     await ticket.grantRole(burnerRole, vote.address);
   });
 
-  it("should get fallback price", async function () {
-    expect(
-      await vote.getPrice(someERC721Contract.address, normalTokenId)
-    ).to.equal(fallbackPrice);
-  });
+  // it("should get fallback price", async function () {
+  //   expect(
+  //     await vote.getPrice(someERC721Contract.address, normalTokenId)
+  //   ).to.equal(fallbackPrice);
+  // });
 
-  it("should get special price", async function () {
-    expect(
-      await vote.getPrice(someERC721Contract.address, specialTokenId)
-    ).to.equal(specialPrice);
-  });
+  // it("should get special price", async function () {
+  //   expect(
+  //     await vote.getPrice(someERC721Contract.address, specialTokenId)
+  //   ).to.equal(specialPrice);
+  // });
 
   it("should fail initializing vote if not manager", async function () {
     await expect(
-      vote.initializeVote(
-        someERC721Contract.address,
-        currentTimestamp - 1,
-        deadlineTimestamp
-      )
+      vote
+        .connect(user0)
+        .initializeVote(
+          someERC721Contract.address,
+          tokenIdLowerBound,
+          tokenIdUpperBound,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
     ).to.be.revertedWith("NFTElection: not manager");
   });
 
@@ -127,34 +125,41 @@ describe("Test NFTElection Contract", function () {
         .connect(manager0)
         .initializeVote(
           someERC721Contract.address,
+          tokenIdLowerBound,
+          tokenIdUpperBound,
           deadlineTimestamp + 1,
           deadlineTimestamp
         )
     ).to.be.revertedWith("NFTElection: invalid listingTime or expirationTime");
 
     // Manager initializes vote
-    await vote
+    const tx = await vote
       .connect(manager0)
       .initializeVote(
         someERC721Contract.address,
+        tokenIdLowerBound,
+        tokenIdUpperBound,
         currentTimestamp - 1,
         deadlineTimestamp
       );
+    const rc = await tx.wait();
+    const event = rc.events.find((event) => event.event === "InitializeVote");
+    const electionId = BigNumber.from(event["topics"][2]);
 
-    // Manager initializes vote again and fails
-    await expect(
-      vote
-        .connect(manager0)
-        .initializeVote(
-          someERC721Contract.address,
-          currentTimestamp - 1,
-          deadlineTimestamp + 1
-        )
-    ).to.be.revertedWith("NFTElection: vote can be initialized only once");
+    await vote
+      .connect(manager0)
+      ["setPrice(uint256,uint256)"](electionId, fallbackPrice);
+    await vote
+      .connect(manager0)
+      ["setPrice(uint256,uint256,uint256)"](
+        electionId,
+        specialTokenId,
+        specialPrice
+      );
 
     // No one is able to vote before listing time
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
+      vote.connect(user0).vote(electionId, specialTokenId, 10)
     ).to.be.revertedWith("NFTElection: the voting process has not started");
 
     /****************** After Listing Time ******************/
@@ -164,7 +169,7 @@ describe("Test NFTElection Contract", function () {
 
     // No one is able to vote before the nft is transferred to vote contract
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
+      vote.connect(user0).vote(electionId, specialTokenId, 10)
     ).to.be.revertedWith("NFTElection: nft not owned by contract");
 
     // Transfer the nfts to vote contract
@@ -177,40 +182,28 @@ describe("Test NFTElection Contract", function () {
 
     // user0 votes 0 and fails
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 10)
+      vote.connect(user0).vote(electionId, specialTokenId, 10)
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
     // user0 approves vote of spending pvs
     await pvs.connect(user0).approve(vote.address, 80);
     // user0 votes 0 and succeeds
-    await vote
-      .connect(user0)
-      .vote(someERC721Contract.address, specialTokenId, 10);
+    await vote.connect(user0).vote(electionId, specialTokenId, 10);
     // user1 votes less or equal than user0 and fails
     await pvs.connect(user1).approve(vote.address, 80);
     await expect(
-      vote.connect(user1).vote(someERC721Contract.address, specialTokenId, 10)
+      vote.connect(user1).vote(electionId, specialTokenId, 10)
     ).to.be.revertedWith("NFTElection: please vote more");
     // user1 votes more than user0 and succeeds
-    await vote
-      .connect(user1)
-      .vote(someERC721Contract.address, specialTokenId, 20);
+    await vote.connect(user1).vote(electionId, specialTokenId, 20);
     // user0 votes even more
-    await vote
-      .connect(user0)
-      .vote(someERC721Contract.address, specialTokenId, 100);
+    await vote.connect(user0).vote(electionId, specialTokenId, 100);
     // user1 votes more than he has and fails
     await expect(
-      vote
-        .connect(user1)
-        .vote(someERC721Contract.address, specialTokenId, tktAmount[1])
+      vote.connect(user1).vote(electionId, specialTokenId, tktAmount[1])
     ).to.be.revertedWith("Ticket balance is insufficient");
     // user0 votes more when he is already the winner
-    await vote
-      .connect(user0)
-      .vote(someERC721Contract.address, specialTokenId, 1);
-    await vote
-      .connect(user0)
-      .vote(someERC721Contract.address, specialTokenId, 1);
+    await vote.connect(user0).vote(electionId, specialTokenId, 1);
+    await vote.connect(user0).vote(electionId, specialTokenId, 1);
     // user0 withdraws margin and fails
     await expect(vote.connect(user0).withdrawMargin(80)).to.be.revertedWith(
       "NFTElection: low margin balance"
@@ -219,20 +212,16 @@ describe("Test NFTElection Contract", function () {
     await vote.connect(user1).withdrawMargin(80);
     // user0 claims with invalid input
     await expect(
-      vote
-        .connect(user0)
-        .claim([someERC721Contract.address], [specialTokenId, specialTokenId])
+      vote.connect(user0).claim([electionId], [specialTokenId, specialTokenId])
     ).to.be.revertedWith("NFTElection: invalid input");
     // user0 claims before ddl and fails
     await expect(
-      vote.connect(user0).claim([someERC721Contract.address], [specialTokenId])
+      vote.connect(user0).claim([electionId], [specialTokenId])
     ).to.be.revertedWith("NFTElection: the voting process has not finished");
 
     // manager claims no-winner token before ddl and fails
     await expect(
-      vote
-        .connect(manager0)
-        .claimBack(someERC721Contract.address, [normalTokenId])
+      vote.connect(manager0).claimBack(electionId, [normalTokenId])
     ).to.be.revertedWith("NFTElection: the voting process has not finished");
 
     /****************** After Expiration Time ******************/
@@ -241,23 +230,17 @@ describe("Test NFTElection Contract", function () {
     ]);
     // user0 votes after ddl and fails
     await expect(
-      vote.connect(user0).vote(someERC721Contract.address, specialTokenId, 1)
+      vote.connect(user0).vote(electionId, specialTokenId, 1)
     ).to.be.revertedWith("NFTElection: the voting process has been finished");
     // user0 claims after the ddl and succeeds
-    await vote
-      .connect(user0)
-      .claim([someERC721Contract.address], [specialTokenId]);
+    await vote.connect(user0).claim([electionId], [specialTokenId]);
 
     // manager claims no-winner token
-    await vote
-      .connect(manager0)
-      .claimBack(someERC721Contract.address, [normalTokenId]);
+    await vote.connect(manager0).claimBack(electionId, [normalTokenId]);
 
     // manager claims non-no-winner token and fails
     await expect(
-      vote
-        .connect(manager0)
-        .claimBack(someERC721Contract.address, [specialTokenId])
+      vote.connect(manager0).claimBack(electionId, [specialTokenId])
     ).to.be.revertedWith("NFTElection: the token has a winner");
   });
 
@@ -268,13 +251,18 @@ describe("Test NFTElection Contract", function () {
     ]);
 
     // Manager initializes vote
-    await vote
+    const tx = await vote
       .connect(manager0)
       .initializeVote(
         someERC721Contract.address,
+        tokenIdLowerBound,
+        tokenIdUpperBound,
         currentTimestamp - 1,
         deadlineTimestamp
       );
+    const rc = await tx.wait();
+    const event = rc.events.find((event) => event.event === "InitializeVote");
+    const electionId = BigNumber.from(event["topics"][2]);
 
     // Transfer the nfts to vote contract
     await someERC721Contract
@@ -305,12 +293,10 @@ describe("Test NFTElection Contract", function () {
       let user = day % 2 ? user0 : user1;
 
       expect(
-        await vote
-          .connect(user)
-          .vote(someERC721Contract.address, specialTokenId, 10 + day)
+        await vote.connect(user).vote(electionId, specialTokenId, 10 + day)
       )
         .to.emit(vote, "ExtendExpirationTime")
-        .withArgs(someERC721Contract.address, specialTokenId);
+        .withArgs(electionId, someERC721Contract.address, specialTokenId);
     }
 
     // When the final ddl arrives
@@ -320,9 +306,95 @@ describe("Test NFTElection Contract", function () {
 
     // user0 votes 0 and fails
     await expect(
-      vote
-        .connect(user0)
-        .vote(someERC721Contract.address, specialTokenId, 10 + 7)
+      vote.connect(user0).vote(electionId, specialTokenId, 10 + 7)
     ).to.be.revertedWith("NFTElection: the voting process has been finished");
+  });
+
+  it("should pass range test", async function () {
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        tokenIdLowerBound,
+        tokenIdUpperBound,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          tokenIdLowerBound,
+          tokenIdUpperBound,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          (tokenIdLowerBound + tokenIdUpperBound + 1) / 2,
+          (tokenIdLowerBound + tokenIdUpperBound + 1) / 2,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          1,
+          10000,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
+
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        tokenIdUpperBound + 1,
+        tokenIdUpperBound + 1,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    await vote
+      .connect(manager0)
+      .initializeVote(
+        someERC721Contract.address,
+        tokenIdUpperBound + 100,
+        tokenIdUpperBound + 150,
+        currentTimestamp - 1,
+        deadlineTimestamp
+      );
+
+    await expect(
+      vote
+        .connect(manager0)
+        .initializeVote(
+          someERC721Contract.address,
+          tokenIdUpperBound + 125,
+          tokenIdUpperBound + 175,
+          currentTimestamp - 1,
+          deadlineTimestamp
+        )
+    ).to.be.revertedWith(
+      "NFTElection: invalid tokenIdBounds in initialization"
+    );
   });
 });
