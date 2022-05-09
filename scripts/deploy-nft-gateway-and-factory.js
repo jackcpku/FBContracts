@@ -1,10 +1,11 @@
 const hre = require("hardhat");
 
-const { deployNFTGatewayAndNFTFactory } = require('../lib/deploy.js');
+const { deployGatewayAndNFTFactory } = require("../lib/deploy.js");
 
 const main = async () => {
   [admin] = await hre.ethers.getSigners();
-  let { gateway, factory, gatewayImpl, factoryImpl } = await deployNFTGatewayAndNFTFactory(admin);
+  let { gateway, factory, gatewayImpl, factoryImpl } =
+    await deployGatewayAndNFTFactory(admin);
 
   console.log(`Gateway admin address: ${admin.address}`);
   console.log(`Successfully deployed:`);
@@ -12,7 +13,7 @@ const main = async () => {
   console.log(`Factory contract proxy at address ${factory.address}`);
   console.log(`Gateway contract implementation at address ${gatewayImpl}`);
   console.log(`Factory contract implementation at address ${factoryImpl}`);
-}
+};
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.

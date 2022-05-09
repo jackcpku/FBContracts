@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 /**
  * The management interface exposed to gateway.
  */
-interface IBaseNFTManagement {
+interface IGatewayGuarded {
     /**
      * @dev Set the gateway contract address.
      * @notice Only gateway contract is authorized to set a

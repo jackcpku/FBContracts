@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
 
-const { deployNFTGatewayAndNFTFactory } = require("../lib/deploy.js");
+const { deployGatewayAndNFTFactory } = require("../lib/deploy.js");
 const {
   calculateCreate2AddressBasicERC721,
   calculateCreate2AddressBasicERC1155,
@@ -27,7 +27,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       u6,
     ] = await hre.ethers.getSigners();
 
-    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
+    ({ gateway, factory } = await deployGatewayAndNFTFactory(gatewayAdmin));
   });
 
   it("ERC721 gateway operations", async function () {
@@ -153,13 +153,19 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     );
 
     // u2 burns from u2
-    await u2Contract.connect(u2).burn(u2.address, 223, erc1155BurnAmount)
+    await u2Contract.connect(u2).burn(u2.address, 223, erc1155BurnAmount);
     expect(await u2Contract.balanceOf(u2.address, 223)).to.equal(
       erc1155MintAmount - erc1155BurnAmount
     );
 
     // burnBatch
-    await u2Contract.connect(u2).burnBatch(u2.address, [222, 223], [erc1155BurnAmount, erc1155BurnAmount])
+    await u2Contract
+      .connect(u2)
+      .burnBatch(
+        u2.address,
+        [222, 223],
+        [erc1155BurnAmount, erc1155BurnAmount]
+      );
     expect(await u2Contract.balanceOf(u2.address, 222)).to.equal(
       erc1155MintAmount - erc1155BurnAmount
     );

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IBaseNFTManagement.sol";
+import "../interfaces/IGatewayGuarded.sol";
 
 /**
  * The management interface exposed to gateway.
  */
-abstract contract BaseNFTManagement is IBaseNFTManagement {
+abstract contract GatewayGuarded is IGatewayGuarded {
     address public gateway;
 
     modifier onlyGateway() {
@@ -19,7 +19,7 @@ abstract contract BaseNFTManagement is IBaseNFTManagement {
     }
 
     /**
-     * @inheritdoc IBaseNFTManagement
+     * @inheritdoc IGatewayGuarded
      */
     function setGateway(address _gateway) external override onlyGateway {
         gateway = _gateway;

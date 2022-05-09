@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-import "../interfaces/INFTGateway.sol";
+import "../interfaces/IGateway.sol";
 import "../BasicERC721.sol";
 import "../BasicERC1155.sol";
 
@@ -43,13 +43,10 @@ contract NFTFactory is Initializable {
         emit DeployContract(msg.sender, deployedAddress, true);
 
         // Grant this contract temporary permission to call `ERC721_setURI`
-        INFTGateway(gatewayAddress).setManagerOf(
-            deployedAddress,
-            address(this)
-        );
+        IGateway(gatewayAddress).setManagerOf(deployedAddress, address(this));
 
         // Set uri of the newly deployed contract.
-        INFTGateway(gatewayAddress).ERC721_setURI(
+        IGateway(gatewayAddress).ERC721_setURI(
             deployedAddress,
             string(
                 abi.encodePacked(_baseURI, addrToString(deployedAddress), "/")
@@ -57,7 +54,7 @@ contract NFTFactory is Initializable {
         );
 
         // Set manager of the newly deployed contract.
-        INFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
+        IGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
     }
 
     /**
@@ -75,13 +72,10 @@ contract NFTFactory is Initializable {
         emit DeployContract(msg.sender, deployedAddress, false);
 
         // Grant this contract temporary permission to call `ERC1155_setURI`
-        INFTGateway(gatewayAddress).setManagerOf(
-            deployedAddress,
-            address(this)
-        );
+        IGateway(gatewayAddress).setManagerOf(deployedAddress, address(this));
 
         // Set uri of the newly deployed contract.
-        INFTGateway(gatewayAddress).ERC1155_setURI(
+        IGateway(gatewayAddress).ERC1155_setURI(
             deployedAddress,
             string(
                 abi.encodePacked(
@@ -93,7 +87,7 @@ contract NFTFactory is Initializable {
         );
 
         // Set manager of the newly deployed contract.
-        INFTGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
+        IGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
     }
 
     function addrToString(address addr) internal pure returns (string memory) {

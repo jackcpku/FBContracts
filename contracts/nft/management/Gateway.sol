@@ -6,13 +6,14 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import "../interfaces/INFTGateway.sol";
-import "../interfaces/IBaseNFTManagement.sol";
+import "../interfaces/IGateway.sol";
+import "../interfaces/IGatewayGuarded.sol";
 
 import "../interfaces/IBasicERC721.sol";
 import "../interfaces/IBasicERC1155.sol";
+import "../interfaces/IBasicERC20.sol";
 
-contract NFTGateway is Initializable, AccessControl, INFTGateway {
+contract Gateway is Initializable, AccessControl, IGateway {
     /********************************************************************
      *                          Role System                             *
      ********************************************************************/
@@ -145,6 +146,14 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
         IBasicERC1155(_nftContract).setURI(_newuri);
     }
 
+    function ERC20_mint(
+        address _erc20Contract,
+        address _recipient,
+        uint256 _amount
+    ) external override onlyManagerAndWhitelist(_erc20Contract) {
+        IBasicERC20(_erc20Contract).mint(_recipient, _amount);
+    }
+
     /********************************************************************
      *                       Manage nft managers                        *
      ********************************************************************/
@@ -244,7 +253,7 @@ contract NFTGateway is Initializable, AccessControl, INFTGateway {
 
         nftManager[_nftContract] = address(0);
         nftPreviousManager[_nftContract] = address(0);
-        IBaseNFTManagement(_nftContract).setGateway(_newGateway);
+        IGatewayGuarded(_nftContract).setGateway(_newGateway);
     }
 
     /**

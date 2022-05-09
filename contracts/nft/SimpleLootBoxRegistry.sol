@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/INFTGateway.sol";
+import "./interfaces/IGateway.sol";
 
 interface IERC1155BurnSingle {
     function burn(
@@ -108,7 +108,7 @@ contract SimpleLootBoxRegistry is Ownable {
         );
 
         // address(this) must be added to NFTGateway's whitelist
-        INFTGateway(nftGateway).ERC721_mint(
+        IGateway(nftGateway).ERC721_mint(
             erc721TokenAddresses[_erc1155TokenAddress][_erc1155TokenId],
             msg.sender,
             randomTokenId
