@@ -8,7 +8,7 @@ import "./interfaces/IBasicERC20.sol";
 
 contract BasicERC20Capped is IBasicERC20, ERC20Capped, GatewayGuarded {
     /**
-     * @param gateway NFTGateway contract of the NFT contract.
+     * @param gateway Gateway contract of the ERC20 contract.
      */
     constructor(
         string memory name,

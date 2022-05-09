@@ -8,7 +8,7 @@ import "./interfaces/IBasicERC20.sol";
 
 contract BasicERC20 is IBasicERC20, ERC20, GatewayGuarded {
     /**
-     * @param gateway NFTGateway contract of the NFT contract.
+     * @param gateway Gateway contract of the ERC20 contract.
      */
     constructor(
         string memory name,
