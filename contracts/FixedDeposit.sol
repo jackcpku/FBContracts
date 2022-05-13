@@ -73,12 +73,6 @@ contract FixedDeposit {
         uint256 _amount,
         uint256 _duration
     ) external {
-        /******** CHECKS ********/
-        require(
-            block.timestamp < rewardEndTimestamp,
-            "FixedDeposit: staking period has ended"
-        );
-
         /******** EFFECTS ********/
 
         // Immediately mint some PVST to reward staker
@@ -91,30 +85,33 @@ contract FixedDeposit {
             )
         );
 
-        _updateCheckpoint(_staker);
+        // If staking period has not ended, update staking info
+        if (block.timestamp < rewardEndTimestamp) {
+            _updateCheckpoint(_staker);
 
-        uint256 addWeight = _stakeWeight(_duration, _amount);
+            uint256 addWeight = _stakeWeight(_duration, _amount);
 
-        StakerInfo storage info = stakers[_staker];
+            StakerInfo storage info = stakers[_staker];
 
-        info.weight += addWeight;
-        totalWeight += addWeight;
+            info.weight += addWeight;
+            totalWeight += addWeight;
 
-        info.stakes.push(
-            SingleStake(
-                _amount,
-                block.timestamp,
-                block.timestamp + _duration,
-                false
-            )
-        );
+            info.stakes.push(
+                SingleStake(
+                    _amount,
+                    block.timestamp,
+                    block.timestamp + _duration,
+                    false
+                )
+            );
 
-        // Transfer tokens
-        IERC20Upgradeable(stakingTokenAddress).safeTransferFrom(
-            _staker,
-            address(this),
-            _amount
-        );
+            // Transfer tokens
+            IERC20Upgradeable(stakingTokenAddress).safeTransferFrom(
+                _staker,
+                address(this),
+                _amount
+            );
+        }
 
         /******** LOGS ********/
 
@@ -181,6 +178,21 @@ contract FixedDeposit {
             info.checkpointReward +
             (accumulatedRewardPerWeight - info.checkpointRewardPerWeight) *
             info.weight;
+    }
+
+    function claimRewards(address _staker) external {
+        _updateCheckpoint(_staker);
+
+        StakerInfo storage info = stakers[_staker];
+        uint256 claimAmount = info.checkpointReward;
+        info.checkpointReward = 0;
+
+        // Transfer tokens
+        IERC20Upgradeable(stakingTokenAddress).safeTransferFrom(
+            address(this),
+            _staker,
+            claimAmount
+        );
     }
 
     function _checkUnstake(address _staker, uint256 _index)
