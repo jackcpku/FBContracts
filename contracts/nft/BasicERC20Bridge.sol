@@ -12,6 +12,8 @@ interface ITransferable {
 }
 
 contract BasicERC20Bridge is Ownable {
+    mapping(uint256 => bool) withdrawn;
+
     event Deposit(
         address indexed depositor,
         uint256 indexed amount,
@@ -44,11 +46,15 @@ contract BasicERC20Bridge is Ownable {
         uint256 _amount,
         uint256 _salt
     ) external onlyOwner {
+        require(!withdrawn[_salt], "BasicERC20Bridge: invalid salt");
+
         ITransferable(_erc20TokenAddress).transferFrom(
             address(this),
             _to,
             _amount
         );
+
+        withdrawn[_salt] = true;
 
         emit Withdraw(_to, _amount, _salt);
     }
