@@ -34,7 +34,7 @@ contract DepositPool is AccessControl, Pausable {
         uint256 indexed salt
     );
 
-    constructor(address _depositPoolAdmin) public {
+    constructor(address _depositPoolAdmin) {
         _grantRole(DEFAULT_ADMIN_ROLE, _depositPoolAdmin);
     }
 
