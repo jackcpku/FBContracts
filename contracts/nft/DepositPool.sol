@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 interface ITransferable {
     function transferFrom(
@@ -66,20 +67,18 @@ contract DepositPool is Pausable, Ownable {
         uint256 _amount,
         uint256 _salt
     ) external onlyWithdrawer {
-        require(
-            !withdrawn[_erc20TokenAddress][_salt],
-            "DepositPool: invalid salt"
-        );
+        _withdraw(_erc20TokenAddress, _to, _amount, _salt);
+    }
 
-        ITransferable(_erc20TokenAddress).transferFrom(
-            address(this),
-            _to,
-            _amount
-        );
-
-        withdrawn[_erc20TokenAddress][_salt] = true;
-
-        emit Withdraw(_erc20TokenAddress, _to, _amount, _salt);
+    function withdraw(
+        address _erc20TokenAddress,
+        address _to,
+        uint256 _amount,
+        uint256 _salt,
+        bytes calldata signature
+    ) external {
+        _verifySignature(_erc20TokenAddress, _to, _amount, _salt, signature);
+        _withdraw(_erc20TokenAddress, _to, _amount, _salt);
     }
 
     function setWithdrawer(address _withdrawer) external onlyOwner {
@@ -97,5 +96,59 @@ contract DepositPool is Pausable, Ownable {
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    function _verifySignature(
+        address _erc20TokenAddress,
+        address _to,
+        uint256 _amount,
+        uint256 _salt,
+        bytes calldata signature
+    ) internal view {
+        bytes32 msgHash = _getMessageHash(
+            _erc20TokenAddress,
+            _to,
+            _amount,
+            _salt
+        );
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(msgHash);
+        require(
+            ECDSA.recover(ethSignedMessageHash, signature) == withdrawer,
+            "DepositPool: invalid signature"
+        );
+    }
+
+    function _getMessageHash(
+        address _erc20TokenAddress,
+        address _to,
+        uint256 _amount,
+        uint256 _salt
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(_erc20TokenAddress, _to, _amount, _salt)
+            );
+    }
+
+    function _withdraw(
+        address _erc20TokenAddress,
+        address _to,
+        uint256 _amount,
+        uint256 _salt
+    ) internal {
+        require(
+            !withdrawn[_erc20TokenAddress][_salt],
+            "DepositPool: invalid salt"
+        );
+
+        ITransferable(_erc20TokenAddress).transferFrom(
+            address(this),
+            _to,
+            _amount
+        );
+
+        withdrawn[_erc20TokenAddress][_salt] = true;
+
+        emit Withdraw(_erc20TokenAddress, _to, _amount, _salt);
     }
 }
