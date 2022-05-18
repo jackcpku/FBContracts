@@ -13,7 +13,7 @@ import "../interfaces/IBasicERC721.sol";
 import "../interfaces/IBasicERC1155.sol";
 import "../interfaces/IBasicERC20.sol";
 
-contract Gateway is Initializable, AccessControl, IGateway {
+contract TokenGateway is Initializable, AccessControl, IGateway {
     /********************************************************************
      *                          Role System                             *
      ********************************************************************/

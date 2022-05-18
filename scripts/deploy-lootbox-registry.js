@@ -5,10 +5,10 @@ const { deploySimpleLootBoxRegistry } = require('../lib/deploy');
 
 const main = async () => {
     console.info("Network: " + hre.network.name);
-    console.info("Deploy lootbox with NFTGateway: " + hre.addrs.nftGateway);
+    console.info("Deploy lootbox with TokenGateway: " + hre.addrs.tokenGateway);
     const { confirm } = await prompt.get([{ name: "confirm", description: "Confirm? (y/N)" }]);
     if (confirm === 'y' || confirm === 'Y') {
-        lootbox = await deploySimpleLootBoxRegistry(hre.addrs.nftGateway);
+        lootbox = await deploySimpleLootBoxRegistry(hre.addrs.tokenGateway);
         console.info("SimpleLootBoxRegistry Deployed: " + lootbox.address);
     } else {
         console.error("Not confirmed, abort!");

@@ -2,12 +2,12 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const {
   deployMajorToken,
-  deployGatewayAndNFTFactory,
+  deployGatewayAndNFTFactories,
   deployDividend,
 } = require("../lib/deploy");
 
 describe("Test NFT Dividend..........", function () {
-  let pvs, dd, gateway, factory, feeRecipient;
+  let pvs, dd, gateway, nftFactory, feeRecipient;
 
   const p1pvs = BigInt(6_000_000);
   const p2pvs = BigInt(12_000_000);
@@ -45,9 +45,9 @@ describe("Test NFT Dividend..........", function () {
     pvs = await deployMajorToken(owner.address);
 
     //deploy nft factory
-    ({ gateway, factory } = await deployGatewayAndNFTFactory(gatewayAdmin));
+    ({ gateway, nftFactory } = await deployGatewayAndNFTFactories(gatewayAdmin));
     // Similate the call to obtain the return value.
-    nftContractAddress = await factory
+    nftContractAddress = await nftFactory
       .connect(u2)
       .callStatic.deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
 
@@ -153,7 +153,7 @@ describe("Test NFT Dividend..........", function () {
       nftContractAddress
     );
     // Let u2 deploy the contract.
-    await factory
+    await nftFactory
       .connect(u2)
       .deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
     await gateway
