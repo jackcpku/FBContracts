@@ -58,7 +58,7 @@ contract TokenGateway is Initializable, AccessControl, IGateway {
         require(
             isInManagement(msg.sender, _nftContract) ||
                 operatorWhitelist[msg.sender],
-            "NFTGateway: caller is not manager of the nft contract and is not in whitelist"
+            "TokenGateway: caller is not manager of the nft contract and is not in whitelist"
         );
         _;
     }
@@ -196,7 +196,7 @@ contract TokenGateway is Initializable, AccessControl, IGateway {
         // Check if the _operator is a contract address
         require(
             AddressUpgradeable.isContract(_operator),
-            "NFTGateway: operator is not contract"
+            "TokenGateway: operator is not contract"
         );
 
         operatorWhitelist[_operator] = true;
@@ -248,7 +248,7 @@ contract TokenGateway is Initializable, AccessControl, IGateway {
     {
         require(
             _newGateway != address(this),
-            "NFTGateway: new gateway should be different than the current one"
+            "TokenGateway: new gateway should be different than the current one"
         );
 
         nftManager[_nftContract] = address(0);
@@ -266,7 +266,7 @@ contract TokenGateway is Initializable, AccessControl, IGateway {
     {
         require(
             _gatewayAdmin != msg.sender,
-            "NFTGateway: new gateway admin should be different than the current one"
+            "TokenGateway: new gateway admin should be different than the current one"
         );
 
         emit TransferGatewayOwnership(msg.sender, _gatewayAdmin);
