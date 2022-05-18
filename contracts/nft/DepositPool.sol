@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 interface ITransferable {
@@ -12,9 +12,7 @@ interface ITransferable {
     ) external;
 }
 
-contract DepositPool is AccessControl, Pausable {
-    bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
-
+contract DepositPool is Pausable, Ownable {
     mapping(address => mapping(uint256 => bool)) deposited;
     mapping(address => mapping(uint256 => bool)) withdrawn;
 
@@ -34,9 +32,15 @@ contract DepositPool is AccessControl, Pausable {
         uint256 indexed salt
     );
 
-    constructor(address _depositPoolAdmin) {
-        _grantRole(DEFAULT_ADMIN_ROLE, _depositPoolAdmin);
+    modifier onlyWithdrawer() {
+        require(
+            msg.sender == withdrawer,
+            "DepositPool: msg.sender is not withdrawer"
+        );
+        _;
     }
+
+    constructor() {}
 
     function deposit(
         address _erc20TokenAddress,
@@ -61,7 +65,7 @@ contract DepositPool is AccessControl, Pausable {
         address _to,
         uint256 _amount,
         uint256 _salt
-    ) external onlyRole(WITHDRAWER_ROLE) {
+    ) external onlyWithdrawer {
         require(
             !withdrawn[_erc20TokenAddress][_salt],
             "DepositPool: invalid salt"
@@ -78,25 +82,20 @@ contract DepositPool is AccessControl, Pausable {
         emit Withdraw(_erc20TokenAddress, _to, _amount, _salt);
     }
 
-    function setWithdrawer(address _withdrawer)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setWithdrawer(address _withdrawer) external onlyOwner {
         require(
             _withdrawer != withdrawer,
             "DepositPool: should assign a different withdrawer"
         );
 
-        _revokeRole(WITHDRAWER_ROLE, withdrawer);
         withdrawer = _withdrawer;
-        _grantRole(WITHDRAWER_ROLE, withdrawer);
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() external onlyOwner {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() external onlyOwner {
         _unpause();
     }
 }
