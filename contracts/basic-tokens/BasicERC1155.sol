@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
-import "./management/BaseNFTManagement.sol";
-import "./interfaces/INFTGateway.sol";
+import "./management/GatewayGuarded.sol";
+import "./interfaces/IGateway.sol";
 import "./interfaces/IBasicERC1155.sol";
 
 contract BasicERC1155 is
@@ -13,14 +13,14 @@ contract BasicERC1155 is
     ERC1155,
     ERC1155Burnable,
     ERC1155Supply,
-    BaseNFTManagement
+    GatewayGuarded
 {
     /**
      * @param _gateway NFTGateway contract of the NFT contract.
      */
     constructor(string memory _uri, address _gateway)
         ERC1155(_uri)
-        BaseNFTManagement(_gateway)
+        GatewayGuarded(_gateway)
     {}
 
     function mint(
@@ -64,7 +64,7 @@ contract BasicERC1155 is
         override
         returns (bool)
     {
-        if (INFTGateway(gateway).operatorWhitelist(operator)) {
+        if (IGateway(gateway).operatorWhitelist(operator)) {
             return true;
         }
         return super.isApprovedForAll(account, operator);

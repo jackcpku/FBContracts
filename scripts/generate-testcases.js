@@ -3,7 +3,7 @@ const fs = require("fs");
 const hre = require("hardhat");
 const { ethers } = require("hardhat");
 const {
-  deployNFTGatewayAndNFTFactory,
+  deployGatewayAndNFTFactory,
   deployMajorToken,
 } = require("../lib/deploy.js");
 
@@ -45,7 +45,7 @@ async function run(tc) {
     await pvs.deployed();
 
     // Deploy Gateway and Factory contract.
-    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
+    ({ gateway, factory } = await deployGatewayAndNFTFactory(gatewayAdmin));
 
     // Let managers deploy nft contracts.
     const name = "erc721-contract";
@@ -303,7 +303,9 @@ function generateTestCases(N) {
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
     t.tokenId = ethers.utils.hexZeroPad(i + 1, 32);
-    t.price = ethers.utils.parseUnits(((i + 1) * 100).toString(), 18).toHexString();
+    t.price = ethers.utils
+      .parseUnits(((i + 1) * 100).toString(), 18)
+      .toHexString();
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 20) +
       (i + 1) +
@@ -319,7 +321,9 @@ function generateTestCases(N) {
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
     t.tokenId = ethers.utils.hexZeroPad(N + i + 1, 32);
-    t.price = ethers.utils.parseUnits(((i + 1) * 100).toString(), 18).toHexString();
+    t.price = ethers.utils
+      .parseUnits(((i + 1) * 100).toString(), 18)
+      .toHexString();
     t.sellerSelector = "seller2";
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 21) +
@@ -336,7 +340,9 @@ function generateTestCases(N) {
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
     t.tokenId = ethers.utils.hexZeroPad(N * 2 + i + 1, 32);
-    t.price = ethers.utils.parseUnits(((i + 1) * 100).toString(), 18).toHexString();
+    t.price = ethers.utils
+      .parseUnits(((i + 1) * 100).toString(), 18)
+      .toHexString();
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 22) +
       (i + 1) +
@@ -353,7 +359,9 @@ function generateTestCases(N) {
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
     t.tokenId = ethers.utils.hexZeroPad(N * 3 + i + 1, 32);
-    t.price = ethers.utils.parseUnits(((i + 1) * 100).toString(), 18).toHexString();
+    t.price = ethers.utils
+      .parseUnits(((i + 1) * 100).toString(), 18)
+      .toHexString();
     t.serviceFee = 5000;
     t.royaltyFee = 0;
     t.sellerSelector = "basicERC721Manager";
@@ -371,7 +379,9 @@ function generateTestCases(N) {
   // Same offer, ONLY different price
   for (let i = 0; i < N; i++) {
     const t = JSON.parse(JSON.stringify(basicTest));
-    t.price = ethers.utils.parseUnits(((i + 1) * 100).toString(), 18).toHexString();
+    t.price = ethers.utils
+      .parseUnits(((i + 1) * 100).toString(), 18)
+      .toHexString();
     priceBundle.push(t);
   }
 

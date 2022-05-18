@@ -3,17 +3,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "./management/BaseNFTManagement.sol";
+import "./management/GatewayGuarded.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./interfaces/INFTGateway.sol";
+import "./interfaces/IGateway.sol";
 import "./interfaces/IBasicERC721.sol";
 
-contract BasicERC721 is
-    IBasicERC721,
-    ERC721,
-    ERC721Burnable,
-    BaseNFTManagement
-{
+contract BasicERC721 is IBasicERC721, ERC721, ERC721Burnable, GatewayGuarded {
     using Strings for uint256;
 
     string private __baseURI;
@@ -26,7 +21,7 @@ contract BasicERC721 is
         string memory symbol,
         string memory baseURI,
         address gateway
-    ) ERC721(name, symbol) BaseNFTManagement(gateway) {
+    ) ERC721(name, symbol) GatewayGuarded(gateway) {
         __baseURI = baseURI;
     }
 
@@ -63,7 +58,7 @@ contract BasicERC721 is
         override
         returns (bool)
     {
-        if (INFTGateway(gateway).operatorWhitelist(operator)) {
+        if (IGateway(gateway).operatorWhitelist(operator)) {
             return true;
         }
         return super.isApprovedForAll(owner, operator);

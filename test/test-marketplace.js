@@ -4,7 +4,7 @@ const hre = require("hardhat");
 
 const {
   deployMajorToken,
-  deployNFTGatewayAndNFTFactory,
+  deployGatewayAndNFTFactory,
   deployMarketplace,
 } = require("../lib/deploy.js");
 
@@ -46,7 +46,7 @@ describe("Test Marketplace Contract", function () {
     fbt = await deployMajorToken(owner.address);
 
     // Deploy Gateway and Factory contract.
-    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
+    ({ gateway, factory } = await deployGatewayAndNFTFactory(gatewayAdmin));
 
     const from1 = factory.address;
     const deployeeName1 = "BasicERC721";
@@ -91,7 +91,6 @@ describe("Test Marketplace Contract", function () {
     );
 
     [marketplace] = await deployMarketplace(fbt.address, platform.address);
-
   });
 
   describe("ERC721 <> ERC20", async () => {

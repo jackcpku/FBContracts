@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const {
   deployMajorToken,
-  deployNFTGatewayAndNFTFactory,
+  deployGatewayAndNFTFactory,
   deployDividend,
 } = require("../lib/deploy");
 
@@ -45,7 +45,7 @@ describe("Test NFT Dividend..........", function () {
     pvs = await deployMajorToken(owner.address);
 
     //deploy nft factory
-    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
+    ({ gateway, factory } = await deployGatewayAndNFTFactory(gatewayAdmin));
     // Similate the call to obtain the return value.
     nftContractAddress = await factory
       .connect(u2)

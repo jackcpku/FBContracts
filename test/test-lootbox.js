@@ -3,7 +3,7 @@ const { BigNumber } = require("ethers");
 const hre = require("hardhat");
 const {
   deploySimpleLootBoxRegistry,
-  deployNFTGatewayAndNFTFactory,
+  deployGatewayAndNFTFactory,
 } = require("../lib/deploy.js");
 const {
   calculateCreate2AddressBasicERC721,
@@ -22,7 +22,7 @@ describe("Test LootBox Contract", function () {
     [owner, gatewayAdmin, newGatewayAdmin, nftManager] =
       await hre.ethers.getSigners();
 
-    ({ gateway, factory } = await deployNFTGatewayAndNFTFactory(gatewayAdmin));
+    ({ gateway, factory } = await deployGatewayAndNFTFactory(gatewayAdmin));
 
     lootBox = await deploySimpleLootBoxRegistry(gateway.address);
 
