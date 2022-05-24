@@ -5,10 +5,11 @@ const { deployGatewayAndFactories } = require("../lib/deploy.js");
 const {
   calculateCreate2AddressBasicERC721,
   calculateCreate2AddressBasicERC1155,
+  calculateCreate2AddressBasicERC20,
 } = require("../lib/create2.js");
 
 describe("Test NFTFactory & NFTGateway Contract", function () {
-  let gateway, nftfactory;
+  let gateway, nftfactory, erc20factory;
   let owner, gatewayAdmin, newGatewayAdmin, u2, u3, u4, gatewayManager3, u5, u6;
 
   beforeEach("Deploy contracts", async function () {
@@ -27,7 +28,9 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
       u6,
     ] = await hre.ethers.getSigners();
 
-    ({ gateway, nftfactory } = await deployGatewayAndFactories(gatewayAdmin));
+    ({ gateway, nftfactory, erc20factory } = await deployGatewayAndFactories(
+      gatewayAdmin
+    ));
   });
 
   it("ERC721 gateway operations", async function () {
@@ -176,6 +179,64 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     // u2 sets uri of u2Contract
     await gateway.connect(u2).ERC1155_setURI(u2Contract.address, "ipfs://{id}");
     expect(await u2Contract.uri(333)).to.equal("ipfs://{id}");
+  });
+
+  it("ERC20 gateway oprations", async function () {
+    const from = erc20factory.address;
+    const deployeeName = "BasicERC20";
+    const tokenName = "U2-contract";
+    const tokenSymbol = "U2T";
+    const cap = 0;
+    const salt = 233;
+    const u2ContractAddress = await calculateCreate2AddressBasicERC20(
+      from,
+      deployeeName,
+      tokenName,
+      tokenSymbol,
+      cap,
+      gateway.address,
+      salt
+    );
+    // Let u2 deploy the contract.
+    await erc20factory
+      .connect(u2)
+      .deployBasicERC20(tokenName, tokenSymbol, cap, salt);
+    let u2Contract = await hre.ethers.getContractAt(
+      deployeeName,
+      u2ContractAddress
+    );
+
+    await gateway.connect(gatewayAdmin).addManager(erc20factory.address);
+    expect(await u2Contract.gateway()).to.equal(gateway.address);
+  });
+
+  it("ERC20Capped gateway oprations", async function () {
+    const from = erc20factory.address;
+    const deployeeName = "BasicERC20Capped";
+    const tokenName = "U2-contract";
+    const tokenSymbol = "U2T";
+    const cap = 100000;
+    const salt = 233;
+    const u2ContractAddress = await calculateCreate2AddressBasicERC20(
+      from,
+      deployeeName,
+      tokenName,
+      tokenSymbol,
+      cap,
+      gateway.address,
+      salt
+    );
+    // Let u2 deploy the contract.
+    await erc20factory
+      .connect(u2)
+      .deployBasicERC20(tokenName, tokenSymbol, cap, salt);
+    let u2Contract = await hre.ethers.getContractAt(
+      deployeeName,
+      u2ContractAddress
+    );
+
+    await gateway.connect(gatewayAdmin).addManager(erc20factory.address);
+    expect(await u2Contract.gateway()).to.equal(gateway.address);
   });
 
   it("should fail to transfer gateway ownership", async function () {
