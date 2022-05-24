@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-const { deployGatewayAndNFTFactory } = require("../lib/deploy.js");
+const { deployGatewayAndFactories } = require("../lib/deploy.js");
 const { calculateCreate2AddressBasicERC721 } = require("../lib/create2.js");
 
 const {
@@ -11,7 +11,7 @@ const {
 const { BigNumber } = require("ethers");
 
 describe("Test NFTElection Contract", function () {
-  let gateway, factory;
+  let gateway, nftfactory;
   let vote, ticket, pvs, someERC721Contract;
   let owner, manager0, user0, user1;
 
@@ -47,8 +47,8 @@ describe("Test NFTElection Contract", function () {
     await ticket.mint(user1.address, tktAmount[1]);
 
     // Set up ERC721 contract
-    ({ gateway, factory } = await deployGatewayAndNFTFactory(owner));
-    const from = factory.address;
+    ({ gateway, nftfactory } = await deployGatewayAndFactories(owner));
+    const from = nftfactory.address;
     const deployeeName = "BasicERC721";
     const tokenName = "SomeERC721";
     const tokenSymbol = "SNFT";
@@ -63,7 +63,7 @@ describe("Test NFTElection Contract", function () {
       gateway.address,
       salt
     );
-    await factory
+    await nftfactory
       .connect(manager0)
       .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt);
     someERC721Contract = await hre.ethers.getContractAt(

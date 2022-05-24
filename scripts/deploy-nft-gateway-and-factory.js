@@ -1,18 +1,18 @@
 const hre = require("hardhat");
 
-const { deployGatewayAndNFTFactory } = require("../lib/deploy.js");
+const { deployGatewayAndFactories } = require("../lib/deploy.js");
 
 const main = async () => {
   [admin] = await hre.ethers.getSigners();
-  let { gateway, factory, gatewayImpl, factoryImpl } =
-    await deployGatewayAndNFTFactory(admin);
+  let { gateway, nftfactory, gatewayImpl, factoryImpl } =
+    await deployGatewayAndFactories(admin);
 
   console.log(`Gateway admin address: ${admin.address}`);
   console.log(`Successfully deployed:`);
   console.log(`Gateway contract proxy at address ${gateway.address}`);
-  console.log(`Factory contract proxy at address ${factory.address}`);
+  console.log(`Factory contract proxy at address ${nftfactory.address}`);
   console.log(`Gateway contract implementation at address ${gatewayImpl}`);
-  console.log(`Factory contract implementation at address ${factoryImpl}`);
+  console.log(`Factory contract implementation at address ${nftfactoryImpl}`);
 };
 
 // We recommend this pattern to be able to use async/await everywhere
