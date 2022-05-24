@@ -3,12 +3,19 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./management/GatewayGuarded.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/IGateway.sol";
 import "./interfaces/IBasicERC721.sol";
 
-contract BasicERC721 is IBasicERC721, ERC721, ERC721Burnable, GatewayGuarded {
+contract BasicERC721 is
+    IBasicERC721,
+    ERC721,
+    ERC721Burnable,
+    GatewayGuarded,
+    Pausable
+{
     using Strings for uint256;
 
     string private __baseURI;
@@ -62,5 +69,13 @@ contract BasicERC721 is IBasicERC721, ERC721, ERC721Burnable, GatewayGuarded {
             return true;
         }
         return super.isApprovedForAll(owner, operator);
+    }
+
+    function pause() external onlyGateway {
+        _pause();
+    }
+
+    function unpause() external onlyGateway {
+        _unpause();
     }
 }
