@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./management/GatewayGuarded.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IGateway.sol";
 import "./interfaces/IBasicERC20.sol";
 
-contract BasicERC20 is IBasicERC20, ERC20, GatewayGuarded {
+contract BasicERC20 is
+    IBasicERC20,
+    ERC20,
+    ERC20Burnable,
+    GatewayGuarded,
+    Pausable
+{
     /**
      * @param gateway Gateway contract of the ERC20 contract.
      */
@@ -18,5 +26,13 @@ contract BasicERC20 is IBasicERC20, ERC20, GatewayGuarded {
 
     function mint(address to, uint256 amount) external override onlyGateway {
         _mint(to, amount);
+    }
+
+    function pause() external onlyGateway {
+        _pause();
+    }
+
+    function unpause() external onlyGateway {
+        _unpause();
     }
 }
