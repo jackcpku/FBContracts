@@ -3,7 +3,7 @@ const { BigNumber } = require("ethers");
 const hre = require("hardhat");
 const {
   deploySimpleLootBoxRegistry,
-  deployGatewayAndNFTFactories,
+  deployGatewayAndFactories,
 } = require("../lib/deploy.js");
 const {
   calculateCreate2AddressBasicERC721,
@@ -13,7 +13,7 @@ const {
 // TODO
 
 describe("Test LootBox Contract", function () {
-  let lootBox, nftFactory, gateway, basicERC721Contract, basicERC1155Contract;
+  let lootBox, nftfactory, gateway, basicERC721Contract, basicERC1155Contract;
 
   beforeEach("Deploy contracts", async function () {
     // Reset test environment.
@@ -22,13 +22,13 @@ describe("Test LootBox Contract", function () {
     [owner, gatewayAdmin, newGatewayAdmin, nftManager] =
       await hre.ethers.getSigners();
 
-    ({ gateway, nftFactory } = await deployGatewayAndNFTFactories(gatewayAdmin));
+    ({ gateway, nftfactory } = await deployGatewayAndFactories(gatewayAdmin));
 
     lootBox = await deploySimpleLootBoxRegistry(gateway.address);
 
     {
       // Deploy BasicERC721 contract
-      const from = nftFactory.address;
+      const from = nftfactory.address;
       const deployeeName = "BasicERC721";
       const tokenName = "U2-contract";
       const tokenSymbol = "U2T";
@@ -46,7 +46,7 @@ describe("Test LootBox Contract", function () {
         );
 
       // Let u2 deploy the contract.
-      await nftFactory
+      await nftfactory
         .connect(nftManager)
         .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt);
       basicERC721Contract = await hre.ethers.getContractAt(
@@ -58,7 +58,7 @@ describe("Test LootBox Contract", function () {
 
     {
       // Deploy BasicERC1155 contract
-      const from = nftFactory.address;
+      const from = nftfactory.address;
       const deployeeName = "BasicERC1155";
       const uri = "some uri";
       const salt = 233;
@@ -72,7 +72,7 @@ describe("Test LootBox Contract", function () {
         );
 
       // Let nftManager deploy the contract.
-      await nftFactory.connect(nftManager).deployBasicERC1155(uri, salt);
+      await nftfactory.connect(nftManager).deployBasicERC1155(uri, salt);
       basicERC1155Contract = await hre.ethers.getContractAt(
         deployeeName,
         basicERC1155ContractAddress

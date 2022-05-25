@@ -3,13 +3,13 @@ const fs = require("fs");
 const hre = require("hardhat");
 const { ethers } = require("hardhat");
 const {
-  deployGatewayAndNFTFactories,
+  deployGatewayAndFactories,
   deployMajorToken,
 } = require("../lib/deploy.js");
 
 async function run(tc) {
   // Contracts
-  let gateway, nftFactory, marketplace, pvs;
+  let gateway, nftfactory, marketplace, pvs;
   let basicERC721; // NFT contract deployed by basicERC721Manager.
   // Addresses
   let gatewayAdmin;
@@ -45,7 +45,7 @@ async function run(tc) {
     await pvs.deployed();
 
     // Deploy Gateway and Factory contract.
-    ({ gateway, nftFactory } = await deployGatewayAndNFTFactories(gatewayAdmin));
+    ({ gateway, nftfactory } = await deployGatewayAndFactories(gatewayAdmin));
 
     // Let managers deploy nft contracts.
     const name = "erc721-contract";
@@ -53,10 +53,10 @@ async function run(tc) {
     const uri = "https://erc721/";
     const salt =
       "0x0000000000000000000000000000000000000000000000000000000000002022";
-    let basicERC721Address = await nftFactory
+    let basicERC721Address = await nftfactory
       .connect(basicERC721Manager)
       .callStatic.deployBasicERC721(name, symbol, uri, salt);
-    await nftFactory
+    await nftfactory
       .connect(basicERC721Manager)
       .deployBasicERC721(name, symbol, uri, salt);
     basicERC721 = await hre.ethers.getContractAt(
@@ -202,8 +202,8 @@ async function run(tc) {
 
     if (buyerSelector == "") {
       return {
-        sellerOffer
-      }
+        sellerOffer,
+      };
     }
 
     // ********************************************* BUYER INFO *********************************************

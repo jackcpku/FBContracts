@@ -4,7 +4,7 @@ const hre = require("hardhat");
 
 const {
   deployMajorToken,
-  deployGatewayAndNFTFactories,
+  deployGatewayAndFactories,
   deployMarketplace,
 } = require("../lib/deploy.js");
 
@@ -15,7 +15,7 @@ const {
 
 describe("Test Marketplace Contract", function () {
   // Contracts
-  let gateway, nftFactory, marketplace, fbt;
+  let gateway, nftfactory, marketplace, fbt;
   let nftContract1; // NFT contract deployed by manager1.
   let nftContract2; // NFT contract deployed by manager2.
   // Addresses
@@ -46,9 +46,9 @@ describe("Test Marketplace Contract", function () {
     fbt = await deployMajorToken(owner.address);
 
     // Deploy Gateway and Factory contract.
-    ({ gateway, nftFactory } = await deployGatewayAndNFTFactories(gatewayAdmin));
+    ({ gateway, nftfactory } = await deployGatewayAndFactories(gatewayAdmin));
 
-    const from1 = nftFactory.address;
+    const from1 = nftfactory.address;
     const deployeeName1 = "BasicERC721";
     const tokenName = "nft-contract-1";
     const tokenSymbol = "UC1";
@@ -64,7 +64,7 @@ describe("Test Marketplace Contract", function () {
       salt1
     );
 
-    await nftFactory
+    await nftfactory
       .connect(manager1)
       .deployBasicERC721(tokenName, tokenSymbol, baseURI, salt1);
     nftContract1 = await hre.ethers.getContractAt(
@@ -72,7 +72,7 @@ describe("Test Marketplace Contract", function () {
       nftContract1Address
     );
 
-    const from2 = nftFactory.address;
+    const from2 = nftfactory.address;
     const deployeeName2 = "BasicERC1155";
     const uri = "some uri";
     const salt2 = 233;
@@ -84,7 +84,7 @@ describe("Test Marketplace Contract", function () {
       salt2
     );
 
-    await nftFactory.connect(manager2).deployBasicERC1155(uri, salt2);
+    await nftfactory.connect(manager2).deployBasicERC1155(uri, salt2);
     nftContract2 = await hre.ethers.getContractAt(
       deployeeName2,
       nftContract2Address

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./management/GatewayGuarded.sol";
 import "./interfaces/IGateway.sol";
 import "./interfaces/IBasicERC1155.sol";
@@ -13,7 +14,8 @@ contract BasicERC1155 is
     ERC1155,
     ERC1155Burnable,
     ERC1155Supply,
-    GatewayGuarded
+    GatewayGuarded,
+    Pausable
 {
     /**
      * @param _gateway NFTGateway contract of the NFT contract.
@@ -54,7 +56,7 @@ contract BasicERC1155 is
         uint256[] memory ids,
         uint256[] memory amounts,
         bytes memory data
-    ) internal override(ERC1155, ERC1155Supply) {
+    ) internal override(ERC1155, ERC1155Supply) whenNotPaused {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
 
@@ -68,5 +70,13 @@ contract BasicERC1155 is
             return true;
         }
         return super.isApprovedForAll(account, operator);
+    }
+
+    function pause() external onlyGateway {
+        _pause();
+    }
+
+    function unpause() external onlyGateway {
+        _unpause();
     }
 }
