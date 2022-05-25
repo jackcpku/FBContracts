@@ -9,4 +9,8 @@ interface IGateway is IERC721Gateway, IERC1155Gateway, IERC20Gateway {
     function operatorWhitelist(address _operator) external view returns (bool);
 
     function setManagerOf(address _nftContract, address _manager) external;
+
+    function pause(address _contract) external;
+
+    function unpause(address _contract) external;
 }

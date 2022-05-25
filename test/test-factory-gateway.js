@@ -208,6 +208,53 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     await gateway.connect(gatewayAdmin).addManager(erc20factory.address);
     expect(await u2Contract.gateway()).to.equal(gateway.address);
+
+    const initialSupply = 100;
+    const transferAmount = 50;
+    const burnAmount = 20;
+    const transferAmountSmall = 1;
+
+    await gateway
+      .connect(u2)
+      .ERC20_mint(u2Contract.address, u2.address, initialSupply);
+
+    expect(await u2Contract.balanceOf(u2.address)).to.equal(initialSupply);
+
+    // u2 transfers to u3
+    await u2Contract.connect(u2).transfer(u3.address, transferAmount);
+
+    expect(await u2Contract.balanceOf(u2.address)).to.equal(
+      initialSupply - transferAmount
+    );
+    expect(await u2Contract.balanceOf(u3.address)).to.equal(transferAmount);
+
+    // u2 burns some tokens
+    await u2Contract.connect(u2).burn(burnAmount);
+
+    // u2 tries to burn from u3
+    await expect(
+      u2Contract.connect(u2).burnFrom(u3.address, burnAmount)
+    ).to.be.revertedWith("ERC20: burn amount exceeds allowance");
+
+    // Pause
+    await gateway.connect(u2).pause(u2Contract.address);
+
+    await expect(
+      u2Contract.connect(u2).transfer(u3.address, transferAmountSmall)
+    ).to.be.revertedWith("Pausable: paused");
+
+    // Unpause
+    await gateway.connect(u2).unpause(u2Contract.address);
+
+    // u2 transfers small amount to u3
+    await u2Contract.connect(u2).transfer(u3.address, transferAmountSmall);
+
+    expect(await u2Contract.balanceOf(u2.address)).to.equal(
+      initialSupply - transferAmount - burnAmount - transferAmountSmall
+    );
+    expect(await u2Contract.balanceOf(u3.address)).to.equal(
+      transferAmount + transferAmountSmall
+    );
   });
 
   it("ERC20Capped gateway oprations", async function () {

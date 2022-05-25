@@ -12,6 +12,7 @@ import "../interfaces/IGatewayGuarded.sol";
 import "../interfaces/IBasicERC721.sol";
 import "../interfaces/IBasicERC1155.sol";
 import "../interfaces/IBasicERC20.sol";
+import "../interfaces/IPausable.sol";
 
 contract Gateway is Initializable, AccessControl, IGateway {
     /********************************************************************
@@ -152,6 +153,22 @@ contract Gateway is Initializable, AccessControl, IGateway {
         uint256 _amount
     ) external override onlyManagerAndWhitelist(_erc20Contract) {
         IBasicERC20(_erc20Contract).mint(_recipient, _amount);
+    }
+
+    function pause(address _contract)
+        external
+        override
+        onlyManagerAndWhitelist(_contract)
+    {
+        IPausable(_contract).pause();
+    }
+
+    function unpause(address _contract)
+        external
+        override
+        onlyManagerAndWhitelist(_contract)
+    {
+        IPausable(_contract).unpause();
     }
 
     /********************************************************************
