@@ -24,6 +24,16 @@ contract BasicERC20 is
         address gateway
     ) ERC20(name, symbol) GatewayGuarded(gateway) {}
 
+    function transfer(address recipient, uint256 amount)
+        public
+        override
+        whenNotPaused
+        returns (bool)
+    {
+        super.transfer(recipient, amount);
+        return true;
+    }
+
     function mint(address to, uint256 amount) external override onlyGateway {
         _mint(to, amount);
     }
