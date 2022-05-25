@@ -70,7 +70,7 @@ async function run(tc) {
     await marketplace.deployed();
 
     // Initialize the marketplace contract.
-    await marketplace.setMainPaymentToken(pvs.address);
+    // await marketplace.setMainPaymentToken(pvs.address);
     await marketplace.setServiceFeeRecipient(platform.address);
   }
   async function getOffers({
@@ -200,6 +200,12 @@ async function run(tc) {
       };
     }
 
+    if (buyerSelector == "") {
+      return {
+        sellerOffer,
+      };
+    }
+
     // ********************************************* BUYER INFO *********************************************
 
     let buyerOffer;
@@ -281,8 +287,8 @@ function generateTestCases(N) {
   const basicTest = {
     tokenId: ethers.utils.hexZeroPad(0, 32),
     price: ethers.utils.hexZeroPad(1000, 16),
-    serviceFee: 100,
-    royaltyFee: 100,
+    serviceFee: 200,
+    royaltyFee: 200,
     sellerSelector: "seller1",
     sellerSellOrBuy: true,
     sellerListingTime: 0,
@@ -365,14 +371,11 @@ function generateTestCases(N) {
     t.serviceFee = 5000;
     t.royaltyFee = 0;
     t.sellerSelector = "basicERC721Manager";
+    t.buyerSelector = "";
     t.sellerSalt =
       basicTest.sellerSalt.substring(0, 23) +
       (i + 1) +
       basicTest.sellerSalt.substring(24);
-    t.buyerSalt =
-      basicTest.buyerSalt.substring(0, 23) +
-      (i + 1) +
-      basicTest.buyerSalt.substring(24);
     validBundle.push(t);
   }
 
@@ -412,7 +415,9 @@ async function main() {
     const tc = validBundle[i];
     const offerPair = await run(tc);
     validOffers.push(offerPair.sellerOffer);
-    validOffers.push(offerPair.buyerOffer);
+    if (offerPair.buyerOffer) {
+      validOffers.push(offerPair.buyerOffer);
+    }
   }
   for (let i = 0; i < priceBundle.length; i++) {
     console.log(`Processing ${i + 1} / ${priceBundle.length}`);

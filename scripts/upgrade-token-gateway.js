@@ -2,9 +2,9 @@ const hre = require("hardhat");
 const { upgradeContract } = require("../lib/upgrades");
 
 async function main() {
-    const instance = await upgradeContract("NFTGateway", hre.addrs.nftGateway);
+    const instance = await upgradeContract("TokenGateway", hre.addrs.tokenGateway);
 
-    console.log("NFTGateway upgraded: ", instance.address);
+    console.log("TokenGateway upgraded: ", instance.address);
     return instance
 }
 
