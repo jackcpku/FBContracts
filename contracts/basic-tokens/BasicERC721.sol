@@ -78,4 +78,12 @@ contract BasicERC721 is
     function unpause() external onlyGateway {
         _unpause();
     }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override whenNotPaused {
+        super._beforeTokenTransfer(from, to, tokenId);
+    }
 }
