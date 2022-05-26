@@ -15,14 +15,23 @@ contract BasicERC20 is
     GatewayGuarded,
     Pausable
 {
+    uint8 private _decimals;
+
     /**
      * @param gateway Gateway contract of the ERC20 contract.
      */
     constructor(
         string memory name,
         string memory symbol,
+        uint8 decimal,
         address gateway
-    ) ERC20(name, symbol) GatewayGuarded(gateway) {}
+    ) ERC20(name, symbol) GatewayGuarded(gateway) {
+        _decimals = decimal;
+    }
+
+    function decimals() public view virtual override returns (uint8) {
+        return _decimals;
+    }
 
     function mint(address to, uint256 amount) external override onlyGateway {
         _mint(to, amount);

@@ -187,19 +187,21 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     const deployeeName = "BasicERC20";
     const tokenName = "U2-contract";
     const tokenSymbol = "U2T";
+    const decimals = 9;
     const salt = 233;
     const u2ContractAddress = await calculateCreate2AddressBasicERC20(
       from,
       deployeeName,
       tokenName,
       tokenSymbol,
+      decimals,
       gateway.address,
       salt
     );
     // Let u2 deploy the contract.
     await erc20factory
       .connect(u2)
-      .deployBasicERC20(tokenName, tokenSymbol, salt);
+      .deployBasicERC20(tokenName, tokenSymbol, decimals, salt);
     let u2Contract = await hre.ethers.getContractAt(
       deployeeName,
       u2ContractAddress
@@ -207,6 +209,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     await gateway.connect(gatewayAdmin).addManager(erc20factory.address);
     expect(await u2Contract.gateway()).to.equal(gateway.address);
+    expect(await u2Contract.decimals()).to.equal(decimals);
 
     const initialSupply = 100;
     const transferAmount = 50;
@@ -261,13 +264,15 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     const deployeeName = "BasicERC20Capped";
     const tokenName = "U2-contract";
     const tokenSymbol = "U2T";
-    const cap = 100000;
+    const decimals = 2;
+    const cap = 100000000;
     const salt = 233;
     const u2ContractAddress = await calculateCreate2AddressBasicERC20Capped(
       from,
       deployeeName,
       tokenName,
       tokenSymbol,
+      decimals,
       cap,
       gateway.address,
       salt
@@ -275,7 +280,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     // Let u2 deploy the contract.
     await erc20factory
       .connect(u2)
-      .deployBasicERC20Capped(tokenName, tokenSymbol, cap, salt);
+      .deployBasicERC20Capped(tokenName, tokenSymbol, decimals, cap, salt);
     let u2Contract = await hre.ethers.getContractAt(
       deployeeName,
       u2ContractAddress
@@ -283,6 +288,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
 
     await gateway.connect(gatewayAdmin).addManager(erc20factory.address);
     expect(await u2Contract.gateway()).to.equal(gateway.address);
+    expect(await u2Contract.decimals()).to.equal(decimals);
   });
 
   it("should fail to transfer gateway ownership", async function () {

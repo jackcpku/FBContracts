@@ -27,10 +27,16 @@ contract ERC20Factory is Initializable {
     function deployBasicERC20(
         string calldata _name,
         string calldata _symbol,
+        uint8 _decimals,
         uint256 _salt
     ) external returns (address deployedAddress) {
         deployedAddress = address(
-            new BasicERC20{salt: bytes32(_salt)}(_name, _symbol, gatewayAddress)
+            new BasicERC20{salt: bytes32(_salt)}(
+                _name,
+                _symbol,
+                _decimals,
+                gatewayAddress
+            )
         );
 
         emit DeployContract(msg.sender, deployedAddress, false);
@@ -46,6 +52,7 @@ contract ERC20Factory is Initializable {
     function deployBasicERC20Capped(
         string calldata _name,
         string calldata _symbol,
+        uint8 _decimals,
         uint256 _cap,
         uint256 _salt
     ) external returns (address deployedAddress) {
@@ -55,6 +62,7 @@ contract ERC20Factory is Initializable {
             new BasicERC20Capped{salt: bytes32(_salt)}(
                 _name,
                 _symbol,
+                _decimals,
                 _cap,
                 gatewayAddress
             )
