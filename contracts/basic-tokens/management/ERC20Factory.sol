@@ -23,36 +23,44 @@ contract ERC20Factory is Initializable {
 
     /**
      * Deploy a BasicERC20 contract.
-     * @param _cap The upperbound of the total token supply. If _cap is `0`,
-     * it means there's no limitation.
      */
     function deployBasicERC20(
+        string calldata _name,
+        string calldata _symbol,
+        uint256 _salt
+    ) external returns (address deployedAddress) {
+        deployedAddress = address(
+            new BasicERC20{salt: bytes32(_salt)}(_name, _symbol, gatewayAddress)
+        );
+
+        emit DeployContract(msg.sender, deployedAddress, false);
+
+        // Set manager of the newly deployed contract.
+        IGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);
+    }
+
+    /**
+     * Deploy a BasicERC20 contract.
+     * @param _cap The upperbound of the total token supply.
+     */
+    function deployBasicERC20Capped(
         string calldata _name,
         string calldata _symbol,
         uint256 _cap,
         uint256 _salt
     ) external returns (address deployedAddress) {
-        if (_cap == 0) {
-            // Deploy the contract and set its gateway.
-            deployedAddress = address(
-                new BasicERC20{salt: bytes32(_salt)}(
-                    _name,
-                    _symbol,
-                    gatewayAddress
-                )
-            );
-        } else {
-            deployedAddress = address(
-                new BasicERC20Capped{salt: bytes32(_salt)}(
-                    _name,
-                    _symbol,
-                    _cap,
-                    gatewayAddress
-                )
-            );
-        }
+        require(_cap > 0, "ERC20Factory: invalid cap");
 
-        emit DeployContract(msg.sender, deployedAddress, _cap != 0);
+        deployedAddress = address(
+            new BasicERC20Capped{salt: bytes32(_salt)}(
+                _name,
+                _symbol,
+                _cap,
+                gatewayAddress
+            )
+        );
+
+        emit DeployContract(msg.sender, deployedAddress, true);
 
         // Set manager of the newly deployed contract.
         IGateway(gatewayAddress).setManagerOf(deployedAddress, msg.sender);

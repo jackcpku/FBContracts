@@ -37,6 +37,7 @@ extendEnvironment((hre) => {
   let vesting = "";
   let tokenGateway = "";
   let nftFactory = "";
+  let erc20Factory = "";
   let simpleLootBoxRegistry = "";
   let marketplace = "";
   let ppn = "";
@@ -51,6 +52,7 @@ extendEnvironment((hre) => {
       vesting = "0xcac23BF1ebD991356930da8762a411a9F233933f";
       tokenGateway = "0x197560a2CB04721079225529aFbc53D65759a13C";
       nftFactory = "0x1808f367439774c7840a67d1Dfd3f159Ad0F3681";
+      erc20Factory = "0x10794E1E76E8dFF39217a4d126BEeb76e47666Bf";
       simpleLootBoxRegistry = "0xE97480B8efBCCdB7ec6D8C81987541E493E4843A";
       marketplace = "0x328bA41a29550AdD31C26c3dc9B8604ab048f5E8";
       ppn = "0x97746889eF539182f5c2FbAb41D7099ba7ca4385";
@@ -65,6 +67,7 @@ extendEnvironment((hre) => {
       vesting = "";
       tokenGateway = "";
       nftFactory = "";
+      erc20Factory = "";
       simpleLootBoxRegistry = "";
       marketplace = "";
       ppn = "";
@@ -74,7 +77,7 @@ extendEnvironment((hre) => {
       break;
   }
   hre.addrs = {
-    token, vesting, presale, tokenGateway, nftFactory, simpleLootBoxRegistry, marketplace, ppn, dividend, filter, splitter
+    token, vesting, presale, tokenGateway, nftFactory, erc20Factory, simpleLootBoxRegistry, marketplace, ppn, dividend, filter, splitter
   }
   hre.contracts = {
     token: token == "" ? null : hre.ethers.getContractAt("PlayverseToken", token),
@@ -82,6 +85,7 @@ extendEnvironment((hre) => {
     presale: presale == "" ? null : hre.ethers.getContractAt("Presale", presale),
     tokenGateway: tokenGateway == "" ? null : hre.ethers.getContractAt("TokenGateway", tokenGateway),
     nftFactory: nftFactory == "" ? null : hre.ethers.getContractAt("NFTFactory", nftFactory),
+    erc20Factory: erc20Factory == "" ? null : hre.ethers.getContractAt("ERC20Factory", erc20Factory),
     simpleLootBoxRegistry: simpleLootBoxRegistry == "" ? null : hre.ethers.getContractAt("SimpleLootBoxRegistry", simpleLootBoxRegistry),
     marketplace: marketplace == "" ? null : hre.ethers.getContractAt("Marketplace", marketplace),
     dividend: dividend == "" ? null : hre.ethers.getContractAt("Dividend", dividend),

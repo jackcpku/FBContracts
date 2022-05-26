@@ -6,6 +6,7 @@ const {
   calculateCreate2AddressBasicERC721,
   calculateCreate2AddressBasicERC1155,
   calculateCreate2AddressBasicERC20,
+  calculateCreate2AddressBasicERC20Capped,
 } = require("../lib/create2.js");
 
 describe("Test NFTFactory & NFTGateway Contract", function () {
@@ -186,21 +187,19 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     const deployeeName = "BasicERC20";
     const tokenName = "U2-contract";
     const tokenSymbol = "U2T";
-    const cap = 0;
     const salt = 233;
     const u2ContractAddress = await calculateCreate2AddressBasicERC20(
       from,
       deployeeName,
       tokenName,
       tokenSymbol,
-      cap,
       gateway.address,
       salt
     );
     // Let u2 deploy the contract.
     await erc20factory
       .connect(u2)
-      .deployBasicERC20(tokenName, tokenSymbol, cap, salt);
+      .deployBasicERC20(tokenName, tokenSymbol, salt);
     let u2Contract = await hre.ethers.getContractAt(
       deployeeName,
       u2ContractAddress
@@ -264,7 +263,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     const tokenSymbol = "U2T";
     const cap = 100000;
     const salt = 233;
-    const u2ContractAddress = await calculateCreate2AddressBasicERC20(
+    const u2ContractAddress = await calculateCreate2AddressBasicERC20Capped(
       from,
       deployeeName,
       tokenName,
@@ -276,7 +275,7 @@ describe("Test NFTFactory & NFTGateway Contract", function () {
     // Let u2 deploy the contract.
     await erc20factory
       .connect(u2)
-      .deployBasicERC20(tokenName, tokenSymbol, cap, salt);
+      .deployBasicERC20Capped(tokenName, tokenSymbol, cap, salt);
     let u2Contract = await hre.ethers.getContractAt(
       deployeeName,
       u2ContractAddress
