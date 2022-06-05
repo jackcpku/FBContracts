@@ -21,6 +21,7 @@ contract NFTElection is
 
     // The ticket token used for voting
     address public ticketAddress;
+    uint256 public pvstDecimals;
 
     address public serviceFeeRecipient;
 
@@ -140,6 +141,8 @@ contract NFTElection is
         __Ownable_init();
         ticketAddress = _ticketAddress;
         paymentTokenAddress = _pvsAddress;
+
+        pvstDecimals = IPVSTicket(_ticketAddress).decimals();
     }
 
     // Called by owner.
@@ -348,6 +351,12 @@ contract NFTElection is
         require(
             totalVoted > electionInfo[_electionId].maxVoted[_tokenId],
             "NFTElection: please vote more"
+        );
+
+        // Check if the amount of PVST is a whole number
+        require(
+            _amount % (10**pvstDecimals) == 0,
+            "NFTElection: vote size should be a whole number"
         );
 
         // Check if the NFT has been transferred to this contract

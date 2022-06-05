@@ -15,6 +15,8 @@ interface IPVSTicket {
      */
     function mint(address _ticketOwner, uint256 _amount) external;
 
+    function decimals() external pure returns (uint8);
+
     /**
      * @dev Emitted when `amount` tickets from (`owner`) were burned by (`burner`).
      *

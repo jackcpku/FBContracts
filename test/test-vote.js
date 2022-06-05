@@ -10,13 +10,15 @@ const {
 } = require("../lib/deploy.js");
 const { BigNumber } = require("ethers");
 
+const basePVSTNum = BigNumber.from("1000000000000000000");
+
 describe("Test NFTElection Contract", function () {
   let gateway, nftfactory;
   let vote, ticket, pvs, someERC721Contract;
   let owner, manager0, user0, user1;
 
   const pvsAmount = [100, 100];
-  const tktAmount = [100000, 100000];
+  const tktAmount = [basePVSTNum.mul(100000), basePVSTNum.mul(100000)];
   const fallbackPrice = 40;
   const specialPrice = 80;
   const specialTokenId = 1;
@@ -159,7 +161,7 @@ describe("Test NFTElection Contract", function () {
 
     // No one is able to vote before listing time
     await expect(
-      vote.connect(user0).vote(electionId, specialTokenId, 10)
+      vote.connect(user0).vote(electionId, specialTokenId, basePVSTNum.mul(10))
     ).to.be.revertedWith("NFTElection: the voting process has not started");
 
     /****************** After Listing Time ******************/
@@ -169,7 +171,7 @@ describe("Test NFTElection Contract", function () {
 
     // No one is able to vote before the nft is transferred to vote contract
     await expect(
-      vote.connect(user0).vote(electionId, specialTokenId, 10)
+      vote.connect(user0).vote(electionId, specialTokenId, basePVSTNum.mul(10))
     ).to.be.revertedWith("NFTElection: nft not owned by contract");
 
     // Transfer the nfts to vote contract
@@ -182,28 +184,38 @@ describe("Test NFTElection Contract", function () {
 
     // user0 votes 0 and fails
     await expect(
-      vote.connect(user0).vote(electionId, specialTokenId, 10)
+      vote.connect(user0).vote(electionId, specialTokenId, basePVSTNum.mul(10))
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
     // user0 approves vote of spending pvs
-    await pvs.connect(user0).approve(vote.address, 80);
+    await pvs.connect(user0).approve(vote.address, basePVSTNum.mul(80));
     // user0 votes 0 and succeeds
-    await vote.connect(user0).vote(electionId, specialTokenId, 10);
+    await vote
+      .connect(user0)
+      .vote(electionId, specialTokenId, basePVSTNum.mul(10));
     // user1 votes less or equal than user0 and fails
-    await pvs.connect(user1).approve(vote.address, 80);
+    await pvs.connect(user1).approve(vote.address, basePVSTNum.mul(80));
     await expect(
-      vote.connect(user1).vote(electionId, specialTokenId, 10)
+      vote.connect(user1).vote(electionId, specialTokenId, basePVSTNum.mul(10))
     ).to.be.revertedWith("NFTElection: please vote more");
     // user1 votes more than user0 and succeeds
-    await vote.connect(user1).vote(electionId, specialTokenId, 20);
+    await vote
+      .connect(user1)
+      .vote(electionId, specialTokenId, basePVSTNum.mul(20));
     // user0 votes even more
-    await vote.connect(user0).vote(electionId, specialTokenId, 100);
+    await vote
+      .connect(user0)
+      .vote(electionId, specialTokenId, basePVSTNum.mul(100));
     // user1 votes more than he has and fails
     await expect(
       vote.connect(user1).vote(electionId, specialTokenId, tktAmount[1])
     ).to.be.revertedWith("Ticket balance is insufficient");
     // user0 votes more when he is already the winner
-    await vote.connect(user0).vote(electionId, specialTokenId, 1);
-    await vote.connect(user0).vote(electionId, specialTokenId, 1);
+    await vote
+      .connect(user0)
+      .vote(electionId, specialTokenId, basePVSTNum.mul(1));
+    await vote
+      .connect(user0)
+      .vote(electionId, specialTokenId, basePVSTNum.mul(1));
     // user0 withdraws margin and fails
     await expect(vote.connect(user0).withdrawMargin(80)).to.be.revertedWith(
       "NFTElection: low margin balance"
@@ -230,7 +242,7 @@ describe("Test NFTElection Contract", function () {
     ]);
     // user0 votes after ddl and fails
     await expect(
-      vote.connect(user0).vote(electionId, specialTokenId, 1)
+      vote.connect(user0).vote(electionId, specialTokenId, basePVSTNum.mul(1))
     ).to.be.revertedWith("NFTElection: the voting process has been finished");
     // user0 claims after the ddl and succeeds
     await vote.connect(user0).claim([electionId], [specialTokenId]);
@@ -293,7 +305,9 @@ describe("Test NFTElection Contract", function () {
       let user = day % 2 ? user0 : user1;
 
       expect(
-        await vote.connect(user).vote(electionId, specialTokenId, 10 + day)
+        await vote
+          .connect(user)
+          .vote(electionId, specialTokenId, basePVSTNum.mul(10 + day))
       )
         .to.emit(vote, "ExtendExpirationTime")
         .withArgs(electionId, someERC721Contract.address, specialTokenId);
@@ -306,7 +320,9 @@ describe("Test NFTElection Contract", function () {
 
     // user0 votes 0 and fails
     await expect(
-      vote.connect(user0).vote(electionId, specialTokenId, 10 + 7)
+      vote
+        .connect(user0)
+        .vote(electionId, specialTokenId, basePVSTNum.mul(10 + 7))
     ).to.be.revertedWith("NFTElection: the voting process has been finished");
   });
 
