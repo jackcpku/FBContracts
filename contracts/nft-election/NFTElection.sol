@@ -44,6 +44,8 @@ contract NFTElection is
         mapping(uint256 => uint256) maxVoted;
         // tokenId => winner
         mapping(uint256 => address) winner;
+        // tokenId => # voters
+        mapping(uint256 => uint256) numOfVoters;
         // tokenId => extendedExpirationTime
         // extendedExpirationTime keeps track of the extended duration (delta) of a ddl for each token
         mapping(uint256 => uint256) extendedExpirationTime;
@@ -334,9 +336,10 @@ contract NFTElection is
         );
 
         // Check if vote amount is enough
-        uint256 totalVoted = electionInfo[_electionId].hasVoted[_tokenId][
+        uint256 hasVoted = electionInfo[_electionId].hasVoted[_tokenId][
             msg.sender
-        ] + _amount;
+        ];
+        uint256 totalVoted = hasVoted + _amount;
 
         require(
             totalVoted > electionInfo[_electionId].maxVoted[_tokenId],
@@ -350,6 +353,11 @@ contract NFTElection is
         );
 
         /******** EFFECTS ********/
+
+        // Increase the number of voters if msg.sender is a new voter
+        if (hasVoted == 0) {
+            electionInfo[_electionId].numOfVoters[_tokenId] += 1;
+        }
 
         // Burn the tickets
         IPVSTicket(ticketAddress).burn(msg.sender, _amount);
