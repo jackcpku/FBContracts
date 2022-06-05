@@ -319,7 +319,11 @@ contract NFTElection is
         uint256 _electionId,
         uint256 _tokenId,
         uint256 _amount
-    ) external notCancelled(_electionId) {
+    )
+        external
+        notCancelled(_electionId)
+        requireTokenIdInElectionRange(_electionId, _tokenId)
+    {
         /******** CHECKS ********/
 
         address tokenAddress = electionInfo[_electionId].tokenAddress;
