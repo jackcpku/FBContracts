@@ -11,9 +11,9 @@ interface IMintableBurnable {
     function burn(address from, uint256 amount) external;
 }
 
-contract PVSTicketBridge is Ownable {
+contract PVSTicketBridgeWormhole is Ownable {
     // Address of PVST token
-    address ticketAddress;
+    address pvstAddress;
 
     // Wormhole core contract address
     address wormholeAddress;
@@ -59,7 +59,12 @@ contract PVSTicketBridge is Ownable {
         _;
     }
 
-    constructor(address _wormholeAddress, address _verifier) {
+    constructor(
+        address _pvstAddress,
+        address _wormholeAddress,
+        address _verifier
+    ) {
+        pvstAddress = _pvstAddress;
         wormholeAddress = _wormholeAddress;
         verifier = _verifier;
     }
@@ -90,37 +95,47 @@ contract PVSTicketBridge is Ownable {
      * Transfer PVST tokens from another chain to the current chain.
      * Only verifier can call this function.
      */
-    function sendIn(
-        uint256 _transferId,
-        address _sender,
-        address _receiver,
-        uint256 _amount,
-        uint64 _srcChainId,
-        uint64 _nonce
-    ) external onlyVerifier {
+    function sendIn(bytes calldata encodedVM) external onlyVerifier {
+        (IWormhole.VM memory vm, bool valid, string memory reason) = IWormhole(
+            wormholeAddress
+        ).parseAndVerifyVM(encodedVM);
+
+        require(valid, reason);
+
+        (
+            uint256 transferId,
+            address sender,
+            address receiver,
+            uint256 amount,
+            uint64 srcChainId,
+            uint64 dstChainId,
+            uint64 nonce
+        ) = abi.decode(
+                vm.payload,
+                (uint256, address, address, uint256, uint64, uint64, uint64)
+            );
+
         require(
-            _transferId ==
+            dstChainId == uint64(block.chainid),
+            "PVSTicketBridgeWormhole: wrong dstChainId"
+        );
+
+        require(
+            transferId ==
                 _calculateTransferId(
-                    _sender,
-                    _receiver,
-                    _amount,
-                    _srcChainId,
-                    uint64(block.chainid),
-                    _nonce
+                    sender,
+                    receiver,
+                    amount,
+                    srcChainId,
+                    dstChainId,
+                    nonce
                 ),
             "PVSTicketBridgeWormhole: wrong transferId"
         );
 
-        IMintableBurnable(ticketAddress).mint(_receiver, _amount);
+        IMintableBurnable(pvstAddress).mint(receiver, amount);
 
-        emit SendIn(
-            _transferId,
-            _sender,
-            _receiver,
-            _amount,
-            _srcChainId,
-            _nonce
-        );
+        emit SendIn(transferId, sender, receiver, amount, srcChainId, nonce);
     }
 
     /**
@@ -149,14 +164,14 @@ contract PVSTicketBridge is Ownable {
             _nonce
         );
 
-        IMintableBurnable(ticketAddress).burn(msg.sender, _amount);
+        IMintableBurnable(pvstAddress).burn(msg.sender, _amount);
 
         if (dstChainGasAmount[_dstChainId] > 0) {
             (bool sent, ) = nativeTokenReceiver.call{value: msg.value}("");
             require(sent, "PVSTicketBridgeWormhole: failed to send tokens");
         }
 
-        bytes memory infoBytes = abi.encode(
+        _sendToWormhole(
             transferId,
             msg.sender,
             _receiver,
@@ -164,17 +179,40 @@ contract PVSTicketBridge is Ownable {
             _dstChainId,
             _nonce
         );
+    }
 
-        _sendBytes(infoBytes, uint32(transferId));
-
-        emit SendOut(
-            transferId,
-            msg.sender,
-            _receiver,
-            _amount,
-            _dstChainId,
-            _nonce
+    function _sendToWormhole(
+        uint256 transferId,
+        address sender,
+        address receiver,
+        uint256 amount,
+        uint64 dstChainId,
+        uint64 nonce
+    ) internal {
+        _sendBytes(
+            abi.encode(
+                transferId,
+                sender,
+                receiver,
+                amount,
+                block.chainid,
+                dstChainId,
+                nonce
+            ),
+            uint32(transferId)
         );
+    }
+
+    /**
+     * Send bytes using wormhole's core contract
+     */
+    function _sendBytes(bytes memory str, uint32 nonce)
+        internal
+        returns (uint64 sequence)
+    {
+        sequence = IWormhole(wormholeAddress).publishMessage(nonce, str, 1);
+
+        return sequence;
     }
 
     function _checkTransfer(
@@ -208,17 +246,6 @@ contract PVSTicketBridge is Ownable {
         sendOutRecord[transferId] = true;
 
         return transferId;
-    }
-
-    /**
-     * Send bytes using wormhole's core contract
-     */
-    function _sendBytes(bytes memory str, uint32 nonce)
-        internal
-        returns (uint64 sequence)
-    {
-        sequence = IWormhole(wormholeAddress).publishMessage(nonce, str, 1);
-        return sequence;
     }
 
     function _calculateTransferId(
