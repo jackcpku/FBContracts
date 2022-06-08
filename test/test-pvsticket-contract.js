@@ -26,7 +26,7 @@ describe("Test Staking XTER..........", function () {
     });
 
     it("init", async function () {
-      expect(await sk.name()).to.equal("XterTicket");
+      expect(await sk.name()).to.equal("Xterio Ticket");
       expect(await sk.symbol()).to.equal("XTERT");
       expect(await sk.decimals()).to.equal(18);
       expect(await sk.balanceOf(owner.address)).to.equal(0);
