@@ -6,7 +6,7 @@ const { deployMajorToken, deployFilter } = require("../lib/deploy.js");
 
 describe("Test Filter Contract", function () {
   let filter, xter;
-  const pvsAmount = [10_000_000, 2_000];
+  const xterAmount = [10_000_000, 2_000];
 
   const ALPHA_DENOMINATOR = 10_000;
   const outputAddressOne = "0xcd3B766CCDd6AE721141F452C550Ca635964ce71";
@@ -29,7 +29,7 @@ describe("Test Filter Contract", function () {
     // Set up filter contract
     filter = await deployFilter(xter.address, outputAddressOne, alpha);
 
-    await xter.connect(owner).transfer(filter.address, pvsAmount[0]);
+    await xter.connect(owner).transfer(filter.address, xterAmount[0]);
     await filter.connect(owner).setOutputAddress(outputAddressTwo);
     await filter.connect(owner).setAlpha(alpha);
   });
@@ -43,8 +43,8 @@ describe("Test Filter Contract", function () {
         owner.address,
         alpha,
         outputAddressTwo,
-        pvsAmount[0],
-        (alpha * pvsAmount[0]) / ALPHA_DENOMINATOR,
+        xterAmount[0],
+        (alpha * xterAmount[0]) / ALPHA_DENOMINATOR,
         0
       );
 
@@ -57,11 +57,11 @@ describe("Test Filter Contract", function () {
       block.timestamp + times[2],
     ]);
 
-    const lastOut = (alpha * pvsAmount[0]) / ALPHA_DENOMINATOR;
-    const lastBalance = pvsAmount[0] - lastOut;
+    const lastOut = (alpha * xterAmount[0]) / ALPHA_DENOMINATOR;
+    const lastBalance = xterAmount[0] - lastOut;
 
     //second filter
-    await xter.connect(owner).transfer(filter.address, pvsAmount[1]);
+    await xter.connect(owner).transfer(filter.address, xterAmount[1]);
     const secondFilter = await filter.output();
 
     // (alpha * newIn + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR
@@ -71,8 +71,8 @@ describe("Test Filter Contract", function () {
         owner.address,
         alpha,
         outputAddressTwo,
-        pvsAmount[1],
-        (alpha * pvsAmount[1] + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR,
+        xterAmount[1],
+        (alpha * xterAmount[1] + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR,
         lastBalance
       );
   });

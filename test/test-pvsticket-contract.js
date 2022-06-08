@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-const { deployMajorToken, deployPVSTicket } = require("../lib/deploy");
+const { deployMajorToken, deployXterTicket } = require("../lib/deploy");
 
 describe("Test Staking XTER..........", function () {
   let xter, sk; // Contract objects
-  const u1PVS = BigInt(1000000) * BigInt(10) ** BigInt(18);
+  const u1XTER = BigInt(1000000) * BigInt(10) ** BigInt(18);
 
   const oneHour = 60 * 60;
   const oneDay = 24 * oneHour;
@@ -17,28 +17,28 @@ describe("Test Staking XTER..........", function () {
 
     [owner, u1, burner, minter, u2] = await hre.ethers.getSigners();
     xter = await deployMajorToken(owner.address);
-    sk = await deployPVSTicket(xter.address);
+    sk = await deployXterTicket(xter.address);
   });
 
   describe("Dealing with staker", function () {
     beforeEach("init", async function () {
-      await xter.transfer(u1.address, u1PVS);
+      await xter.transfer(u1.address, u1XTER);
     });
 
     it("init", async function () {
-      expect(await sk.name()).to.equal("PVSTicket");
-      expect(await sk.symbol()).to.equal("PVST");
+      expect(await sk.name()).to.equal("XterTicket");
+      expect(await sk.symbol()).to.equal("XTERT");
       expect(await sk.decimals()).to.equal(18);
       expect(await sk.balanceOf(owner.address)).to.equal(0);
       expect(await sk.totalSupply()).to.equal(0);
     });
 
     it("Test u1 stake & withdraw", async function () {
-      const amtToStake = u1PVS / BigInt(2);
+      const amtToStake = u1XTER / BigInt(2);
       await xter.connect(u1).approve(sk.address, amtToStake);
       await sk.connect(u1).stake(amtToStake);
 
-      expect(await sk.pvsAmount(u1.address)).to.equal(amtToStake);
+      expect(await sk.xterAmount(u1.address)).to.equal(amtToStake);
       const blockBefore = await ethers.provider.getBlock("latest");
 
       //after one hour
@@ -80,8 +80,8 @@ describe("Test Staking XTER..........", function () {
   describe("Dealing with cross chain bridge", function () {
     beforeEach("init stake", async function () {
       //stake some xter for one week
-      await xter.transfer(u1.address, u1PVS);
-      const amtToStake = u1PVS;
+      await xter.transfer(u1.address, u1XTER);
+      const amtToStake = u1XTER;
       await xter.connect(u1).approve(sk.address, amtToStake);
       await sk.connect(u1).stake(amtToStake);
       await ethers.provider.send('evm_increaseTime', [sevenDays]);

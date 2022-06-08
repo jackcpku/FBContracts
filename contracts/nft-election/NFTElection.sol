@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
-import "../PVST/IPVSTicket.sol";
+import "../ticket/IXterTicket.sol";
 
 contract NFTElection is
     Initializable,
@@ -21,7 +21,7 @@ contract NFTElection is
 
     // The ticket token used for voting
     address public ticketAddress;
-    uint256 public pvstDecimals;
+    uint256 public xtertDecimals;
 
     address public serviceFeeRecipient;
 
@@ -134,15 +134,15 @@ contract NFTElection is
         _;
     }
 
-    function initialize(address _ticketAddress, address _pvsAddress)
+    function initialize(address _ticketAddress, address _xterAddress)
         public
         initializer
     {
         __Ownable_init();
         ticketAddress = _ticketAddress;
-        paymentTokenAddress = _pvsAddress;
+        paymentTokenAddress = _xterAddress;
 
-        pvstDecimals = IPVSTicket(_ticketAddress).decimals();
+        xtertDecimals = IXterTicket(_ticketAddress).decimals();
     }
 
     // Called by owner.
@@ -353,9 +353,9 @@ contract NFTElection is
             "NFTElection: please vote more"
         );
 
-        // Check if the amount of PVST is a whole number
+        // Check if the amount of XTERT is a whole number
         require(
-            _amount % (10**pvstDecimals) == 0,
+            _amount % (10**xtertDecimals) == 0,
             "NFTElection: vote size should be a whole number"
         );
 
@@ -373,7 +373,7 @@ contract NFTElection is
         }
 
         // Burn the tickets
-        IPVSTicket(ticketAddress).burn(msg.sender, _amount);
+        IXterTicket(ticketAddress).burn(msg.sender, _amount);
 
         // Special case: if voter was already the winner
         if (msg.sender == electionInfo[_electionId].winner[_tokenId]) {

@@ -11,9 +11,9 @@ interface IMintableBurnable {
     function burn(address from, uint256 amount) external;
 }
 
-contract PVSTicketBridgeWormhole is Ownable {
-    // Address of PVST token
-    address pvstAddress;
+contract TicketBridgeWormhole is Ownable {
+    // Address of XTERT token
+    address xtertAddress;
 
     // Wormhole core contract address
     address wormholeAddress;
@@ -52,19 +52,16 @@ contract PVSTicketBridgeWormhole is Ownable {
     );
 
     modifier onlyVerifier() {
-        require(
-            msg.sender == verifier,
-            "PVSTicketBridgeWormhole: onlyVerifier"
-        );
+        require(msg.sender == verifier, "TicketBridgeWormhole: onlyVerifier");
         _;
     }
 
     constructor(
-        address _pvstAddress,
+        address _xtertAddress,
         address _wormholeAddress,
         address _verifier
     ) {
-        pvstAddress = _pvstAddress;
+        xtertAddress = _xtertAddress;
         wormholeAddress = _wormholeAddress;
         verifier = _verifier;
     }
@@ -92,7 +89,7 @@ contract PVSTicketBridgeWormhole is Ownable {
     }
 
     /**
-     * Transfer PVST tokens from another chain to the current chain.
+     * Transfer XTERT tokens from another chain to the current chain.
      * Only verifier can call this function.
      */
     function sendIn(bytes calldata encodedVM) external onlyVerifier {
@@ -117,7 +114,7 @@ contract PVSTicketBridgeWormhole is Ownable {
 
         require(
             dstChainId == uint64(block.chainid),
-            "PVSTicketBridgeWormhole: wrong dstChainId"
+            "TicketBridgeWormhole: wrong dstChainId"
         );
 
         require(
@@ -130,16 +127,16 @@ contract PVSTicketBridgeWormhole is Ownable {
                     dstChainId,
                     nonce
                 ),
-            "PVSTicketBridgeWormhole: wrong transferId"
+            "TicketBridgeWormhole: wrong transferId"
         );
 
-        IMintableBurnable(pvstAddress).mint(receiver, amount);
+        IMintableBurnable(xtertAddress).mint(receiver, amount);
 
         emit SendIn(transferId, sender, receiver, amount, srcChainId, nonce);
     }
 
     /**
-     * Transfer PVST tokens from the current chain to another EVM-compatible chain.
+     * Transfer XTERT tokens from the current chain to another EVM-compatible chain.
      * Everyone who wants to send tokens cross chains calls this function.
      */
     function sendOut(
@@ -151,7 +148,7 @@ contract PVSTicketBridgeWormhole is Ownable {
         // User should not be sending cross-chain requests too often.
         require(
             block.timestamp > lastSendTimestamp[msg.sender] + 12 hours,
-            "PVSTicketBridgeWormhole: wait a minute"
+            "TicketBridgeWormhole: wait a minute"
         );
 
         lastSendTimestamp[msg.sender] = block.timestamp;
@@ -164,11 +161,11 @@ contract PVSTicketBridgeWormhole is Ownable {
             _nonce
         );
 
-        IMintableBurnable(pvstAddress).burn(msg.sender, _amount);
+        IMintableBurnable(xtertAddress).burn(msg.sender, _amount);
 
         if (dstChainGasAmount[_dstChainId] > 0) {
             (bool sent, ) = nativeTokenReceiver.call{value: msg.value}("");
-            require(sent, "PVSTicketBridgeWormhole: failed to send tokens");
+            require(sent, "TicketBridgeWormhole: failed to send tokens");
         }
 
         _sendToWormhole(
@@ -221,13 +218,10 @@ contract PVSTicketBridgeWormhole is Ownable {
         uint64 _dstChainId,
         uint64 _nonce
     ) internal returns (uint256) {
-        require(
-            _amount >= minSend,
-            "PVSTicketBridgeWormhole: amount too small"
-        );
+        require(_amount >= minSend, "TicketBridgeWormhole: amount too small");
         require(
             maxSend == 0 || _amount <= maxSend,
-            "PVSTicketBridgeWormhole: amount too large"
+            "TicketBridgeWormhole: amount too large"
         );
 
         uint256 transferId = _calculateTransferId(
@@ -241,7 +235,7 @@ contract PVSTicketBridgeWormhole is Ownable {
 
         require(
             sendOutRecord[transferId] == false,
-            "PVSTicketBridgeWormhole: transfer exists"
+            "TicketBridgeWormhole: transfer exists"
         );
         sendOutRecord[transferId] = true;
 

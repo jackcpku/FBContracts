@@ -4,20 +4,24 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "./IPVSTicket.sol";
+import "./IXterTicket.sol";
 
 /**
- * This Contract is designed for staking our platform token:XTER to generate & manage our voting ticket:PVST
- * 1. Generate PVST according to the amount of XTER: The core principle is that a unit amount of XTER staking generates a fixed number of tickets per unit time.
+ * This Contract is designed for staking our platform token:XTER to generate & manage our voting ticket:XTERT
+ * 1. Generate XTERT according to the amount of XTER: The core principle is that a unit amount of XTER staking generates a fixed number of tickets per unit time.
  *      So it is necessary to calculate the integral of the XTER staking amount over time.
- * 2. PVST implements the SimpleIERC20 standard, but transfers are strictly limited, and only whitelisted addresses can mint or burn PVST.
+ * 2. XTERT implements the SimpleIERC20 standard, but transfers are strictly limited, and only whitelisted addresses can mint or burn XTERT.
  */
 
-contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
+contract XterTicket is
+    IERC20Upgradeable,
+    IXterTicket,
+    AccessControlUpgradeable
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // the target ERC20 token for staking
-    address public pvsAddress;
+    address public xterAddress;
 
     // total staked xter
     uint256 public totalStaked;
@@ -54,9 +58,9 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
      *                           Management                              *
      ********************************************************************/
 
-    function initialize(address _pvsAddress) public initializer {
+    function initialize(address _xterAddress) public initializer {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        pvsAddress = _pvsAddress;
+        xterAddress = _xterAddress;
     }
 
     function decimals() external pure override returns (uint8) {
@@ -64,11 +68,11 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
     }
 
     function name() external pure returns (string memory) {
-        return "PVSTicket";
+        return "Xterio Ticket";
     }
 
     function symbol() external pure returns (string memory) {
-        return "PVST";
+        return "XTERT";
     }
 
     /********************************************************************
@@ -128,7 +132,7 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
     }
 
     /********************************************************************
-     *                          Override PVSTicket                       *
+     *                          Override XterTicket                       *
      ********************************************************************/
 
     function burn(address _ticketOwner, uint256 _amount)
@@ -164,7 +168,7 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
      *                          Stake Functions                         *
      ********************************************************************/
     /**
-     * Generate PVST according to the amount of XTER: The core principle is that a unit amount of XTER staking generates a fixed number of tickets per unit time.
+     * Generate XTERT according to the amount of XTER: The core principle is that a unit amount of XTER staking generates a fixed number of tickets per unit time.
      * So it is necessary to calculate the integral of the XTER staking amount over time.
      * For each address, define the concept of a checkpoint cp
      *   1. Record the time t(cp) of the checkpoint and the integral (ie ticket) v(cp)  at that time
@@ -183,7 +187,7 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
     }
 
     /**
-     * Check & update # of PVST at current timestamp
+     * Check & update # of XTERT at current timestamp
      * When the amount of staking changes, it is necessary to update the checkpoint in time: after staking and before withdrawal
      *    v(t) = v(cp) + C * s(cp) * (t - t(cp))
      * 1. calculate increment from the latest checkpoint to the present
@@ -205,7 +209,7 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
 
     //stake more XTER
     function stake(uint256 amount) external {
-        IERC20Upgradeable(pvsAddress).safeTransferFrom(
+        IERC20Upgradeable(xterAddress).safeTransferFrom(
             msg.sender,
             address(this),
             amount
@@ -227,10 +231,10 @@ contract PVSTicket is IERC20Upgradeable, IPVSTicket, AccessControlUpgradeable {
         staked[msg.sender] -= amount;
         totalStaked -= amount;
 
-        IERC20Upgradeable(pvsAddress).safeTransfer(msg.sender, amount);
+        IERC20Upgradeable(xterAddress).safeTransfer(msg.sender, amount);
     }
 
-    function pvsAmount(address _staker) external view returns (uint256) {
+    function xterAmount(address _staker) external view returns (uint256) {
         return staked[_staker];
     }
 }

@@ -7,7 +7,7 @@ const { dividendPeriodStartTimes, filterAlpha, splitterAddresses, splitterPropor
 const main = async () => {
   console.info("Network: " + hre.network.name);
   console.info("Deploy dividend with xter Address: " + hre.addrs.token);
-  console.info("Deploy dividend with ppn Address: " + hre.addrs.ppn);
+  console.info("Deploy dividend with xpn Address: " + hre.addrs.xpn);
   const block = await hre.ethers.provider.getBlock("latest");
   const now = block.timestamp;
   console.info("startTime: ", now);
@@ -20,7 +20,7 @@ const main = async () => {
   if (confirm === "y" || confirm === "Y") {
     dividend = await deployDividend(
       hre.addrs.token,
-      hre.addrs.ppn,
+      hre.addrs.xpn,
       periodStartTimes
     );
     console.info("Dividend Contract Deployed: " + dividend.address);

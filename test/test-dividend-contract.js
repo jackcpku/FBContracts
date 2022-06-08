@@ -9,9 +9,9 @@ const {
 describe("Test NFT Dividend..........", function () {
   let xter, dd, gateway, nftfactory, feeRecipient;
 
-  const p1pvs = BigInt(6_000_000);
-  const p2pvs = BigInt(12_000_000);
-  const p3pvs = BigInt(18_000_000);
+  const p1xter = BigInt(6_000_000);
+  const p2xter = BigInt(12_000_000);
+  const p3xter = BigInt(18_000_000);
 
   const NFT_PER_PERIOD = 6000;
   const p1Amt = BigInt(NFT_PER_PERIOD);
@@ -62,14 +62,14 @@ describe("Test NFT Dividend..........", function () {
     await expect(dd.totalDividend(nftInP2)).to.be.revertedWith(
       "Dividend: tokenId exceeded limit"
     );
-    //add p1pvs to pool[1]
-    await xter.transfer(dd.address, p1pvs);
-    expect(await dd.totalDividend(1)).to.equal(p1pvs / p1Amt);
+    //add p1xter to pool[1]
+    await xter.transfer(dd.address, p1xter);
+    expect(await dd.totalDividend(1)).to.equal(p1xter / p1Amt);
   });
 
   it("Test Period 2 :", async function () {
-    // add p1pvs to pool[1]
-    await xter.transfer(dd.address, p1pvs);
+    // add p1xter to pool[1]
+    await xter.transfer(dd.address, p1xter);
 
     const block = await hre.ethers.provider.getBlock("latest");
     await expect(dd.updatePeriod(1)).to.be.revertedWith(
@@ -85,18 +85,18 @@ describe("Test NFT Dividend..........", function () {
     await expect(dd.updatePeriod(0)).to.be.revertedWith(
       "Dividend: the new period must be exactly one period after the present"
     );
-    //add p2pvs to pool[2]
-    await xter.transfer(dd.address, p2pvs);
+    //add p2xter to pool[2]
+    await xter.transfer(dd.address, p2xter);
     expect(await dd.totalDividend(1)).to.equal(
-      p1pvs / p1Amt + p2pvs / (p1Amt + p2Amt)
+      p1xter / p1Amt + p2xter / (p1Amt + p2Amt)
     );
 
-    expect(await dd.totalDividend(nftInP2)).to.equal(p2pvs / (p1Amt + p2Amt));
+    expect(await dd.totalDividend(nftInP2)).to.equal(p2xter / (p1Amt + p2Amt));
   });
 
   it("Test Period 3 :", async function () {
-    //add p1pvs to pool[1]
-    await xter.transfer(dd.address, p1pvs);
+    //add p1xter to pool[1]
+    await xter.transfer(dd.address, p1xter);
 
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -104,8 +104,8 @@ describe("Test NFT Dividend..........", function () {
     ]);
     //period 2 begin
     await dd.updatePeriod(1);
-    //add p2pvs to pool[2]
-    await xter.transfer(dd.address, p2pvs);
+    //add p2xter to pool[2]
+    await xter.transfer(dd.address, p2xter);
 
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -113,39 +113,39 @@ describe("Test NFT Dividend..........", function () {
     ]);
     //period 3 begin
     await dd.updatePeriod(2);
-    await xter.transfer(dd.address, p3pvs);
+    await xter.transfer(dd.address, p3xter);
 
     expect(await dd.totalDividend(1)).to.equal(
-      p1pvs / p1Amt + p2pvs / (p1Amt + p2Amt) + p3pvs / (p1Amt + p2Amt + p3Amt)
+      p1xter / p1Amt + p2xter / (p1Amt + p2Amt) + p3xter / (p1Amt + p2Amt + p3Amt)
     );
 
     expect(await dd.totalDividend(nftInP2)).to.equal(
-      p2pvs / (p1Amt + p2Amt) + p3pvs / (p1Amt + p2Amt + p3Amt)
+      p2xter / (p1Amt + p2Amt) + p3xter / (p1Amt + p2Amt + p3Amt)
     );
 
     expect(await dd.totalDividend(nftInP3)).to.equal(
-      p3pvs / (p1Amt + p2Amt + p3Amt)
+      p3xter / (p1Amt + p2Amt + p3Amt)
     );
   });
 
   it("Test claim with fee", async function () {
-    //add p1pvs to pool[1]
-    await xter.transfer(dd.address, p1pvs);
+    //add p1xter to pool[1]
+    await xter.transfer(dd.address, p1xter);
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       startTime + periodStartTime[1],
     ]);
     //period 2 begin
     await dd.updatePeriod(1);
-    //add p2pvs to pool[2]
-    await xter.transfer(dd.address, p2pvs);
+    //add p2xter to pool[2]
+    await xter.transfer(dd.address, p2xter);
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       startTime + periodStartTime[2],
     ]);
     //period 3 begin
     await dd.updatePeriod(2);
-    await xter.transfer(dd.address, p3pvs);
+    await xter.transfer(dd.address, p3xter);
 
     // Let u2 deploy the contract.
     let u2Contract = await hre.ethers.getContractAt(

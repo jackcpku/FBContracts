@@ -15,9 +15,9 @@ contract Dividend {
     using SafeERC20 for IERC20;
 
     // The token used to pay dividends
-    address public pvsAddress;
+    address public xterAddress;
 
-    // PPN address
+    // XPN address
     address public ppnAddress;
 
     // current period
@@ -26,7 +26,7 @@ contract Dividend {
     // Total amount of XTER that has been claimed
     uint256 public totalClaimed;
 
-    // Dividend that has been claimed by one PPN
+    // Dividend that has been claimed by one XPN
     mapping(uint256 => uint256) public hasClaimed;
 
     // Dividend that has been claimed by one address
@@ -35,9 +35,9 @@ contract Dividend {
     // All xter(dividend) at the beginning of current period
     uint256 public accumulatedPool;
 
-    // accumulatedDividends[i] means the accumulated dividends for one PPN during period k where 0 <= k < i.
-    // For one PPN released in period j, it can only receive dividends of period k where k >= j,
-    // so at the beginning of current period, the accumulated dividends of one PPN released in period j
+    // accumulatedDividends[i] means the accumulated dividends for one XPN during period k where 0 <= k < i.
+    // For one XPN released in period j, it can only receive dividends of period k where k >= j,
+    // so at the beginning of current period, the accumulated dividends of one XPN released in period j
     //      = accumulatedDividends[currentPeriod] - accumulatedDividends[j]
     // Note that accumulatedDividends[0] = 0
     uint256[] public accumulatedDividends;
@@ -61,11 +61,11 @@ contract Dividend {
     );
 
     constructor(
-        address _pvsAddress,
+        address _xterAddress,
         address _ppnAddress,
         uint256[] memory _periodStartTime
     ) {
-        pvsAddress = _pvsAddress;
+        xterAddress = _xterAddress;
         ppnAddress = _ppnAddress;
         periodStartTime = _periodStartTime;
         accumulatedDividends.push(0);
@@ -84,11 +84,11 @@ contract Dividend {
             "Dividend: the next period has not yet begun"
         );
         // 1. At the beginning of _newPeriod, the dividend pool of the previous period is calculated and locked according to the real-time xter balance.
-        uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) +
+        uint256 lastPool = IERC20(xterAddress).balanceOf(address(this)) +
             totalClaimed -
             accumulatedPool;
 
-        // 2. calculate: accumulatedDividends[_newPeriod] = accumulated dividends for one PPN during period k where 0 <= k < _newPeriod.
+        // 2. calculate: accumulatedDividends[_newPeriod] = accumulated dividends for one XPN during period k where 0 <= k < _newPeriod.
         accumulatedDividends.push(
             accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount()
         );
@@ -115,15 +115,15 @@ contract Dividend {
     }
 
     /**
-     * Get the total dividends of one PPN from its released period
-     * The accumulated dividends of one PPN
+     * Get the total dividends of one XPN from its released period
+     * The accumulated dividends of one XPN
      *      = the accumulated dividends at the beginning of current period + the dividends accumulated during current period.
      *      = (accumulatedDividends[currentPeriod] - accumulatedDividends[releasedPeriod) + currentDividends
      */
     function totalDividend(uint256 _tokenId) public view returns (uint256) {
         // get the nft's released period
         uint256 releasedPeriod = getPeriod(_tokenId);
-        uint256 currentDividends = (IERC20(pvsAddress).balanceOf(
+        uint256 currentDividends = (IERC20(xterAddress).balanceOf(
             address(this)
         ) +
             totalClaimed -
@@ -151,15 +151,15 @@ contract Dividend {
         }
         totalClaimed += totalAmount;
         addressClaimed[msg.sender] += totalAmount;
-        IERC20(pvsAddress).safeTransfer(msg.sender, totalAmount);
+        IERC20(xterAddress).safeTransfer(msg.sender, totalAmount);
     }
 
-    // for one PPN remain dividends = total dividends - dividends has been claimed
+    // for one XPN remain dividends = total dividends - dividends has been claimed
     function remainingDividend(uint256 _tokenId) public view returns (uint256) {
         return totalDividend(_tokenId) - hasClaimed[_tokenId];
     }
 
-    // total released PPN amount in currentPeriod (0-based)
+    // total released XPN amount in currentPeriod (0-based)
     function releasedPPNAmount() internal view returns (uint256) {
         return NFT_AMOUNT_RELASED_PER_PERIOD * (currentPeriod + 1);
     }

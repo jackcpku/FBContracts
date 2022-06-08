@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Splitter is Ownable {
     using SafeERC20 for IERC20;
 
-    address public pvsAddress;
+    address public xterAddress;
 
     // [burnAddress, platformAddress, filterAddress]
     // burnAddress = 0x000000000000000000000000000000000000dEaD;
@@ -28,11 +28,11 @@ contract Splitter is Ownable {
     event Reset(address indexed operator, address[] to, uint256[] proportion);
 
     constructor(
-        address _pvsAddress,
+        address _xterAddress,
         address[] memory _splitAddress,
         uint256[] memory _splitProportion
     ) {
-        pvsAddress = _pvsAddress;
+        xterAddress = _xterAddress;
 
         require(
             _splitAddress.length == _splitProportion.length,
@@ -44,11 +44,11 @@ contract Splitter is Ownable {
     }
 
     function output() external {
-        uint256 amount = IERC20(pvsAddress).balanceOf(address(this));
+        uint256 amount = IERC20(xterAddress).balanceOf(address(this));
         require(amount > PROPORTION_DENOMINATOR, "Splitter: amount too low");
 
         for (uint256 i = 0; i < splitAddress.length; i++) {
-            IERC20(pvsAddress).safeTransfer(
+            IERC20(xterAddress).safeTransfer(
                 splitAddress[i],
                 (amount * splitProportion[i]) / PROPORTION_DENOMINATOR
             );

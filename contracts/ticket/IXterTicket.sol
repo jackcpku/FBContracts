@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 /**
- * @dev Interface of the PVSTicket Burn & Mint.
+ * @dev Interface of the XterTicket Burn & Mint.
  */
-interface IPVSTicket {
+interface IXterTicket {
     /**
      * @dev Burn `amount` tickets from the _ticketOwner's account to `address(0)`.
      */

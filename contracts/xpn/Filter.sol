@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Filter is Ownable {
     using SafeERC20 for IERC20;
 
-    address public pvsAddress;
+    address public xterAddress;
 
     address public outputAddress;
 
@@ -32,11 +32,11 @@ contract Filter is Ownable {
     );
 
     constructor(
-        address _pvsAddress,
+        address _xterAddress,
         address _outputAddress,
         uint256 _alpha
     ) {
-        pvsAddress = _pvsAddress;
+        xterAddress = _xterAddress;
         outputAddress = _outputAddress;
         alpha = _alpha;
     }
@@ -49,7 +49,7 @@ contract Filter is Ownable {
         );
         lastTime = block.timestamp;
 
-        uint256 currentBalance = IERC20(pvsAddress).balanceOf(address(this));
+        uint256 currentBalance = IERC20(xterAddress).balanceOf(address(this));
         uint256 newIn = currentBalance - lastBalance;
 
         uint256 newOut = (alpha *
@@ -63,7 +63,7 @@ contract Filter is Ownable {
 
         lastOut = newOut;
 
-        IERC20(pvsAddress).safeTransfer(outputAddress, newOut);
+        IERC20(xterAddress).safeTransfer(outputAddress, newOut);
 
         emit FilterEmit(
             msg.sender,

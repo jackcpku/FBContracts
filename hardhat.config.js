@@ -40,7 +40,7 @@ extendEnvironment((hre) => {
   let erc20Factory = "";
   let simpleLootBoxRegistry = "";
   let marketplace = "";
-  let ppn = "";
+  let xpn = "";
   let dividend = "";
   let filter = "";
   let splitter = "";
@@ -55,7 +55,7 @@ extendEnvironment((hre) => {
       erc20Factory = "0x10794E1E76E8dFF39217a4d126BEeb76e47666Bf";
       simpleLootBoxRegistry = "0xE97480B8efBCCdB7ec6D8C81987541E493E4843A";
       marketplace = "0x328bA41a29550AdD31C26c3dc9B8604ab048f5E8";
-      ppn = "0x97746889eF539182f5c2FbAb41D7099ba7ca4385";
+      xpn = "0x97746889eF539182f5c2FbAb41D7099ba7ca4385";
       dividend = "0x390F6d56Ce91eE2eD7EA51073f51f0412b3e2343";
       filter = "0x184304b268f1dFB41Ee116AcCdE3ce6976544019";
       splitter = "0xF734F4e7b512252B4882B474D0Ea1F8651Aa50Bb";
@@ -70,14 +70,14 @@ extendEnvironment((hre) => {
       erc20Factory = "";
       simpleLootBoxRegistry = "";
       marketplace = "";
-      ppn = "";
+      xpn = "";
       dividend = "";
       filter = "";
       splitter = "";
       break;
   }
   hre.addrs = {
-    token, vesting, presale, tokenGateway, nftFactory, erc20Factory, simpleLootBoxRegistry, marketplace, ppn, dividend, filter, splitter
+    token, vesting, presale, tokenGateway, nftFactory, erc20Factory, simpleLootBoxRegistry, marketplace, xpn, dividend, filter, splitter
   }
   hre.contracts = {
     token: token == "" ? null : hre.ethers.getContractAt("XterToken", token),

@@ -6,9 +6,9 @@ const { deployMajorToken, deploySplitter } = require("../lib/deploy.js");
 
 describe("Test Splitter Contract", function () {
   let splitter, xter;
-  // const pvsAmount = [10000, 10_000_000];
+  // const xterAmount = [10000, 10_000_000];
 
-  const pvsAmount = 10_000_000;
+  const xterAmount = 10_000_000;
   const PROPORTION_DENOMINATOR = 10_000;
   const burnAddress = "0x000000000000000000000000000000000000dEaD";
   const platformAddress = "0xcd3B766CCDd6AE721141F452C550Ca635964ce71";
@@ -37,7 +37,7 @@ describe("Test Splitter Contract", function () {
       splitProportiones
     );
 
-    await xter.connect(owner).transfer(splitter.address, pvsAmount);
+    await xter.connect(owner).transfer(splitter.address, xterAmount);
   });
 
   it("should pass output & reset test", async function () {
@@ -48,19 +48,19 @@ describe("Test Splitter Contract", function () {
     // console.log(await xter.balanceOf(splitAddresses[2]));
 
     expect(await xter.balanceOf(splitAddresses[0])).to.equal(
-      (pvsAmount * splitProportiones[0]) / PROPORTION_DENOMINATOR
+      (xterAmount * splitProportiones[0]) / PROPORTION_DENOMINATOR
     );
     expect(await xter.balanceOf(splitAddresses[1])).to.equal(
-      (pvsAmount * splitProportiones[1]) / PROPORTION_DENOMINATOR
+      (xterAmount * splitProportiones[1]) / PROPORTION_DENOMINATOR
     );
     expect(await xter.balanceOf(splitAddresses[2])).to.equal(
-      (pvsAmount * splitProportiones[2]) / PROPORTION_DENOMINATOR
+      (xterAmount * splitProportiones[2]) / PROPORTION_DENOMINATOR
     );
 
     // msg.sender, amount, splitAddress, splitProportion
     expect(outputEvent)
       .to.emit(splitter, "Split")
-      .withArgs(owner.address, pvsAmount, splitAddresses, splitProportiones);
+      .withArgs(owner.address, xterAmount, splitAddresses, splitProportiones);
 
     // reset
     await expect(splitter.reset(splitAddresses, [])).to.be.revertedWith(
