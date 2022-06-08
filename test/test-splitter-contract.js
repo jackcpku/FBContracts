@@ -5,7 +5,7 @@ const hre = require("hardhat");
 const { deployMajorToken, deploySplitter } = require("../lib/deploy.js");
 
 describe("Test Splitter Contract", function () {
-  let splitter, pvs;
+  let splitter, xter;
   // const pvsAmount = [10000, 10_000_000];
 
   const pvsAmount = 10_000_000;
@@ -22,38 +22,38 @@ describe("Test Splitter Contract", function () {
     await hre.network.provider.send("hardhat_reset");
     [owner, user0, user1] = await hre.ethers.getSigners();
 
-    // Set up PVS contract
-    pvs = await deployMajorToken(owner.address);
+    // Set up XTER contract
+    xter = await deployMajorToken(owner.address);
 
     // Set up splitter contract
     await expect(
-      deploySplitter(pvs.address, [], splitProportiones)
+      deploySplitter(xter.address, [], splitProportiones)
     ).to.be.revertedWith(
       "Splitter: address length must equal to proportion length"
     );
     splitter = await deploySplitter(
-      pvs.address,
+      xter.address,
       splitAddresses,
       splitProportiones
     );
 
-    await pvs.connect(owner).transfer(splitter.address, pvsAmount);
+    await xter.connect(owner).transfer(splitter.address, pvsAmount);
   });
 
   it("should pass output & reset test", async function () {
     const outputEvent = await splitter.output();
 
-    // console.log(await pvs.balanceOf(splitAddresses[0]));
-    // console.log(await pvs.balanceOf(splitAddresses[1]));
-    // console.log(await pvs.balanceOf(splitAddresses[2]));
+    // console.log(await xter.balanceOf(splitAddresses[0]));
+    // console.log(await xter.balanceOf(splitAddresses[1]));
+    // console.log(await xter.balanceOf(splitAddresses[2]));
 
-    expect(await pvs.balanceOf(splitAddresses[0])).to.equal(
+    expect(await xter.balanceOf(splitAddresses[0])).to.equal(
       (pvsAmount * splitProportiones[0]) / PROPORTION_DENOMINATOR
     );
-    expect(await pvs.balanceOf(splitAddresses[1])).to.equal(
+    expect(await xter.balanceOf(splitAddresses[1])).to.equal(
       (pvsAmount * splitProportiones[1]) / PROPORTION_DENOMINATOR
     );
-    expect(await pvs.balanceOf(splitAddresses[2])).to.equal(
+    expect(await xter.balanceOf(splitAddresses[2])).to.equal(
       (pvsAmount * splitProportiones[2]) / PROPORTION_DENOMINATOR
     );
 

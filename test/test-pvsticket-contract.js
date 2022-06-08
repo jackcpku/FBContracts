@@ -2,27 +2,27 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const { deployMajorToken, deployPVSTicket } = require("../lib/deploy");
 
-describe("Test Staking PVS..........", function () {
-  let pvs, sk; // Contract objects
+describe("Test Staking XTER..........", function () {
+  let xter, sk; // Contract objects
   const u1PVS = BigInt(1000000) * BigInt(10) ** BigInt(18);
 
   const oneHour = 60 * 60;
   const oneDay = 24 * oneHour;
   const sevenDays = 7 * oneDay;
 
-  TEST_OVERRIDES_FOR_REVERT = {gasLimit: 100000};
+  TEST_OVERRIDES_FOR_REVERT = { gasLimit: 100000 };
 
   beforeEach("contracts deployed.", async function () {
     await hre.network.provider.send("hardhat_reset");
 
     [owner, u1, burner, minter, u2] = await hre.ethers.getSigners();
-    pvs = await deployMajorToken(owner.address);
-    sk = await deployPVSTicket(pvs.address);
+    xter = await deployMajorToken(owner.address);
+    sk = await deployPVSTicket(xter.address);
   });
 
   describe("Dealing with staker", function () {
     beforeEach("init", async function () {
-      await pvs.transfer(u1.address, u1PVS);
+      await xter.transfer(u1.address, u1PVS);
     });
 
     it("init", async function () {
@@ -33,9 +33,9 @@ describe("Test Staking PVS..........", function () {
       expect(await sk.totalSupply()).to.equal(0);
     });
 
-    it("Test u1 stake & withdraw", async function() {
+    it("Test u1 stake & withdraw", async function () {
       const amtToStake = u1PVS / BigInt(2);
-      await pvs.connect(u1).approve(sk.address, amtToStake);
+      await xter.connect(u1).approve(sk.address, amtToStake);
       await sk.connect(u1).stake(amtToStake);
 
       expect(await sk.pvsAmount(u1.address)).to.equal(amtToStake);
@@ -45,7 +45,7 @@ describe("Test Staking PVS..........", function () {
       await ethers.provider.send('evm_increaseTime', [oneHour]);
       await ethers.provider.send('evm_mine');
       expect(await sk.balanceOf(u1.address)).to.equal(BigInt(await sk.calculateIncrement(u1.address)));
-      
+
       //after one day
       await ethers.provider.send('evm_increaseTime', [oneDay]);
       await ethers.provider.send('evm_mine');
@@ -79,10 +79,10 @@ describe("Test Staking PVS..........", function () {
 
   describe("Dealing with cross chain bridge", function () {
     beforeEach("init stake", async function () {
-      //stake some pvs for one week
-      await pvs.transfer(u1.address, u1PVS);
+      //stake some xter for one week
+      await xter.transfer(u1.address, u1PVS);
       const amtToStake = u1PVS;
-      await pvs.connect(u1).approve(sk.address, amtToStake);
+      await xter.connect(u1).approve(sk.address, amtToStake);
       await sk.connect(u1).stake(amtToStake);
       await ethers.provider.send('evm_increaseTime', [sevenDays]);
       await ethers.provider.send('evm_mine');
@@ -101,7 +101,7 @@ describe("Test Staking PVS..........", function () {
       const burning = await sk.connect(burner).burn(u1.address, u1TKTAmt);
       expect(burning).to.emit(sk, "Transfer").withArgs(u1.address, "0x0000000000000000000000000000000000000000", u1TKTAmt);
       expect(burning).to.emit(sk, "TicketBurned").withArgs(u1.address, burner.address, u1TKTAmt);
-      
+
       //removeBurner
       await sk.connect(owner).revokeRole(burnRole, burner.address);
       // await expect(sk.connect(burner).burn(burner.address, 0, TEST_OVERRIDES_FOR_REVERT)).to.be.revertedWith(`'AccessControl: account ${burner.address} is missing role ${burnRole}'`);
@@ -110,7 +110,7 @@ describe("Test Staking PVS..........", function () {
 
       //addMinter
       const mintAmt = BigInt(5) * BigInt(10) ** BigInt(18);
-      await sk.connect(owner).grantRole(mintRole, minter.address); 
+      await sk.connect(owner).grantRole(mintRole, minter.address);
 
       //mint
       const oldSupply = BigInt(await sk.totalSupply());
@@ -120,7 +120,7 @@ describe("Test Staking PVS..........", function () {
       expect(mint).to.emit(sk, "TicketMinted").withArgs(u1.address, minter.address, mintAmt);
 
       //remove Minter
-      await sk.connect(owner).revokeRole(mintRole ,minter.address);
+      await sk.connect(owner).revokeRole(mintRole, minter.address);
       // await expect(sk.connect(minter).mint(minter.address, mintAmt, TEST_OVERRIDES_FOR_REVERT)).to.be.revertedWith(`'AccessControl: account ${minter.address} is missing role ${mintRole}'`);
       await expect(sk.connect(minter).mint(minter.address, mintAmt)).to.be.reverted;
     });

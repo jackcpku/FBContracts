@@ -6,10 +6,10 @@ const { ethers } = require("hardhat");
 const royaltyRecipient = "0xE7b9D035919EC67C2a9F91ff7444749fdEaAEC89";
 const targetTokenAddr = "0xFE9d0b6faF0e2b3CE23D62b9bE0E471C533584a2";
 const targetTokenId = 1;
-const termNo = 2;
+const termNo = 5;
 const price = 150;
-const amount = 10;
-const listingTime = Date.UTC(2022, 5 - 1, 19, 00, 00, 00) / 1000
+const amount = 20;
+const listingTime = Date.UTC(2022, 5 - 1, 31, 00, 00, 00) / 1000
 
 const marketAddr = hre.addrs.marketplace;
 const paymentToken = hre.addrs.token;

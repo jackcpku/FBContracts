@@ -9,7 +9,7 @@ const {
 
 async function run(tc) {
   // Contracts
-  let gateway, nftfactory, marketplace, pvs;
+  let gateway, nftfactory, marketplace, xter;
   let basicERC721; // NFT contract deployed by basicERC721Manager.
   // Addresses
   let gatewayAdmin;
@@ -41,8 +41,8 @@ async function run(tc) {
     sellers["basicERC721Manager"] = basicERC721Manager;
 
     // Deploy ERC20 contract.
-    pvs = await deployMajorToken(platform.address);
-    await pvs.deployed();
+    xter = await deployMajorToken(platform.address);
+    await xter.deployed();
 
     // Deploy Gateway and Factory contract.
     ({ gateway, nftfactory } = await deployGatewayAndFactories(gatewayAdmin));
@@ -70,7 +70,7 @@ async function run(tc) {
     await marketplace.deployed();
 
     // Initialize the marketplace contract.
-    // await marketplace.setMainPaymentToken(pvs.address);
+    // await marketplace.setMainPaymentToken(xter.address);
     await marketplace.setServiceFeeRecipient(platform.address);
   }
   async function getOffers({
@@ -107,7 +107,7 @@ async function run(tc) {
       marketplaceAddress: marketplace.address,
       targetTokenAddress: basicERC721.address,
       targetTokenId: tokenId,
-      paymentTokenAddress: pvs.address,
+      paymentTokenAddress: xter.address,
       price: price,
       serviceFee: serviceFee,
       royaltyFee: royaltyFee,

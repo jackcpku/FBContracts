@@ -14,7 +14,7 @@ const basePVSTNum = BigNumber.from("1000000000000000000");
 
 describe("Test NFTElection Contract", function () {
   let gateway, nftfactory;
-  let vote, ticket, pvs, someERC721Contract;
+  let vote, ticket, xter, someERC721Contract;
   let owner, manager0, user0, user1;
 
   const pvsAmount = [100, 100];
@@ -36,13 +36,13 @@ describe("Test NFTElection Contract", function () {
 
     [owner, manager0, user0, user1] = await hre.ethers.getSigners();
 
-    // Set up PVS contract
-    pvs = await deployMajorToken(owner.address);
-    await pvs.transfer(user0.address, pvsAmount[0]);
-    await pvs.transfer(user1.address, pvsAmount[1]);
+    // Set up XTER contract
+    xter = await deployMajorToken(owner.address);
+    await xter.transfer(user0.address, pvsAmount[0]);
+    await xter.transfer(user1.address, pvsAmount[1]);
 
     // Set up Staking contract
-    ticket = await deployPVSTicket(pvs.address);
+    ticket = await deployPVSTicket(xter.address);
     const minterRole = await ticket.TICKET_MINTER_ROLE();
     await ticket.grantRole(minterRole, owner.address);
     await ticket.mint(user0.address, tktAmount[0]);
@@ -80,7 +80,7 @@ describe("Test NFTElection Contract", function () {
       .ERC721_mint(someNFTAddress, manager0.address, specialTokenId);
 
     // Set up NFTElection contract
-    vote = await deployElection(ticket.address, pvs.address);
+    vote = await deployElection(ticket.address, xter.address);
     await vote.setServiceFeeRecipient(owner.address);
     await vote.setManager(someERC721Contract.address, manager0.address);
 
@@ -150,14 +150,14 @@ describe("Test NFTElection Contract", function () {
 
     await vote
       .connect(manager0)
-      ["setPrice(uint256,uint256)"](electionId, fallbackPrice);
+    ["setPrice(uint256,uint256)"](electionId, fallbackPrice);
     await vote
       .connect(manager0)
-      ["setPrice(uint256,uint256,uint256)"](
-        electionId,
-        specialTokenId,
-        specialPrice
-      );
+    ["setPrice(uint256,uint256,uint256)"](
+      electionId,
+      specialTokenId,
+      specialPrice
+    );
 
     // No one is able to vote before listing time
     await expect(
@@ -186,14 +186,14 @@ describe("Test NFTElection Contract", function () {
     await expect(
       vote.connect(user0).vote(electionId, specialTokenId, basePVSTNum.mul(10))
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
-    // user0 approves vote of spending pvs
-    await pvs.connect(user0).approve(vote.address, basePVSTNum.mul(80));
+    // user0 approves vote of spending xter
+    await xter.connect(user0).approve(vote.address, basePVSTNum.mul(80));
     // user0 votes 0 and succeeds
     await vote
       .connect(user0)
       .vote(electionId, specialTokenId, basePVSTNum.mul(10));
     // user1 votes less or equal than user0 and fails
-    await pvs.connect(user1).approve(vote.address, basePVSTNum.mul(80));
+    await xter.connect(user1).approve(vote.address, basePVSTNum.mul(80));
     await expect(
       vote.connect(user1).vote(electionId, specialTokenId, basePVSTNum.mul(10))
     ).to.be.revertedWith("NFTElection: please vote more");
@@ -289,10 +289,10 @@ describe("Test NFTElection Contract", function () {
       currentTimestamp,
     ]);
 
-    // user0 approves vote of spending pvs
-    await pvs.connect(user0).approve(vote.address, 80);
-    // user1 approves vote of spending pvs
-    await pvs.connect(user1).approve(vote.address, 80);
+    // user0 approves vote of spending xter
+    await xter.connect(user0).approve(vote.address, 80);
+    // user1 approves vote of spending xter
+    await xter.connect(user1).approve(vote.address, 80);
 
     for (let day = 0; day < 7; day++) {
       // An hour before the current ddl

@@ -5,7 +5,7 @@ const hre = require("hardhat");
 const { deployMajorToken, deployFilter } = require("../lib/deploy.js");
 
 describe("Test Filter Contract", function () {
-  let filter, pvs;
+  let filter, xter;
   const pvsAmount = [10_000_000, 2_000];
 
   const ALPHA_DENOMINATOR = 10_000;
@@ -23,13 +23,13 @@ describe("Test Filter Contract", function () {
     await hre.network.provider.send("hardhat_reset");
     [owner, user0, user1] = await hre.ethers.getSigners();
 
-    // Set up PVS contract
-    pvs = await deployMajorToken(owner.address);
+    // Set up XTER contract
+    xter = await deployMajorToken(owner.address);
 
     // Set up filter contract
-    filter = await deployFilter(pvs.address, outputAddressOne, alpha);
+    filter = await deployFilter(xter.address, outputAddressOne, alpha);
 
-    await pvs.connect(owner).transfer(filter.address, pvsAmount[0]);
+    await xter.connect(owner).transfer(filter.address, pvsAmount[0]);
     await filter.connect(owner).setOutputAddress(outputAddressTwo);
     await filter.connect(owner).setAlpha(alpha);
   });
@@ -61,7 +61,7 @@ describe("Test Filter Contract", function () {
     const lastBalance = pvsAmount[0] - lastOut;
 
     //second filter
-    await pvs.connect(owner).transfer(filter.address, pvsAmount[1]);
+    await xter.connect(owner).transfer(filter.address, pvsAmount[1]);
     const secondFilter = await filter.output();
 
     // (alpha * newIn + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR
@@ -72,7 +72,7 @@ describe("Test Filter Contract", function () {
         alpha,
         outputAddressTwo,
         pvsAmount[1],
-        (alpha * pvsAmount[1] + (ALPHA_DENOMINATOR - alpha) * lastOut ) / ALPHA_DENOMINATOR,
+        (alpha * pvsAmount[1] + (ALPHA_DENOMINATOR - alpha) * lastOut) / ALPHA_DENOMINATOR,
         lastBalance
       );
   });

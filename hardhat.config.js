@@ -47,7 +47,7 @@ extendEnvironment((hre) => {
   switch (hre.network.name) {
     case "rinkeby":
       // token = "0x73Cc24A49DF675206E61dDb3f57BAA80C4844664";
-      token = "0x68944779E69686467189fE3e20b0751158103053";       //hzr's pvs
+      token = "0x68944779E69686467189fE3e20b0751158103053";       //hzr's xter
       presale = "0x5e317Bb79918C3451150E7cabf0706937952Fd52";
       vesting = "0xcac23BF1ebD991356930da8762a411a9F233933f";
       tokenGateway = "0x197560a2CB04721079225529aFbc53D65759a13C";
@@ -80,7 +80,7 @@ extendEnvironment((hre) => {
     token, vesting, presale, tokenGateway, nftFactory, erc20Factory, simpleLootBoxRegistry, marketplace, ppn, dividend, filter, splitter
   }
   hre.contracts = {
-    token: token == "" ? null : hre.ethers.getContractAt("PlayverseToken", token),
+    token: token == "" ? null : hre.ethers.getContractAt("XterToken", token),
     vesting: vesting == "" ? null : hre.ethers.getContractAt("Vesting", vesting),
     presale: presale == "" ? null : hre.ethers.getContractAt("Presale", presale),
     tokenGateway: tokenGateway == "" ? null : hre.ethers.getContractAt("TokenGateway", tokenGateway),

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 /**
  * The platform will release NFT in multiple periods, and addresses holding NFT can get a certain percentage of platform NFT Market revenue dividends.
  * This Contract is designed for helping the platform to calculate and distribute dividends for each nft in each period.
- * During a period, the incoming dividend pvs will be evenly distributed to all NFTs that have been released.
+ * During a period, the incoming dividend xter will be evenly distributed to all NFTs that have been released.
  */
 
 contract Dividend {
@@ -23,7 +23,7 @@ contract Dividend {
     // current period
     uint256 public currentPeriod;
 
-    // Total amount of PVS that has been claimed
+    // Total amount of XTER that has been claimed
     uint256 public totalClaimed;
 
     // Dividend that has been claimed by one PPN
@@ -32,7 +32,7 @@ contract Dividend {
     // Dividend that has been claimed by one address
     mapping(address => uint256) public addressClaimed;
 
-    // All pvs(dividend) at the beginning of current period
+    // All xter(dividend) at the beginning of current period
     uint256 public accumulatedPool;
 
     // accumulatedDividends[i] means the accumulated dividends for one PPN during period k where 0 <= k < i.
@@ -83,7 +83,7 @@ contract Dividend {
             block.timestamp >= periodStartTime[_newPeriod],
             "Dividend: the next period has not yet begun"
         );
-        // 1. At the beginning of _newPeriod, the dividend pool of the previous period is calculated and locked according to the real-time pvs balance.
+        // 1. At the beginning of _newPeriod, the dividend pool of the previous period is calculated and locked according to the real-time xter balance.
         uint256 lastPool = IERC20(pvsAddress).balanceOf(address(this)) +
             totalClaimed -
             accumulatedPool;
@@ -93,7 +93,7 @@ contract Dividend {
             accumulatedDividends[currentPeriod] + lastPool / releasedPPNAmount()
         );
 
-        // 3. accumulate pvs pool
+        // 3. accumulate xter pool
         accumulatedPool += lastPool;
 
         // 4. update period

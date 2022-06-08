@@ -58,13 +58,13 @@ contract NFTElection is
     // cp of the nft
     mapping(address => address) manager;
 
-    // PVS address
+    // XTER address
     address paymentTokenAddress;
 
     // Total margin of a voter, voter => amount
     mapping(address => uint256) margin;
 
-    // Minimum PVS margin amount
+    // Minimum XTER margin amount
     mapping(address => uint256) marginLocked;
 
     // Voting during [ddl - `saleEndDuration`, ddl) will extend DDL by `saleExtendDuration`
@@ -296,7 +296,7 @@ contract NFTElection is
     }
 
     /**
-     * When ex-voters didn't want their PVS locked in the margin account,
+     * When ex-voters didn't want their XTER locked in the margin account,
      * they call this function to withdraw their margin balance.
      *
      * @dev Called by voters.

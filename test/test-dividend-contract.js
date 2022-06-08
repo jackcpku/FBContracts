@@ -7,7 +7,7 @@ const {
 } = require("../lib/deploy");
 
 describe("Test NFT Dividend..........", function () {
-  let pvs, dd, gateway, nftfactory, feeRecipient;
+  let xter, dd, gateway, nftfactory, feeRecipient;
 
   const p1pvs = BigInt(6_000_000);
   const p2pvs = BigInt(12_000_000);
@@ -42,7 +42,7 @@ describe("Test NFT Dividend..........", function () {
 
     [owner, gatewayAdmin, feeRecipient, u1, u2, u3, u4] =
       await hre.ethers.getSigners();
-    pvs = await deployMajorToken(owner.address);
+    xter = await deployMajorToken(owner.address);
 
     //deploy nft factory
     ({ gateway, nftfactory } = await deployGatewayAndFactories(gatewayAdmin));
@@ -51,7 +51,7 @@ describe("Test NFT Dividend..........", function () {
       .connect(u2)
       .callStatic.deployBasicERC721("U2-contract", "U2T", "", BigInt(0));
 
-    dd = await deployDividend(pvs.address, nftContractAddress, periodStartTime);
+    dd = await deployDividend(xter.address, nftContractAddress, periodStartTime);
 
     //set start time for our blockchian
     await hre.network.provider.send("evm_setNextBlockTimestamp", [startTime]);
@@ -63,13 +63,13 @@ describe("Test NFT Dividend..........", function () {
       "Dividend: tokenId exceeded limit"
     );
     //add p1pvs to pool[1]
-    await pvs.transfer(dd.address, p1pvs);
+    await xter.transfer(dd.address, p1pvs);
     expect(await dd.totalDividend(1)).to.equal(p1pvs / p1Amt);
   });
 
   it("Test Period 2 :", async function () {
     // add p1pvs to pool[1]
-    await pvs.transfer(dd.address, p1pvs);
+    await xter.transfer(dd.address, p1pvs);
 
     const block = await hre.ethers.provider.getBlock("latest");
     await expect(dd.updatePeriod(1)).to.be.revertedWith(
@@ -86,7 +86,7 @@ describe("Test NFT Dividend..........", function () {
       "Dividend: the new period must be exactly one period after the present"
     );
     //add p2pvs to pool[2]
-    await pvs.transfer(dd.address, p2pvs);
+    await xter.transfer(dd.address, p2pvs);
     expect(await dd.totalDividend(1)).to.equal(
       p1pvs / p1Amt + p2pvs / (p1Amt + p2Amt)
     );
@@ -96,7 +96,7 @@ describe("Test NFT Dividend..........", function () {
 
   it("Test Period 3 :", async function () {
     //add p1pvs to pool[1]
-    await pvs.transfer(dd.address, p1pvs);
+    await xter.transfer(dd.address, p1pvs);
 
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -105,7 +105,7 @@ describe("Test NFT Dividend..........", function () {
     //period 2 begin
     await dd.updatePeriod(1);
     //add p2pvs to pool[2]
-    await pvs.transfer(dd.address, p2pvs);
+    await xter.transfer(dd.address, p2pvs);
 
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
@@ -113,7 +113,7 @@ describe("Test NFT Dividend..........", function () {
     ]);
     //period 3 begin
     await dd.updatePeriod(2);
-    await pvs.transfer(dd.address, p3pvs);
+    await xter.transfer(dd.address, p3pvs);
 
     expect(await dd.totalDividend(1)).to.equal(
       p1pvs / p1Amt + p2pvs / (p1Amt + p2Amt) + p3pvs / (p1Amt + p2Amt + p3Amt)
@@ -130,7 +130,7 @@ describe("Test NFT Dividend..........", function () {
 
   it("Test claim with fee", async function () {
     //add p1pvs to pool[1]
-    await pvs.transfer(dd.address, p1pvs);
+    await xter.transfer(dd.address, p1pvs);
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       startTime + periodStartTime[1],
@@ -138,14 +138,14 @@ describe("Test NFT Dividend..........", function () {
     //period 2 begin
     await dd.updatePeriod(1);
     //add p2pvs to pool[2]
-    await pvs.transfer(dd.address, p2pvs);
+    await xter.transfer(dd.address, p2pvs);
     // Speed up the clock to the second period
     await hre.network.provider.send("evm_setNextBlockTimestamp", [
       startTime + periodStartTime[2],
     ]);
     //period 3 begin
     await dd.updatePeriod(2);
-    await pvs.transfer(dd.address, p3pvs);
+    await xter.transfer(dd.address, p3pvs);
 
     // Let u2 deploy the contract.
     let u2Contract = await hre.ethers.getContractAt(
@@ -174,7 +174,7 @@ describe("Test NFT Dividend..........", function () {
     // await expect(dd.connect(u2).claim([u2nftId])).to.be.revertedWith(
     //   "Dividend: your dividend amount is less than the service fee"
     // );
-    // expect(await pvs.balanceOf(feeRecipient.address)).to.equal(serviceFee);
+    // expect(await xter.balanceOf(feeRecipient.address)).to.equal(serviceFee);
 
     // claim Batch
     const u2nftId1 = 100,
@@ -211,6 +211,6 @@ describe("Test NFT Dividend..........", function () {
       .to.emit(dd, "Claim")
       .withArgs(u2.address, u2nftId3, u2nftIdAmount3);
 
-    // expect(await pvs.balanceOf(feeRecipient.address)).to.equal(2 * serviceFee);
+    // expect(await xter.balanceOf(feeRecipient.address)).to.equal(2 * serviceFee);
   });
 });
