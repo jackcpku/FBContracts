@@ -21,6 +21,7 @@ contract NFTElection is
 
     // The ticket token used for voting
     address public ticketAddress;
+    uint256 public pvstDecimals;
 
     address public serviceFeeRecipient;
 
@@ -44,6 +45,8 @@ contract NFTElection is
         mapping(uint256 => uint256) maxVoted;
         // tokenId => winner
         mapping(uint256 => address) winner;
+        // tokenId => # voters
+        mapping(uint256 => uint256) numOfVoters;
         // tokenId => extendedExpirationTime
         // extendedExpirationTime keeps track of the extended duration (delta) of a ddl for each token
         mapping(uint256 => uint256) extendedExpirationTime;
@@ -138,6 +141,8 @@ contract NFTElection is
         __Ownable_init();
         ticketAddress = _ticketAddress;
         paymentTokenAddress = _pvsAddress;
+
+        pvstDecimals = IPVSTicket(_ticketAddress).decimals();
     }
 
     // Called by owner.
@@ -317,7 +322,11 @@ contract NFTElection is
         uint256 _electionId,
         uint256 _tokenId,
         uint256 _amount
-    ) external notCancelled(_electionId) {
+    )
+        external
+        notCancelled(_electionId)
+        requireTokenIdInElectionRange(_electionId, _tokenId)
+    {
         /******** CHECKS ********/
 
         address tokenAddress = electionInfo[_electionId].tokenAddress;
@@ -334,13 +343,20 @@ contract NFTElection is
         );
 
         // Check if vote amount is enough
-        uint256 totalVoted = electionInfo[_electionId].hasVoted[_tokenId][
+        uint256 hasVoted = electionInfo[_electionId].hasVoted[_tokenId][
             msg.sender
-        ] + _amount;
+        ];
+        uint256 totalVoted = hasVoted + _amount;
 
         require(
             totalVoted > electionInfo[_electionId].maxVoted[_tokenId],
             "NFTElection: please vote more"
+        );
+
+        // Check if the amount of PVST is a whole number
+        require(
+            _amount % (10**pvstDecimals) == 0,
+            "NFTElection: vote size should be a whole number"
         );
 
         // Check if the NFT has been transferred to this contract
@@ -350,6 +366,11 @@ contract NFTElection is
         );
 
         /******** EFFECTS ********/
+
+        // Increase the number of voters if msg.sender is a new voter
+        if (hasVoted == 0) {
+            electionInfo[_electionId].numOfVoters[_tokenId] += 1;
+        }
 
         // Burn the tickets
         IPVSTicket(ticketAddress).burn(msg.sender, _amount);
