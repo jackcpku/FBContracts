@@ -343,10 +343,10 @@ contract NFTElection is
         );
 
         // Check if vote amount is enough
-        uint256 hasVoted = electionInfo[_electionId].hasVoted[_tokenId][
+        uint256 hasVotedAmount = electionInfo[_electionId].hasVoted[_tokenId][
             msg.sender
         ];
-        uint256 totalVoted = hasVoted + _amount;
+        uint256 totalVoted = hasVotedAmount + _amount;
 
         require(
             totalVoted > electionInfo[_electionId].maxVoted[_tokenId],
@@ -368,7 +368,7 @@ contract NFTElection is
         /******** EFFECTS ********/
 
         // Increase the number of voters if msg.sender is a new voter
-        if (hasVoted == 0) {
+        if (hasVotedAmount == 0) {
             electionInfo[_electionId].numOfVoters[_tokenId] += 1;
         }
 
@@ -516,6 +516,28 @@ contract NFTElection is
                 _tokenId[i]
             );
         }
+    }
+
+    /**
+     * Query the number of voters of a certain nft
+     */
+    function numOfVoters(uint256 _electionId, uint256 _tokenId)
+        external
+        view
+        returns (uint256)
+    {
+        return electionInfo[_electionId].numOfVoters[_tokenId];
+    }
+
+    /**
+     * Query how many votes a certain voter has voted for a certain token
+     */
+    function hasVoted(
+        uint256 _electionId,
+        uint256 _tokenId,
+        address _voter
+    ) external view returns (uint256) {
+        return electionInfo[_electionId].hasVoted[_tokenId][_voter];
     }
 
     /**
