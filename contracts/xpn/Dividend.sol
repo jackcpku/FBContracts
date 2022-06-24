@@ -144,10 +144,11 @@ contract Dividend {
                 "Dividend: you are not the owner of the nft"
             );
             uint256 amount = totalDividend(_tokenId) - hasClaimed[_tokenId];
-            hasClaimed[_tokenId] += amount;
-
-            emit Claim(msg.sender, _tokenId, amount);
-            totalAmount += amount;
+            if (amount > 0) {
+                hasClaimed[_tokenId] += amount;
+                emit Claim(msg.sender, _tokenId, amount);
+                totalAmount += amount;
+            }
         }
         totalClaimed += totalAmount;
         addressClaimed[msg.sender] += totalAmount;
