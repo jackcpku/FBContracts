@@ -150,14 +150,14 @@ describe("Test NFTElection Contract", function () {
 
     await vote
       .connect(manager0)
-    ["setPrice(uint256,uint256)"](electionId, fallbackPrice);
+      ["setPrice(uint256,uint256)"](electionId, fallbackPrice);
     await vote
       .connect(manager0)
-    ["setPrice(uint256,uint256,uint256)"](
-      electionId,
-      specialTokenId,
-      specialPrice
-    );
+      ["setPrice(uint256,uint256,uint256)"](
+        electionId,
+        specialTokenId,
+        specialPrice
+      );
 
     // No one is able to vote before listing time
     await expect(
@@ -188,10 +188,24 @@ describe("Test NFTElection Contract", function () {
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
     // user0 approves vote of spending xter
     await xter.connect(user0).approve(vote.address, baseXTERTNum.mul(80));
+
+    // Test view functions
+    expect(await vote.numOfVoters(electionId, specialTokenId)).to.equal(0);
+    expect(
+      await vote.hasVoted(electionId, specialTokenId, user0.address)
+    ).to.equal(0);
+
     // user0 votes 0 and succeeds
     await vote
       .connect(user0)
       .vote(electionId, specialTokenId, baseXTERTNum.mul(10));
+
+    // Test view functions
+    expect(await vote.numOfVoters(electionId, specialTokenId)).to.equal(1);
+    expect(
+      await vote.hasVoted(electionId, specialTokenId, user0.address)
+    ).to.equal(baseXTERTNum.mul(10));
+
     // user1 votes less or equal than user0 and fails
     await xter.connect(user1).approve(vote.address, baseXTERTNum.mul(80));
     await expect(
