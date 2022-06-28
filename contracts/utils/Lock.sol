@@ -8,12 +8,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Lock is Ownable {
     using SafeERC20 for IERC20;
 
-    address tokenAddress;
     uint256 expirationTime;
 
     address recipient;
 
-    event Withdraw(uint256 amount);
+    event Withdraw(address tokenAddress, uint256 amount);
+
+    event ExtendLockingPeriod(address operator, uint256 numOfDays);
 
     modifier afterExpiration() {
         require(
@@ -23,24 +24,29 @@ contract Lock is Ownable {
         _;
     }
 
-    constructor(address _tokenAddress, address _recipient) {
-        tokenAddress = _tokenAddress;
+    constructor(address _recipient) {
         recipient = _recipient;
 
-        expirationTime = block.timestamp;
+        expirationTime = block.timestamp + 1 days;
     }
 
     function extendLockingPeriod(uint256 _days) external {
         expirationTime += _days * 1 days;
+
+        emit ExtendLockingPeriod(msg.sender, _days);
     }
 
-    function withdraw(uint256 _amount) external onlyOwner afterExpiration {
-        IERC20(tokenAddress).safeTransferFrom(
+    function withdraw(address _tokenAddress, uint256 _amount)
+        external
+        onlyOwner
+        afterExpiration
+    {
+        IERC20(_tokenAddress).safeTransferFrom(
             address(this),
             recipient,
             _amount
         );
 
-        emit Withdraw(_amount);
+        emit Withdraw(_tokenAddress, _amount);
     }
 }
