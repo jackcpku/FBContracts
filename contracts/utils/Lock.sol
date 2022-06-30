@@ -10,9 +10,7 @@ contract Lock is Ownable {
 
     uint256 expirationTime;
 
-    address recipient;
-
-    event Withdraw(address tokenAddress, uint256 amount);
+    event Withdraw(address recipient, address tokenAddress, uint256 amount);
 
     event ExtendLockingPeriod(address operator, uint256 numOfDays);
 
@@ -24,29 +22,28 @@ contract Lock is Ownable {
         _;
     }
 
-    constructor(address _recipient) {
-        recipient = _recipient;
-
-        expirationTime = block.timestamp + 1 days;
+    constructor(uint256 _days) {
+        expirationTime = block.timestamp + _days * 1 days;
     }
 
     function extendLockingPeriod(uint256 _days) external {
+        // Are there overflow concerns?
         expirationTime += _days * 1 days;
 
         emit ExtendLockingPeriod(msg.sender, _days);
     }
 
-    function withdraw(address _tokenAddress, uint256 _amount)
-        external
-        onlyOwner
-        afterExpiration
-    {
+    function withdraw(
+        address _recipient,
+        address _tokenAddress,
+        uint256 _amount
+    ) external onlyOwner afterExpiration {
         IERC20(_tokenAddress).safeTransferFrom(
             address(this),
-            recipient,
+            _recipient,
             _amount
         );
 
-        emit Withdraw(_tokenAddress, _amount);
+        emit Withdraw(_recipient, _tokenAddress, _amount);
     }
 }
